@@ -28,7 +28,6 @@ int main() {
 
     Lexer lexer{source_code};
     std::vector<Token> tokens = lexer.tokenize();
-    for (Token t : tokens) {
-        std::cout << t << std::endl;
-    }
+    Parser parser{tokens};
+    std::vector<std::unique_ptr<ASTNode>> statements = parser.parse();
 }

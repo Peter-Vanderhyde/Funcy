@@ -35,10 +35,10 @@ extern std::map<char, TokenType> char_tokens;
 class Token{
 public:
     TokenType type;
-    std::variant<int, float, std::string, bool> value;
+    std::variant<int, double, std::string, bool> value;
     int line, column;
 
-    Token(TokenType type, const std::variant<int, float, std::string, bool>& value, int line, int column)
+    Token(TokenType type, const std::variant<int, double, std::string, bool>& value, int line, int column)
         : type{type}, value{value}, line{line}, column{column} {}
     
     Token(TokenType type, int line, int column)

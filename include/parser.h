@@ -7,23 +7,10 @@
 
 
 
-class ParseError {
-public:
-    ParseError(const std::string& message, int line, int column)
-        : message{message}, line{line}, column{column} {}
-
-    std::string getMessage() const;
-    int getLine() const;
-    int getColumn() const;
-
-private:
-    std::string message;
-    int line;
-    int column;
-};
 
 class ASTNode {
 public:
+    std::string thing = "Thing";
     virtual ~ASTNode() noexcept = default;
     // You can add virtual methods or common properties here
 };
@@ -69,12 +56,12 @@ private:
     std::unique_ptr<ASTNode> right;
 };
 
-class ParenthesesOpNode : public ASTNode {
+class ParenthesisOpNode : public ASTNode {
 public:
-    ParenthesesOpNode(char open, std::unique_ptr<ASTNode> expr, char close)
+    ParenthesisOpNode(char open, std::unique_ptr<ASTNode> expr, char close)
         : open{open}, expr{std::move(expr)}, close{close} {}
     
-    ~ParenthesesOpNode() noexcept override = default;
+    ~ParenthesisOpNode() noexcept override = default;
 private:
     char open;
     std::unique_ptr<ASTNode> expr;
@@ -86,15 +73,14 @@ public:
     Parser(const std::vector<Token>& tokens)
         : tokens{tokens} {}
     
-
+    std::vector<std::unique_ptr<ASTNode>> parse();
 private:
     const std::vector<Token>& tokens;
-    size_t token_index = -1;
-    ASTNode root;
+    size_t token_index = 0;
 
-    const Token getToken() const;
-    const Token consume();
-    std::optional<Token> peek(int ahead=1) const;
+    const Token* getToken() const;
+    const Token* consume();
+    std::optional<const Token*> peek(int ahead=1) const;
     std::string getTokenStr() const;
     bool tokenIs(std::string str) const;
 

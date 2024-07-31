@@ -58,6 +58,8 @@ std::map<char, TokenType> char_tokens{
     {'}', TokenType::_CloseCurly}
 };
 
+std::map<std::string, TokenType> keyword_tokens;
+
 
 std::ostream& operator<<(std::ostream& os, const Token& token) {
     os << "Token(";
@@ -78,7 +80,7 @@ std::ostream& operator<<(std::ostream& os, const Token& token) {
         }
     }
     else {
-        // Always print integers and floats
+        // Always print integers and doubles
         os << ", ";
         std::visit([&os](const auto& val) { os << val; }, token.value);
     }
@@ -88,12 +90,14 @@ std::ostream& operator<<(std::ostream& os, const Token& token) {
     return os;
 }
 
+
+
 char Lexer::getNextCharacter() {
     char next = source_code[current_position];
     current_position += 1;
     column += 1;
     if (next == '\n') {
-        column = 0;
+        column = 1;
         line += 1;
     }
     return next;
@@ -104,12 +108,12 @@ char Lexer::peekNextCharacter() {
 }
 
 void Lexer::handleError(std::string message, int l, int c) {
-    throw std::runtime_error(std::format("Error! {} -> line:{} column:{}", message, l + 1, c));
+    throw std::runtime_error(std::format("{} at line {} column {}", message, l, c));
 }
 
 std::vector<Token> Lexer::tokenize() {
-    line = 0;
-    column = 0;
+    line = 1;
+    column = 1;
     while (current_position < source_code.length()) {
         char character = getNextCharacter();
 
@@ -170,7 +174,7 @@ std::vector<Token> Lexer::tokenize() {
                 }
 
                 if (current_position >= source_code.length()) {
-                    handleError("String missing closing quotes.", l, c);
+                    handleError("Expected '\"'", l, c);
                 }
 
                 getNextCharacter();
@@ -186,7 +190,7 @@ std::vector<Token> Lexer::tokenize() {
                     }
                     else if (next == '.') {
                         // Two decimals in a float
-                        handleError("Float has too many decimals.", line, column);
+                        handleError("Float has too many decimals ", line, column);
                     }
 
                     literal += getNextCharacter();
