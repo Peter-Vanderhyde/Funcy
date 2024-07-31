@@ -1,7 +1,9 @@
+#pragma once
 #include <variant>
 #include <string>
 #include <vector>
 #include <map>
+#include <iostream>
 
 enum class TokenType{
     _Identifier,
@@ -17,27 +19,24 @@ enum class TokenType{
     _OpenParen,
     _CloseParen,
     _EndOfFile,
-    _Boolean
+    _Boolean,
+    _OpenCurly,
+    _CloseCurly
 };
 
-std::map<std::string, TokenType> keyword_tokens{
-};
+extern std::map<TokenType, std::string> token_labels;
 
-std::map<char, TokenType> op_tokens{
-    {'+', TokenType::_Plus},
-    {'-', TokenType::_Minus},
-    {'*', TokenType::_Multiply},
-    {'/', TokenType::_Divide},
-    {'=', TokenType::_Equals}
-};
+extern std::map<std::string, TokenType> keyword_tokens;
+
+extern std::map<char, TokenType> char_tokens;
 
 class Token{
 public:
     TokenType type;
-    std::variant<int, float, std::string> value;
+    std::variant<int, float, std::string, bool> value;
     int line, column;
 
-    Token(TokenType type, const std::variant<int, float, std::string>& value, int line, int column)
+    Token(TokenType type, const std::variant<int, float, std::string, bool>& value, int line, int column)
         : type{type}, value{value}, line{line}, column{column} {}
     
     Token(TokenType type, int line, int column)
@@ -47,16 +46,20 @@ public:
         }
 };
 
+std::ostream& operator<<(std::ostream& os, const Token& token);
+
 class Lexer {
 public:
     Lexer(std::string source_code)
         : source_code{std::move(source_code)} {}
+    
+    std::vector<Token> tokenize();
 private:
     std::string source_code;
     int current_position, line, column;
     std::vector<Token> tokens;
 
-    char get_next_character();
-    char peek_next_character();
-    void tokenize();
+    char getNextCharacter();
+    char peekNextCharacter();
+    void handleError(std::string message, int l, int c);
 };
