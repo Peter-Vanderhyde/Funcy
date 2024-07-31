@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "parser.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
