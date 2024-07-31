@@ -3,6 +3,29 @@
 
 
 
+std::ostream& operator<<(std::ostream& os, TokenType type) {
+    switch (type) {
+        case TokenType::_Identifier: os << "Identifier"; break;
+        case TokenType::_Float: os << "Float"; break;
+        case TokenType::_Integer: os << "Integer"; break;
+        case TokenType::_String: os << "String"; break;
+        case TokenType::_Semi: os << "Semi"; break;
+        case TokenType::_Plus: os << "Plus"; break;
+        case TokenType::_Minus: os << "Minus"; break;
+        case TokenType::_Multiply: os << "Multiply"; break;
+        case TokenType::_Divide: os << "Divide"; break;
+        case TokenType::_Equals: os << "Equals"; break;
+        case TokenType::_OpenParen: os << "OpenParen"; break;
+        case TokenType::_CloseParen: os << "CloseParen"; break;
+        case TokenType::_EndOfFile: os << "EndOfFile"; break;
+        case TokenType::_Boolean: os << "Boolean"; break;
+        case TokenType::_OpenCurly: os << "OpenCurly"; break;
+        case TokenType::_CloseCurly: os << "CloseCurly"; break;
+        default: os << "Unknown"; break;
+    }
+    return os;
+}
+
 std::map<TokenType, std::string> token_labels {
     {TokenType::_Identifier, "Ident"},
     {TokenType::_Float, "Float"},
@@ -20,9 +43,6 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Boolean, "Bool"},
     {TokenType::_OpenCurly, "{"},
     {TokenType::_CloseCurly, "}"}
-};
-
-std::map<std::string, TokenType> keyword_tokens{
 };
 
 std::map<char, TokenType> char_tokens{

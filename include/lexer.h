@@ -24,6 +24,8 @@ enum class TokenType{
     _CloseCurly
 };
 
+std::ostream& operator<<(std::ostream& os, TokenType type);
+
 extern std::map<TokenType, std::string> token_labels;
 
 extern std::map<std::string, TokenType> keyword_tokens;
