@@ -10,7 +10,6 @@
 
 class ASTNode {
 public:
-    std::string thing = "Thing";
     virtual ~ASTNode() noexcept = default;
     // You can add virtual methods or common properties here
 };
@@ -39,7 +38,6 @@ public:
     
     ~BinaryOpNode() noexcept override = default;
 
-private:
     std::unique_ptr<ASTNode> left;
     char op;  // Operator like +, -, *, /
     std::unique_ptr<ASTNode> right;
@@ -51,7 +49,7 @@ public:
         : op{op}, right{std::move(right)} {}
     
     ~UnaryOpNode() noexcept override = default;
-private:
+
     char op;
     std::unique_ptr<ASTNode> right;
 };
@@ -62,7 +60,7 @@ public:
         : open{open}, expr{std::move(expr)}, close{close} {}
     
     ~ParenthesisOpNode() noexcept override = default;
-private:
+
     char open;
     std::unique_ptr<ASTNode> expr;
     char close;

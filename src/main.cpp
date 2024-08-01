@@ -1,5 +1,6 @@
 #include "lexer.h"
 #include "parser.h"
+#include "ast_printer.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -30,4 +31,6 @@ int main() {
     std::vector<Token> tokens = lexer.tokenize();
     Parser parser{tokens};
     std::vector<std::unique_ptr<ASTNode>> statements = parser.parse();
+    ASTPrinter printer;
+    printer.print(statements);
 }
