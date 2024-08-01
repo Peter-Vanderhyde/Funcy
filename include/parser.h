@@ -3,6 +3,7 @@
 #include <format>
 #include <optional>
 #include <memory>
+#include <math.h>
 #include "lexer.h"
 
 
@@ -11,7 +12,7 @@
 class ASTNode {
 public:
     virtual ~ASTNode() noexcept = default;
-    // You can add virtual methods or common properties here
+    virtual double evaluate() const = 0;
 };
 
 // Node for numeric literals
@@ -19,6 +20,8 @@ class NumberNode : public ASTNode {
 public:
     NumberNode(double value) : value(value) {}
     NumberNode(int value) : value(value) {}
+
+    double evaluate() const override;
 
     std::variant<int, double> getValue() const;
     bool isInteger() const;
@@ -38,6 +41,8 @@ public:
     
     ~BinaryOpNode() noexcept override = default;
 
+    double evaluate() const override;
+
     std::unique_ptr<ASTNode> left;
     char op;  // Operator like +, -, *, /
     std::unique_ptr<ASTNode> right;
@@ -50,6 +55,8 @@ public:
     
     ~UnaryOpNode() noexcept override = default;
 
+    double evaluate() const override;
+
     char op;
     std::unique_ptr<ASTNode> right;
 };
@@ -60,6 +67,8 @@ public:
         : open{open}, expr{std::move(expr)}, close{close} {}
     
     ~ParenthesisOpNode() noexcept override = default;
+
+    double evaluate() const override;
 
     char open;
     std::unique_ptr<ASTNode> expr;

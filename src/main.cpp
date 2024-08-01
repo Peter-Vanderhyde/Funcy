@@ -31,6 +31,12 @@ int main() {
     std::vector<Token> tokens = lexer.tokenize();
     Parser parser{tokens};
     std::vector<std::unique_ptr<ASTNode>> statements = parser.parse();
-    ASTPrinter printer;
-    printer.print(statements);
+    int stmnt_num = 0;
+    for (const auto& statement : statements) {
+        stmnt_num += 1;
+        double result = statement->evaluate();
+        std::cout << std::format("Result {}: {}", stmnt_num, result) << std::endl;
+    }
+    // ASTPrinter printer;
+    // printer.print(statements);
 }

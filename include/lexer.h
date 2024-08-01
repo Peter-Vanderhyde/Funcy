@@ -54,7 +54,7 @@ std::ostream& operator<<(std::ostream& os, const Token& token);
 class Lexer {
 public:
     Lexer(std::string source_code)
-        : source_code{std::move(source_code)} {}
+        : source_code{std::move(source_code)}, current_position{0}, line{1}, column{1} {}
     
     std::vector<Token> tokenize();
 private:

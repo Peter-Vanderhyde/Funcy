@@ -1,8 +1,25 @@
 #include "parser.h"
 
 
+void handleError(const std::string& message, int line, int column) {
+    if (line > 0 && column > 0) {
+        throw std::runtime_error(std::format("{} at line {} column {}", message, line, column));
+    } else {
+        throw std::runtime_error(message);
+    }
+}
 
 
+double NumberNode::evaluate() const {
+    if (isInteger()) {
+        return static_cast<double>(getInteger());
+    } else if (isFloat()) {
+        return getFloat();
+    } else {
+        handleError("Unable to evaluate number value.", 0, 0);
+        return 0.0;
+    }
+}
 
 std::variant<int, double> NumberNode::getValue() const {
     return value;
@@ -25,9 +42,42 @@ double NumberNode::getFloat() const {
 }
 
 
+double BinaryOpNode::evaluate() const {
+    double left_value = left->evaluate();
+    double right_value = right->evaluate();
+    switch (op) {
+        case '+':
+            return left_value + right_value;
+        case '-':
+            return left_value - right_value;
+        case '*':
+            return left_value * right_value;
+        case '/':
+            return left_value / right_value;
+        case '^':
+            return std::pow(left_value, right_value);
+        default:
+            handleError(std::format("Unknown binary operator {}.", op), 0, 0);
+            return 0.0;
+    }
+}
 
-void handleError(const std::string& message, int line, int column) {
-    throw std::runtime_error(std::format("{} at line {} column {}", message, line, column));
+double UnaryOpNode::evaluate() const {
+    double right_value = right->evaluate();
+    switch (op) {
+        case '-':
+            return -right_value;
+        case '+':
+            return right_value;
+        default:
+            handleError(std::format("Unknown unary operator {}.", op), 0, 0);
+            return 0.0;
+    }
+}
+
+double ParenthesisOpNode::evaluate() const {
+    double expr_value = expr->evaluate();
+    return expr_value;
 }
 
 
