@@ -21,6 +21,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Boolean: os << "Boolean"; break;
         case TokenType::_OpenCurly: os << "OpenCurly"; break;
         case TokenType::_CloseCurly: os << "CloseCurly"; break;
+        case TokenType::_Caret: os << "Caret"; break;
         default: os << "Unknown"; break;
     }
     return os;
@@ -42,7 +43,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_EndOfFile, "EOF"},
     {TokenType::_Boolean, "Bool"},
     {TokenType::_OpenCurly, "{"},
-    {TokenType::_CloseCurly, "}"}
+    {TokenType::_CloseCurly, "}"},
+    {TokenType::_Caret, "^"}
 };
 
 std::map<char, TokenType> char_tokens{
@@ -55,7 +57,8 @@ std::map<char, TokenType> char_tokens{
     {')', TokenType::_CloseParen},
     {';', TokenType::_Semi},
     {'{', TokenType::_OpenCurly},
-    {'}', TokenType::_CloseCurly}
+    {'}', TokenType::_CloseCurly},
+    {'^', TokenType::_Caret}
 };
 
 std::map<std::string, TokenType> keyword_tokens;

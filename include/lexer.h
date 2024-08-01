@@ -21,7 +21,8 @@ enum class TokenType{
     _EndOfFile,
     _Boolean,
     _OpenCurly,
-    _CloseCurly
+    _CloseCurly,
+    _Caret
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);
