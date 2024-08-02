@@ -5,6 +5,7 @@
 #include <memory>
 #include <math.h>
 #include "lexer.h"
+#include "environment.h"
 
 
 
@@ -12,16 +13,16 @@
 class ASTNode {
 public:
     virtual ~ASTNode() noexcept = default;
-    virtual double evaluate() const = 0;
+    virtual std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const = 0;
 };
 
 // Node for numeric literals
 class NumberNode : public ASTNode {
 public:
-    NumberNode(double value) : value(value) {}
-    NumberNode(int value) : value(value) {}
+    NumberNode(double value) : value{value} {}
+    NumberNode(int value) : value{value} {}
 
-    double evaluate() const override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
 
     std::variant<int, double> getValue() const;
     bool isInteger() const;
@@ -29,8 +30,17 @@ public:
     int getInteger() const;
     double getFloat() const;
     
-private:
     std::variant<int, double> value;
+};
+
+// Node for variables and keywords
+class IdentifierNode : public ASTNode {
+public:
+    IdentifierNode(std::string value) : value{value} {}
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
+
+    std::string value;
 };
 
 // Node for binary operations (e.g., +, -, *, /, ^)
@@ -41,7 +51,7 @@ public:
     
     ~BinaryOpNode() noexcept override = default;
 
-    double evaluate() const override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
 
     std::unique_ptr<ASTNode> left;
     char op;  // Operator like +, -, *, /
@@ -55,7 +65,7 @@ public:
     
     ~UnaryOpNode() noexcept override = default;
 
-    double evaluate() const override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
 
     char op;
     std::unique_ptr<ASTNode> right;
@@ -63,16 +73,14 @@ public:
 
 class ParenthesisOpNode : public ASTNode {
 public:
-    ParenthesisOpNode(char open, std::unique_ptr<ASTNode> expr, char close)
-        : open{open}, expr{std::move(expr)}, close{close} {}
+    ParenthesisOpNode(std::unique_ptr<ASTNode> expr)
+        : expr{std::move(expr)} {}
     
     ~ParenthesisOpNode() noexcept override = default;
 
-    double evaluate() const override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
 
-    char open;
     std::unique_ptr<ASTNode> expr;
-    char close;
 };
 
 class Parser {
@@ -87,14 +95,16 @@ private:
 
     const Token* getToken() const;
     const Token* consume();
-    std::optional<const Token*> peek(int ahead=1) const;
+    std::optional<const Token*> peek(int ahead) const;
     std::string getTokenStr() const;
     bool tokenIs(std::string str) const;
 
+    std::unique_ptr<ASTNode> parseStatement();
     std::unique_ptr<ASTNode> parseExpression();
     std::unique_ptr<ASTNode> parseTerm();
     std::unique_ptr<ASTNode> parseFactor();
     std::unique_ptr<ASTNode> parsePower();
     std::unique_ptr<ASTNode> parsePrimary();
     std::unique_ptr<ASTNode> parseNumber();
+    std::unique_ptr<ASTNode> parseIdentifier();
 };

@@ -10,14 +10,14 @@ void handleError(const std::string& message, int line, int column) {
 }
 
 
-double NumberNode::evaluate() const {
+std::optional<std::shared_ptr<Value>> NumberNode::evaluate(Environment& env) const {
     if (isInteger()) {
-        return static_cast<double>(getInteger());
+        return std::make_shared<Value>(getInteger());
     } else if (isFloat()) {
-        return getFloat();
+        return std::make_shared<Value>(getFloat());
     } else {
         handleError("Unable to evaluate number value.", 0, 0);
-        return 0.0;
+        return std::nullopt;
     }
 }
 
@@ -42,41 +42,114 @@ double NumberNode::getFloat() const {
 }
 
 
-double BinaryOpNode::evaluate() const {
-    double left_value = left->evaluate();
-    double right_value = right->evaluate();
-    switch (op) {
-        case '+':
-            return left_value + right_value;
-        case '-':
-            return left_value - right_value;
-        case '*':
-            return left_value * right_value;
-        case '/':
-            return left_value / right_value;
-        case '^':
-            return std::pow(left_value, right_value);
-        default:
-            handleError(std::format("Unknown binary operator {}.", op), 0, 0);
-            return 0.0;
+std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env) const {
+    if (env.has(value)) {
+        return env.get(value);
+    } else {
+        return {};
     }
 }
 
-double UnaryOpNode::evaluate() const {
-    double right_value = right->evaluate();
-    switch (op) {
-        case '-':
-            return -right_value;
-        case '+':
+
+std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) const {
+    // Postpone evaluating left
+    std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
+
+    if (op == '=') {
+        // An equals is a special case
+        if (!right_value.has_value()) {
+            throw std::runtime_error("Failed to set variable. Operand could not be computed.");
+        }
+
+        // Give it the actual left string, not the value of the variable
+        if (auto identifierNode = dynamic_cast<IdentifierNode*>(left.get())) {
+            env.set(identifierNode->value, right_value.value());
+        }
+        else {
+            throw std::runtime_error("The operator '=' can only be used with variables.");
+        }
+    }
+    else {
+        std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
+        // Arithmetic operations need two values to operate on
+        if (!left_value.has_value() || !right_value.has_value()) {
+            throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': one or both operands could not be computed.",
+                                            op));
+        }
+
+        std::string LHS = getValueStr(left_value.value());
+        std::string RHS = getValueStr(right_value.value());
+
+
+        if (LHS == "int" && RHS == "int") {
+            int lhs = std::get<int>(*left_value.value().get());
+            int rhs = std::get<int>(*right_value.value().get());
+            if (op == '+') return std::make_shared<Value>(lhs + rhs);
+            else if (op == '-') return std::make_shared<Value>(lhs - rhs);
+            else if (op == '*') return std::make_shared<Value>(lhs * rhs);
+            else if (op == '/') {
+                if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
+                return std::make_shared<Value>(lhs / rhs);
+            }
+            else if (op == '^') return std::make_shared<Value>(std::pow(lhs, rhs));
+        }
+        else if (LHS == "double" && RHS == "double") {
+            double lhs = std::get<double>(*left_value.value().get());
+            double rhs = std::get<double>(*right_value.value().get());
+            if (op == '+') return std::make_shared<Value>(lhs + rhs);
+            else if (op == '-') return std::make_shared<Value>(lhs - rhs);
+            else if (op == '*') return std::make_shared<Value>(lhs * rhs);
+            else if (op == '/') {
+                if (rhs == 0.0) throw std::runtime_error("Attempted division by 0.");
+                return std::make_shared<Value>(lhs / rhs);
+            }
+            else if (op == '^') return std::make_shared<Value>(std::pow(lhs, rhs));
+        }
+        else if (LHS == "string" && RHS == "string") {
+            std::string lhs = std::get<std::string>(*left_value.value().get());
+            std::string rhs = std::get<std::string>(*right_value.value().get());
+            if (op == '+') return std::make_shared<Value>(lhs + rhs);
+        }
+        
+        throw std::runtime_error(std::format("Unsupported operand types for operation. operation was {} '{}' {}", LHS, op, RHS));
+    }
+    return std::nullopt;
+}
+
+std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) const {
+    std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
+    if (!right_value.has_value()) {
+        throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': the operand could not be computed.",
+                                         op));
+    }
+
+    std::string RHS = getValueStr(right_value.value());
+
+    if (RHS == "int") {
+        if (op == '-') {
+            int rhs = std::get<int>(*right_value.value().get());
+            return std::make_shared<Value>(-rhs);
+        }
+        else if (op == '+') {
             return right_value;
-        default:
-            handleError(std::format("Unknown unary operator {}.", op), 0, 0);
-            return 0.0;
+        }
     }
+    else if (RHS == "double") {
+        if (op == '-') {
+            double rhs = std::get<double>(*right_value.value().get());
+            return std::make_shared<Value>(-rhs);
+        }
+        else if (op == '+') {
+            return right_value;
+        }
+    }
+
+    throw std::runtime_error(std::format("Unsupported operand types for operation. operation was '{}' {}", op, RHS));
+    return std::nullopt;
 }
 
-double ParenthesisOpNode::evaluate() const {
-    double expr_value = expr->evaluate();
+std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& env) const {
+    std::optional<std::shared_ptr<Value>> expr_value = expr->evaluate(env);
     return expr_value;
 }
 
@@ -89,7 +162,7 @@ const Token* Parser::getToken() const {
 std::vector<std::unique_ptr<ASTNode>> Parser::parse() {
     std::vector<std::unique_ptr<ASTNode>> statements;
     while (getToken()->type != TokenType::_EndOfFile) {
-        statements.push_back(parseExpression());
+        statements.push_back(parseStatement());
         if (getToken()->type != TokenType::_Semi) {
             handleError("Expected ';'", getToken()->line, getToken()->column);
         }
@@ -111,6 +184,15 @@ const Token* Parser::consume() {
     return t;
 }
 
+std::optional<const Token*> Parser::peek(int ahead=1) const {
+    if (token_index + ahead >= tokens.size()) {
+        return &tokens.back();
+    }
+    else {
+        return &tokens.at(token_index + ahead);
+    }
+}
+
 std::string Parser::getTokenStr() const {
     return token_labels[getToken()->type];
 }
@@ -119,6 +201,25 @@ bool Parser::tokenIs(std::string str) const {
     return str == getTokenStr();
 }
 
+
+std::unique_ptr<ASTNode> Parser::parseStatement() {
+    if (tokenIs("Ident") && peek().has_value() && peek().value()->type == TokenType::_Equals) {
+        auto left = parseIdentifier();
+        if (!tokenIs("=")) {
+            handleError(std::format("Expected '=', but got {}", getTokenStr()), getToken()->line, getToken()->column);
+        }
+
+        char op = '=';
+        consume();
+        auto right = parseExpression();
+        return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
+    }
+    else {
+        auto expr = parseExpression();
+        // This is pretty cheaty
+        return std::make_unique<ParenthesisOpNode>(std::move(expr));
+    }
+}
 
 std::unique_ptr<ASTNode> Parser::parseExpression() {
     auto left = parseTerm();
@@ -179,7 +280,10 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
             handleError("Expected ')'", getToken()->line, getToken()->column);
         }
         consume();
-        return std::make_unique<ParenthesisOpNode>('(', std::move(expr), ')');
+        return std::make_unique<ParenthesisOpNode>(std::move(expr));
+    }
+    else if (tokenIs("Ident")) {
+        return parseIdentifier();
     }
     else {
         return parseNumber();
@@ -200,6 +304,23 @@ std::unique_ptr<ASTNode> Parser::parseNumber() {
     }
     else {
         handleError(std::format("Expected number but got {}", getTokenStr()), getToken()->line, getToken()->column);
+    }
+    return nullptr;
+}
+
+std::unique_ptr<ASTNode> Parser::parseIdentifier() {
+    if (tokenIs("Ident")) {
+        const Token* token = getToken();
+        consume();
+        if (auto ident_value = std::get_if<std::string>(&token->value)) {
+            return std::make_unique<IdentifierNode>(*ident_value);
+        }
+        else {
+            handleError("Attempted to create an identifier with an invalid type", token->line, token->column);
+        }
+    }
+    else {
+        handleError(std::format("Expected identifier but got {}", getTokenStr()), getToken()->line, getToken()->column);
     }
     return nullptr;
 }

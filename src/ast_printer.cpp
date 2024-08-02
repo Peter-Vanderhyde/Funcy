@@ -33,7 +33,7 @@ void ASTPrinter::printNode(const ASTNode& node, int depth) const {
         std::cout << indent(depth + 1) << "Operator: " << unOpNode->op << "\n";
         if (unOpNode->right) printNode(*unOpNode->right, depth + 1);
     } else if (const auto* parenOpNode = dynamic_cast<const ParenthesisOpNode*>(&node)) {
-        std::cout << indent(depth + 1) << "Parenthesis: " << parenOpNode->open << " ... " << parenOpNode->close << "\n";
+        std::cout << indent(depth + 1) << "Parenthesis: ( ... }" << "\n";
         if (parenOpNode->expr) printNode(*parenOpNode->expr, depth + 1);
     }
 }

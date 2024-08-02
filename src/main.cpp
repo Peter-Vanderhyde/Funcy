@@ -29,13 +29,32 @@ int main() {
 
     Lexer lexer{source_code};
     std::vector<Token> tokens = lexer.tokenize();
+
     Parser parser{tokens};
     std::vector<std::unique_ptr<ASTNode>> statements = parser.parse();
+
+    Environment env;
+    env.addScope();
     int stmnt_num = 0;
     for (const auto& statement : statements) {
         stmnt_num += 1;
-        double result = statement->evaluate();
-        std::cout << std::format("Result {}: {}", stmnt_num, result) << std::endl;
+        std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
+        if (result.has_value()) {
+            if (auto result_value = std::get_if<bool>(result.value().get())) {
+                std::cout << std::format("Result {}: ", stmnt_num) << std::boolalpha << *result_value << std::endl;
+            }
+            else if (auto result_value = std::get_if<int>(result.value().get())) {
+                std::cout << std::format("Result {}: {}", stmnt_num, *result_value) << std::endl;
+            }
+            else if (auto result_value = std::get_if<double>(result.value().get())) {
+                std::cout << std::format("Result {}: {}", stmnt_num, *result_value) << std::endl;
+            }
+            else if (auto result_value = std::get_if<std::string>(result.value().get())) {
+                std::cout << std::format("Result {}: {}", stmnt_num, *result_value) << std::endl;
+            }
+        } else {
+            std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;
+        }
     }
     // ASTPrinter printer;
     // printer.print(statements);
