@@ -2,7 +2,7 @@ Statement : [Identifier '='] Expression
 
 Expression : Term [ ('+' | '-') Term ]*
 
-Term       : Factor [ ('*' | '/') Factor ]*
+Term       : Factor [ ('*' | '/' | '//') Factor ]*
 
 Factor     : [ ('+' | '-') ]? Power
 

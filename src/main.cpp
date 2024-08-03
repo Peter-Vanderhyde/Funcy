@@ -40,20 +40,22 @@ int main() {
         stmnt_num += 1;
         std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
         if (result.has_value()) {
-            if (auto result_value = std::get_if<bool>(result.value().get())) {
-                std::cout << std::format("Result {}: ", stmnt_num) << std::boolalpha << *result_value << std::endl;
+            auto result_value = result.value();
+            if (auto bool_value = std::get_if<bool>(result.value().get())) {
+                std::cout << std::format("Result {}: ", stmnt_num) << std::boolalpha << *bool_value << std::endl;
             }
-            else if (auto result_value = std::get_if<int>(result.value().get())) {
-                std::cout << std::format("Result {}: {}", stmnt_num, *result_value) << std::endl;
+            else if (auto int_value = std::get_if<int>(result.value().get())) {
+                std::cout << std::format("Result {}: {}", stmnt_num, *int_value) << std::endl;
             }
-            else if (auto result_value = std::get_if<double>(result.value().get())) {
-                std::cout << std::format("Result {}: {}", stmnt_num, *result_value) << std::endl;
+            else if (auto double_value = std::get_if<double>(result.value().get())) {
+                std::cout << std::format("Result {}: {}", stmnt_num, *double_value) << std::endl;
             }
-            else if (auto result_value = std::get_if<std::string>(result.value().get())) {
-                std::cout << std::format("Result {}: {}", stmnt_num, *result_value) << std::endl;
+            else if (auto string_value = std::get_if<std::string>(result.value().get())) {
+                std::cout << std::format("Result {}: {}", stmnt_num, *string_value) << std::endl;
             }
         } else {
-            std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;
+            // std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;
+            continue;
         }
     }
     // ASTPrinter printer;

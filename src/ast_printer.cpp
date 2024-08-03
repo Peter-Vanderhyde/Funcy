@@ -25,15 +25,18 @@ void ASTPrinter::printNode(const ASTNode& node, int depth) const {
         } else {
             std::cout << numNode->getFloat() << "\n";
         }
+    } else if (const auto* identNode = dynamic_cast<const IdentifierNode*>(&node)) {
+        std::cout << indent(depth + 1) << "Identifier: ";
+        std::cout << identNode->value << '\n';
     } else if (const auto* binOpNode = dynamic_cast<const BinaryOpNode*>(&node)) {
-        std::cout << indent(depth + 1) << "Operator: " << binOpNode->op << "\n";
+        std::cout << indent(depth + 1) << "Operator: " << token_labels[binOpNode->op] << "\n";
         if (binOpNode->left) printNode(*binOpNode->left, depth + 1);
         if (binOpNode->right) printNode(*binOpNode->right, depth + 1);
     } else if (const auto* unOpNode = dynamic_cast<const UnaryOpNode*>(&node)) {
-        std::cout << indent(depth + 1) << "Operator: " << unOpNode->op << "\n";
+        std::cout << indent(depth + 1) << "Operator: " << token_labels[unOpNode->op] << "\n";
         if (unOpNode->right) printNode(*unOpNode->right, depth + 1);
     } else if (const auto* parenOpNode = dynamic_cast<const ParenthesisOpNode*>(&node)) {
-        std::cout << indent(depth + 1) << "Parenthesis: ( ... }" << "\n";
+        std::cout << indent(depth + 1) << "Parenthesis: ( ... )" << "\n";
         if (parenOpNode->expr) printNode(*parenOpNode->expr, depth + 1);
     }
 }

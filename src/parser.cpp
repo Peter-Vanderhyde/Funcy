@@ -30,7 +30,7 @@ bool NumberNode::isInteger() const {
 }
 
 bool NumberNode::isFloat() const {
-    return std::holds_alternative<int>(value);
+    return std::holds_alternative<double>(value);
 }
 
 int NumberNode::getInteger() const {
@@ -50,12 +50,56 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
     }
 }
 
+template <typename T1, typename T2>
+std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op) {
+    if constexpr (std::is_same_v<T1, std::string> && std::is_same_v<T2, std::string>) {
+        if (op == TokenType::_Plus) {
+            return std::make_shared<Value>(lhs + rhs);
+        }
+    }
+    else if constexpr (std::is_same_v<T1, int> && std::is_same_v<T2, int>) {
+        if (op == TokenType::_Plus) return std::make_shared<Value>(lhs + rhs);
+        else if (op == TokenType::_Minus) return std::make_shared<Value>(lhs - rhs);
+        else if (op == TokenType::_Multiply) return std::make_shared<Value>(lhs * rhs);
+        else if (op == TokenType::_Divide) {
+            if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
+            return std::make_shared<Value>(static_cast<double>(lhs) / static_cast<double>(rhs));
+        }
+        else if (op == TokenType::_FloorDiv) {
+            if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
+            return std::make_shared<Value>(static_cast<int>(lhs / rhs));
+        }
+        else if (op == TokenType::_Caret) return std::make_shared<Value>(std::pow(lhs, rhs));
+    }
+    else if constexpr (std::is_same_v<T1, std::string> || std::is_same_v<T2, std::string> ||
+                        std::is_same_v<T1, bool> || std::is_same_v<T2, bool>) {
+        return std::nullopt;
+    }
+    else {
+        double lhs_double = static_cast<double>(lhs);
+        double rhs_double = static_cast<double>(rhs);
+
+        if (op == TokenType::_Plus) return std::make_shared<Value>(lhs_double + rhs_double);
+        else if (op == TokenType::_Minus) return std::make_shared<Value>(lhs_double - rhs_double);
+        else if (op == TokenType::_Multiply) return std::make_shared<Value>(lhs_double * rhs_double);
+        else if (op == TokenType::_Divide) {
+            if (rhs == 0.0) throw std::runtime_error("Attempted division by 0.");
+            return std::make_shared<Value>(lhs_double / rhs_double);
+        }
+        else if (op == TokenType::_FloorDiv) {
+            if (rhs == 0.0) throw std::runtime_error("Attempted division by 0.");
+            return std::make_shared<Value>(static_cast<int>(lhs_double / rhs_double));
+        }
+        else if (op == TokenType::_Caret) return std::make_shared<Value>(std::pow(lhs_double, rhs_double));
+    }
+    return std::nullopt;
+}
 
 std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) const {
     // Postpone evaluating left
     std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
 
-    if (op == '=') {
+    if (op == TokenType::_Equals) {
         // An equals is a special case
         if (!right_value.has_value()) {
             throw std::runtime_error("Failed to set variable. Operand could not be computed.");
@@ -74,44 +118,22 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) c
         // Arithmetic operations need two values to operate on
         if (!left_value.has_value() || !right_value.has_value()) {
             throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': one or both operands could not be computed.",
-                                            op));
+                                            token_labels[op]));
         }
 
-        std::string LHS = getValueStr(left_value.value());
-        std::string RHS = getValueStr(right_value.value());
+        auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
+            return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
+                return doArithmetic(lhs, rhs, op);
+            }, *right_value.value());
+        }, *left_value.value());
 
+        if (!result.has_value()) {
+            throw std::runtime_error(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
+                                                getValueStr(left_value.value()), token_labels[op], getValueStr(right_value.value())));
+        }
 
-        if (LHS == "int" && RHS == "int") {
-            int lhs = std::get<int>(*left_value.value().get());
-            int rhs = std::get<int>(*right_value.value().get());
-            if (op == '+') return std::make_shared<Value>(lhs + rhs);
-            else if (op == '-') return std::make_shared<Value>(lhs - rhs);
-            else if (op == '*') return std::make_shared<Value>(lhs * rhs);
-            else if (op == '/') {
-                if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
-                return std::make_shared<Value>(lhs / rhs);
-            }
-            else if (op == '^') return std::make_shared<Value>(std::pow(lhs, rhs));
-        }
-        else if (LHS == "double" && RHS == "double") {
-            double lhs = std::get<double>(*left_value.value().get());
-            double rhs = std::get<double>(*right_value.value().get());
-            if (op == '+') return std::make_shared<Value>(lhs + rhs);
-            else if (op == '-') return std::make_shared<Value>(lhs - rhs);
-            else if (op == '*') return std::make_shared<Value>(lhs * rhs);
-            else if (op == '/') {
-                if (rhs == 0.0) throw std::runtime_error("Attempted division by 0.");
-                return std::make_shared<Value>(lhs / rhs);
-            }
-            else if (op == '^') return std::make_shared<Value>(std::pow(lhs, rhs));
-        }
-        else if (LHS == "string" && RHS == "string") {
-            std::string lhs = std::get<std::string>(*left_value.value().get());
-            std::string rhs = std::get<std::string>(*right_value.value().get());
-            if (op == '+') return std::make_shared<Value>(lhs + rhs);
-        }
-        
-        throw std::runtime_error(std::format("Unsupported operand types for operation. operation was {} '{}' {}", LHS, op, RHS));
+        return result;
+
     }
     return std::nullopt;
 }
@@ -120,31 +142,31 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) co
     std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
     if (!right_value.has_value()) {
         throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': the operand could not be computed.",
-                                         op));
+                                         token_labels[op]));
     }
 
     std::string RHS = getValueStr(right_value.value());
 
     if (RHS == "int") {
-        if (op == '-') {
+        if (op == TokenType::_Minus) {
             int rhs = std::get<int>(*right_value.value().get());
             return std::make_shared<Value>(-rhs);
         }
-        else if (op == '+') {
+        else if (op == TokenType::_Plus) {
             return right_value;
         }
     }
     else if (RHS == "double") {
-        if (op == '-') {
+        if (op == TokenType::_Minus) {
             double rhs = std::get<double>(*right_value.value().get());
             return std::make_shared<Value>(-rhs);
         }
-        else if (op == '+') {
+        else if (op == TokenType::_Plus) {
             return right_value;
         }
     }
 
-    throw std::runtime_error(std::format("Unsupported operand types for operation. operation was '{}' {}", op, RHS));
+    throw std::runtime_error(std::format("Unsupported operand types for operation. operation was '{}' {}", token_labels[op], RHS));
     return std::nullopt;
 }
 
@@ -209,7 +231,7 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
             handleError(std::format("Expected '=', but got {}", getTokenStr()), getToken()->line, getToken()->column);
         }
 
-        char op = '=';
+        TokenType op = TokenType::_Equals;
         consume();
         auto right = parseExpression();
         return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
@@ -225,7 +247,7 @@ std::unique_ptr<ASTNode> Parser::parseExpression() {
     auto left = parseTerm();
 
     while (tokenIs("+") || tokenIs("-")) {
-        char op = getTokenStr()[0];
+        TokenType op = getToken()->type;
         consume();
         auto right = parseTerm();
         left = std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
@@ -237,8 +259,8 @@ std::unique_ptr<ASTNode> Parser::parseExpression() {
 std::unique_ptr<ASTNode> Parser::parseTerm() {
     auto left = parseFactor();
 
-    while (tokenIs("*") || tokenIs("/")) {
-        char op = getTokenStr()[0];
+    while (tokenIs("*") || tokenIs("/") || tokenIs("//")) {
+        TokenType op = getToken()->type;
         consume();
         auto right = parseFactor();
         left = std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
@@ -249,7 +271,7 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
 
 std::unique_ptr<ASTNode> Parser::parseFactor() {
     if (tokenIs("+") || tokenIs("-")) {
-        char op = getTokenStr()[0];
+        TokenType op = getToken()->type;
         consume();
         auto right = parsePower();
         return std::make_unique<UnaryOpNode>(op, std::move(right));
@@ -265,7 +287,7 @@ std::unique_ptr<ASTNode> Parser::parsePower() {
     if (tokenIs("^")) {
         consume();
         auto right = parseFactor();
-        return std::make_unique<BinaryOpNode>(std::move(left), '^', std::move(right));
+        return std::make_unique<BinaryOpNode>(std::move(left), TokenType::_Caret, std::move(right));
     }
     else {
         return left;

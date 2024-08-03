@@ -1,10 +1,4 @@
-x = 10;
-x + 4;
-8 - x;
-_MyVariable1 = 15;
-_MyVariable1 + x;
-x = _MyVariable1;
-x;
-x = x + 1;
-_MyVariable1;
-x;
+x = 5;
+y = 4;
+x / y;
+x // y;

@@ -22,6 +22,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_OpenCurly: os << "OpenCurly"; break;
         case TokenType::_CloseCurly: os << "CloseCurly"; break;
         case TokenType::_Caret: os << "Caret"; break;
+        case TokenType::_FloorDiv: os << "FloorDiv"; break;
         default: os << "Unknown"; break;
     }
     return os;
@@ -44,7 +45,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Boolean, "Bool"},
     {TokenType::_OpenCurly, "{"},
     {TokenType::_CloseCurly, "}"},
-    {TokenType::_Caret, "^"}
+    {TokenType::_Caret, "^"},
+    {TokenType::_FloorDiv, "//"}
 };
 
 std::map<char, TokenType> char_tokens{
@@ -213,9 +215,16 @@ std::vector<Token> Lexer::tokenize() {
             }
         }
         else if (char_tokens.contains(character)) {
-            // Handle operators/single character tokens
-            Token token{char_tokens[character], line, column};
-            tokens.push_back(token);
+            // Handle operators/single character tokens/double character ops
+            if (character == '/' && peekNextCharacter() == '/') {
+                getNextCharacter();
+                Token token{TokenType::_FloorDiv, line, column};
+                tokens.push_back(token);
+            }
+            else {
+                Token token{char_tokens[character], line, column};
+                tokens.push_back(token);
+            }
         }
         else {
             handleError(std::format("Unrecognized character: {}", character), line, column);

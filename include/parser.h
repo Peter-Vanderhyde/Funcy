@@ -8,6 +8,8 @@
 #include "environment.h"
 
 
+template <typename T1, typename T2>
+std::optional<std::shared_ptr<Value>> doArithmetic(T1 lhs, T2 rhs, TokenType op);
 
 
 class ASTNode {
@@ -43,10 +45,10 @@ public:
     std::string value;
 };
 
-// Node for binary operations (e.g., +, -, *, /, ^)
+// Node for binary operations (e.g., +, -, *, /, //, ^)
 class BinaryOpNode : public ASTNode {
 public:
-    BinaryOpNode(std::unique_ptr<ASTNode> left, char op, std::unique_ptr<ASTNode> right)
+    BinaryOpNode(std::unique_ptr<ASTNode> left, TokenType op, std::unique_ptr<ASTNode> right)
         : left{std::move(left)}, op{op}, right{std::move(right)} {}
     
     ~BinaryOpNode() noexcept override = default;
@@ -54,20 +56,20 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
 
     std::unique_ptr<ASTNode> left;
-    char op;  // Operator like +, -, *, /
+    TokenType op;  // Operator like _Plus, _Minus
     std::unique_ptr<ASTNode> right;
 };
 
 class UnaryOpNode : public ASTNode {
 public:
-    UnaryOpNode(char op, std::unique_ptr<ASTNode> right)
+    UnaryOpNode(TokenType op, std::unique_ptr<ASTNode> right)
         : op{op}, right{std::move(right)} {}
     
     ~UnaryOpNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
 
-    char op;
+    TokenType op;
     std::unique_ptr<ASTNode> right;
 };
 

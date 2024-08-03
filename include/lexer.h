@@ -22,7 +22,8 @@ enum class TokenType{
     _Boolean,
     _OpenCurly,
     _CloseCurly,
-    _Caret
+    _Caret,
+    _FloorDiv
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);
