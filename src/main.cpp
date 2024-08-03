@@ -51,7 +51,7 @@ int main() {
                 std::cout << std::format("Result {}: {}", stmnt_num, *double_value) << std::endl;
             }
             else if (auto string_value = std::get_if<std::string>(result.value().get())) {
-                std::cout << std::format("Result {}: {}", stmnt_num, *string_value) << std::endl;
+                std::cout << std::format("Result {}: {}", stmnt_num, '"' + *string_value + '"') << std::endl;
             }
         } else {
             // std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;

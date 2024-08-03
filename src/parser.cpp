@@ -10,35 +10,55 @@ void handleError(const std::string& message, int line, int column) {
 }
 
 
-std::optional<std::shared_ptr<Value>> NumberNode::evaluate(Environment& env) const {
+std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) const {
     if (isInteger()) {
         return std::make_shared<Value>(getInteger());
     } else if (isFloat()) {
         return std::make_shared<Value>(getFloat());
+    } else if (isBool()) {
+        return std::make_shared<Value>(getBool());
+    } else if (isString()) {
+        return std::make_shared<Value>(getString());
     } else {
-        handleError("Unable to evaluate number value.", 0, 0);
+        handleError("Unable to evaluate value.", 0, 0);
         return std::nullopt;
     }
 }
 
-std::variant<int, double> NumberNode::getValue() const {
+std::variant<int, double, bool, std::string> AtomNode::getValue() const {
     return value;
 }
 
-bool NumberNode::isInteger() const {
+bool AtomNode::isInteger() const {
     return std::holds_alternative<int>(value);
 }
 
-bool NumberNode::isFloat() const {
+bool AtomNode::isFloat() const {
     return std::holds_alternative<double>(value);
 }
 
-int NumberNode::getInteger() const {
+bool AtomNode::isBool() const {
+    return std::holds_alternative<bool>(value);
+}
+
+bool AtomNode::isString() const {
+    return std::holds_alternative<std::string>(value);
+}
+
+int AtomNode::getInteger() const {
     return std::get<int>(value);
 }
 
-double NumberNode::getFloat() const {
+double AtomNode::getFloat() const {
     return std::get<double>(value);
+}
+
+bool AtomNode::getBool() const {
+    return std::get<bool>(value);
+}
+
+std::string AtomNode::getString() const {
+    return std::get<std::string>(value);
 }
 
 
@@ -53,11 +73,12 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
 template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op) {
     if constexpr (std::is_same_v<T1, std::string> && std::is_same_v<T2, std::string>) {
-        if (op == TokenType::_Plus) {
-            return std::make_shared<Value>(lhs + rhs);
-        }
+        // BOTH STRINGS
+        if (op == TokenType::_Plus) return std::make_shared<Value>(lhs + rhs);
+        else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
     }
     else if constexpr (std::is_same_v<T1, int> && std::is_same_v<T2, int>) {
+        // BOTH INTS
         if (op == TokenType::_Plus) return std::make_shared<Value>(lhs + rhs);
         else if (op == TokenType::_Minus) return std::make_shared<Value>(lhs - rhs);
         else if (op == TokenType::_Multiply) return std::make_shared<Value>(lhs * rhs);
@@ -70,12 +91,23 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
             return std::make_shared<Value>(static_cast<int>(lhs / rhs));
         }
         else if (op == TokenType::_Caret) return std::make_shared<Value>(std::pow(lhs, rhs));
+        else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
+    }
+    else if constexpr (std::is_same_v<T1, bool> && std::is_same_v<T2, bool>) {
+        // BOTH BOOLS
+        if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
+    }
+    else if constexpr (std::is_same_v<T1, double> && std::is_same_v<T2, double>) {
+        // BOTH DOUBLES
+        if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
     }
     else if constexpr (std::is_same_v<T1, std::string> || std::is_same_v<T2, std::string> ||
                         std::is_same_v<T1, bool> || std::is_same_v<T2, bool>) {
+        // A MIX OF STRING AND BOOL
         return std::nullopt;
     }
     else {
+        // A MIX OF INT AND DOUBLE
         double lhs_double = static_cast<double>(lhs);
         double rhs_double = static_cast<double>(rhs);
 
@@ -91,6 +123,7 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
             return std::make_shared<Value>(static_cast<int>(lhs_double / rhs_double));
         }
         else if (op == TokenType::_Caret) return std::make_shared<Value>(std::pow(lhs_double, rhs_double));
+        else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs_double == rhs_double);
     }
     return std::nullopt;
 }
@@ -233,14 +266,28 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 
         TokenType op = TokenType::_Equals;
         consume();
-        auto right = parseExpression();
+        auto right = parseComparison();
         return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
     }
     else {
-        auto expr = parseExpression();
+        auto comp = parseComparison();
+
         // This is pretty cheaty
-        return std::make_unique<ParenthesisOpNode>(std::move(expr));
+        return std::make_unique<ParenthesisOpNode>(std::move(comp));
     }
+}
+
+std::unique_ptr<ASTNode> Parser::parseComparison() {
+    auto left = parseExpression();
+
+    while (tokenIs("==") || tokenIs("!=") || tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=")) {
+        TokenType op = getToken()->type;
+        consume();
+        auto right = parseExpression();
+        left = std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
+    }
+
+    return left;
 }
 
 std::unique_ptr<ASTNode> Parser::parseExpression() {
@@ -297,35 +344,43 @@ std::unique_ptr<ASTNode> Parser::parsePower() {
 std::unique_ptr<ASTNode> Parser::parsePrimary() {
     if (tokenIs("(")) {
         consume();
-        auto expr = parseExpression();
+        auto comp = parseComparison();
         if (!tokenIs(")")) {
             handleError("Expected ')'", getToken()->line, getToken()->column);
         }
         consume();
-        return std::make_unique<ParenthesisOpNode>(std::move(expr));
+        return std::make_unique<ParenthesisOpNode>(std::move(comp));
     }
     else if (tokenIs("Ident")) {
         return parseIdentifier();
     }
     else {
-        return parseNumber();
+        return parseAtom();
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parseNumber() {
-    if (tokenIs("Int") || tokenIs("Float")) {
+std::unique_ptr<ASTNode> Parser::parseAtom() {
+    if (tokenIs("Int") || tokenIs("Float") || tokenIs("Bool") || tokenIs("String")) {
         const Token* token = getToken();
         if (auto int_value = std::get_if<int>(&token->value)) {
             consume();
-            return std::make_unique<NumberNode>(*int_value);
+            return std::make_unique<AtomNode>(*int_value);
         }
         else if (auto float_value = std::get_if<double>(&token->value)) {
             consume();
-            return std::make_unique<NumberNode>(*float_value);
+            return std::make_unique<AtomNode>(*float_value);
+        }
+        else if (auto bool_value = std::get_if<bool>(&token->value)) {
+            consume();
+            return std::make_unique<AtomNode>(*bool_value);
+        }
+        else if (auto string_value = std::get_if<std::string>(&token->value)) {
+            consume();
+            return std::make_unique<AtomNode>(*string_value);
         }
     }
     else {
-        handleError(std::format("Expected number but got {}", getTokenStr()), getToken()->line, getToken()->column);
+        handleError(std::format("Expected atom but got {}", getTokenStr()), getToken()->line, getToken()->column);
     }
     return nullptr;
 }

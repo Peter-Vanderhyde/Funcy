@@ -23,6 +23,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_CloseCurly: os << "CloseCurly"; break;
         case TokenType::_Caret: os << "Caret"; break;
         case TokenType::_FloorDiv: os << "FloorDiv"; break;
+        case TokenType::_Compare: os << "Compare"; break;
         default: os << "Unknown"; break;
     }
     return os;
@@ -32,7 +33,7 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Identifier, "Ident"},
     {TokenType::_Float, "Float"},
     {TokenType::_Integer, "Int"},
-    {TokenType::_String, "Str"},
+    {TokenType::_String, "String"},
     {TokenType::_Semi, ";"},
     {TokenType::_Plus, "+"},
     {TokenType::_Minus, "-"},
@@ -46,7 +47,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_OpenCurly, "{"},
     {TokenType::_CloseCurly, "}"},
     {TokenType::_Caret, "^"},
-    {TokenType::_FloorDiv, "//"}
+    {TokenType::_FloorDiv, "//"},
+    {TokenType::_Compare, "=="}
 };
 
 std::map<char, TokenType> char_tokens{
@@ -217,8 +219,13 @@ std::vector<Token> Lexer::tokenize() {
         else if (char_tokens.contains(character)) {
             // Handle operators/single character tokens/double character ops
             if (character == '/' && peekNextCharacter() == '/') {
-                getNextCharacter();
                 Token token{TokenType::_FloorDiv, line, column};
+                getNextCharacter();
+                tokens.push_back(token);
+            }
+            else if (character == '=' && peekNextCharacter() == '=') {
+                Token token{TokenType::_Compare, line, column};
+                getNextCharacter();
                 tokens.push_back(token);
             }
             else {

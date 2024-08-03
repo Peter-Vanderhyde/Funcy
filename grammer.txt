@@ -1,4 +1,6 @@
-Statement : [Identifier '='] Expression
+Statement : [Identifier '='] Comparison
+
+Comparison : Expression [ ('==' | '!=' | '<' | '<=' | '>' | '>=') Expression ]
 
 Expression : Term [ ('+' | '-') Term ]*
 
@@ -8,11 +10,17 @@ Factor     : [ ('+' | '-') ]? Power
 
 Power      : Primary [ '^' Factor ]?
 
-Primary    : Number | Identifier | '(' Expression ')'
+Primary    : Atom | '(' Expression ')'
+
+Atom : Identifier | Number | Boolean | String
 
 Number     : Integer | Float
 
 Identifier : (a-zA-Z_)[a-zA-Z_0-9]*
+
+Boolean    : true | false
+
+String     : '"' [^"]* '"'
 
 Integer    : [0-9]+
 

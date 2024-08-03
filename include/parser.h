@@ -19,20 +19,23 @@ public:
 };
 
 // Node for numeric literals
-class NumberNode : public ASTNode {
+class AtomNode : public ASTNode {
 public:
-    NumberNode(double value) : value{value} {}
-    NumberNode(int value) : value{value} {}
+    AtomNode(std::variant<int, double, bool, std::string> value) : value{value} {}
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
 
-    std::variant<int, double> getValue() const;
+    std::variant<int, double, bool, std::string> getValue() const;
     bool isInteger() const;
     bool isFloat() const;
+    bool isBool() const;
+    bool isString() const;
     int getInteger() const;
     double getFloat() const;
+    bool getBool() const;
+    std::string getString() const;
     
-    std::variant<int, double> value;
+    const std::variant<int, double, bool, std::string> value;
 };
 
 // Node for variables and keywords
@@ -102,11 +105,12 @@ private:
     bool tokenIs(std::string str) const;
 
     std::unique_ptr<ASTNode> parseStatement();
+    std::unique_ptr<ASTNode> parseComparison();
     std::unique_ptr<ASTNode> parseExpression();
     std::unique_ptr<ASTNode> parseTerm();
     std::unique_ptr<ASTNode> parseFactor();
     std::unique_ptr<ASTNode> parsePower();
     std::unique_ptr<ASTNode> parsePrimary();
-    std::unique_ptr<ASTNode> parseNumber();
+    std::unique_ptr<ASTNode> parseAtom();
     std::unique_ptr<ASTNode> parseIdentifier();
 };

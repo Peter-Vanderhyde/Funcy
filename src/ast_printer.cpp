@@ -18,12 +18,16 @@ void ASTPrinter::printNode(const ASTNode& node, int depth) const {
     std::cout << indent(depth) << "Node: " << typeid(node).name() << "\n";
 
     // Use dynamic_cast to downcast to specific node types and print accordingly
-    if (const auto* numNode = dynamic_cast<const NumberNode*>(&node)) {
-        std::cout << indent(depth + 1) << "Number: ";
-        if (numNode->isInteger()) {
-            std::cout << numNode->getInteger() << "\n";
-        } else {
-            std::cout << numNode->getFloat() << "\n";
+    if (const auto* atomNode = dynamic_cast<const AtomNode*>(&node)) {
+        std::cout << indent(depth + 1) << "Atom: ";
+        if (atomNode->isInteger()) {
+            std::cout << atomNode->getInteger() << "\n";
+        } else  if (atomNode->isFloat()) {
+            std::cout << atomNode->getFloat() << "\n";
+        } else if (atomNode->isBool()) {
+            std::cout << atomNode->getBool() << '\n';
+        } else if (atomNode->isString()) {
+            std::cout << '"' << atomNode->getString() << '"' << '\n';
         }
     } else if (const auto* identNode = dynamic_cast<const IdentifierNode*>(&node)) {
         std::cout << indent(depth + 1) << "Identifier: ";

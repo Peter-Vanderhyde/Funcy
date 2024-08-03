@@ -23,7 +23,18 @@ enum class TokenType{
     _OpenCurly,
     _CloseCurly,
     _Caret,
-    _FloorDiv
+    _FloorDiv,
+    _AddEquals,
+    _MinusEquals,
+    _MultiplyEquals,
+    _DivideEquals,
+    _DoubleMultiply,
+    _GreaterThan,
+    _GreaterEquals,
+    _LessThan,
+    _LessEquals,
+    _Mod,
+    _Compare
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);
