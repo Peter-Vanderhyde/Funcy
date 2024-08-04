@@ -74,15 +74,22 @@ template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op) {
     if constexpr (std::is_same_v<T1, std::string> && std::is_same_v<T2, std::string>) {
         // BOTH STRINGS
-        if (op == TokenType::_Plus) return std::make_shared<Value>(lhs + rhs);
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs + rhs);
         else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
+        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
     }
-    else if constexpr (std::is_same_v<T1, int> && std::is_same_v<T2, int>) {
-        // BOTH INTS
-        if (op == TokenType::_Plus) return std::make_shared<Value>(lhs + rhs);
-        else if (op == TokenType::_Minus) return std::make_shared<Value>(lhs - rhs);
-        else if (op == TokenType::_Multiply) return std::make_shared<Value>(lhs * rhs);
-        else if (op == TokenType::_Divide) {
+    else if constexpr ((std::is_same_v<T1, int> || std::is_same_v<T1, bool> || std::is_same_v<T1, double>) && (std::is_same_v<T2, int> || std::is_same_v<T2, bool> || std::is_same_v<T2, double>)) {
+        if (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
+            if (!std::is_same_v<T1, T2>) {
+                double lhs_double = static_cast<double>(lhs);
+                double rhs_double = static_cast<double>(rhs);
+            }
+        }
+        // MIX OF INTS OR BOOLS OR DOUBLES
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs + rhs);
+        else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) return std::make_shared<Value>(lhs - rhs);
+        else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) return std::make_shared<Value>(lhs * rhs);
+        else if (op == TokenType::_Divide || op == TokenType::_DivideEquals) {
             if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
             return std::make_shared<Value>(static_cast<double>(lhs) / static_cast<double>(rhs));
         }
@@ -90,40 +97,25 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
             if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
             return std::make_shared<Value>(static_cast<int>(lhs / rhs));
         }
-        else if (op == TokenType::_Caret) return std::make_shared<Value>(std::pow(lhs, rhs));
+        else if (op == TokenType::_Mod) {
+            if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
+            if (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
+                throw std::runtime_error("The modulus '%' can only be peformed on ints.");
+            } else {
+                return std::make_shared<Value>(static_cast<int>(lhs) % static_cast<int>(rhs));
+            }
+        }
+        else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) return std::make_shared<Value>(std::pow(lhs, rhs));
         else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
+        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
+        else if (op == TokenType::_GreaterThan) return std::make_shared<Value>(lhs > rhs);
+        else if (op == TokenType::_GreaterEquals) return std::make_shared<Value>(lhs >= rhs);
+        else if (op == TokenType::_LessThan) return std::make_shared<Value>(lhs < rhs);
+        else if (op == TokenType::_LessEquals) return std::make_shared<Value>(lhs <= rhs);
     }
-    else if constexpr (std::is_same_v<T1, bool> && std::is_same_v<T2, bool>) {
-        // BOTH BOOLS
-        if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
-    }
-    else if constexpr (std::is_same_v<T1, double> && std::is_same_v<T2, double>) {
-        // BOTH DOUBLES
-        if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
-    }
-    else if constexpr (std::is_same_v<T1, std::string> || std::is_same_v<T2, std::string> ||
-                        std::is_same_v<T1, bool> || std::is_same_v<T2, bool>) {
+    else if constexpr ((std::is_same_v<T1, std::string> || std::is_same_v<T2, std::string>) && !std::is_same_v<T1, T2>) {
         // A MIX OF STRING AND BOOL
         return std::nullopt;
-    }
-    else {
-        // A MIX OF INT AND DOUBLE
-        double lhs_double = static_cast<double>(lhs);
-        double rhs_double = static_cast<double>(rhs);
-
-        if (op == TokenType::_Plus) return std::make_shared<Value>(lhs_double + rhs_double);
-        else if (op == TokenType::_Minus) return std::make_shared<Value>(lhs_double - rhs_double);
-        else if (op == TokenType::_Multiply) return std::make_shared<Value>(lhs_double * rhs_double);
-        else if (op == TokenType::_Divide) {
-            if (rhs == 0.0) throw std::runtime_error("Attempted division by 0.");
-            return std::make_shared<Value>(lhs_double / rhs_double);
-        }
-        else if (op == TokenType::_FloorDiv) {
-            if (rhs == 0.0) throw std::runtime_error("Attempted division by 0.");
-            return std::make_shared<Value>(static_cast<int>(lhs_double / rhs_double));
-        }
-        else if (op == TokenType::_Caret) return std::make_shared<Value>(std::pow(lhs_double, rhs_double));
-        else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs_double == rhs_double);
     }
     return std::nullopt;
 }
@@ -154,6 +146,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) c
                                             token_labels[op]));
         }
 
+        // Perform arithmetic operation
         auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
             return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
                 return doArithmetic(lhs, rhs, op);
@@ -165,7 +158,18 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) c
                                                 getValueStr(left_value.value()), token_labels[op], getValueStr(right_value.value())));
         }
 
-        return result;
+        if (op == TokenType::_PlusEquals || op == TokenType::_MinusEquals || op == TokenType::_MultiplyEquals || op == TokenType::_DivideEquals) {
+            // Handle setting +=, -= etc.
+            if (auto identifierNode = dynamic_cast<IdentifierNode*>(left.get())) {
+                env.set(identifierNode->value, result.value());
+            }
+            else {
+                throw std::runtime_error("The operator '=' can only be used with variables.");
+            }
+        }
+        else {
+            return result;
+        }
 
     }
     return std::nullopt;
@@ -219,6 +223,7 @@ std::vector<std::unique_ptr<ASTNode>> Parser::parse() {
     while (getToken()->type != TokenType::_EndOfFile) {
         statements.push_back(parseStatement());
         if (getToken()->type != TokenType::_Semi) {
+            std::cout << token_labels[getToken()->type];
             handleError("Expected ';'", getToken()->line, getToken()->column);
         }
         else {
@@ -235,6 +240,7 @@ const Token* Parser::consume() {
         handleError("File ended unexpectedly!", t->line, t->column);
     }
 
+    //std::cout << getTokenStr() << std::endl;
     token_index += 1;
     return t;
 }
@@ -256,15 +262,16 @@ bool Parser::tokenIs(std::string str) const {
     return str == getTokenStr();
 }
 
+bool Parser::nextTokenIs(std::string str) const {
+    return str == token_labels[peek().value()->type];
+}
 
 std::unique_ptr<ASTNode> Parser::parseStatement() {
-    if (tokenIs("Ident") && peek().has_value() && peek().value()->type == TokenType::_Equals) {
-        auto left = parseIdentifier();
-        if (!tokenIs("=")) {
-            handleError(std::format("Expected '=', but got {}", getTokenStr()), getToken()->line, getToken()->column);
-        }
 
-        TokenType op = TokenType::_Equals;
+    if (tokenIs("Ident") && peek() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
+        auto left = parseIdentifier();
+
+        TokenType op = getToken()->type;
         consume();
         auto right = parseComparison();
         return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
@@ -306,7 +313,7 @@ std::unique_ptr<ASTNode> Parser::parseExpression() {
 std::unique_ptr<ASTNode> Parser::parseTerm() {
     auto left = parseFactor();
 
-    while (tokenIs("*") || tokenIs("/") || tokenIs("//")) {
+    while (tokenIs("*") || tokenIs("/") || tokenIs("//") || tokenIs("%")) {
         TokenType op = getToken()->type;
         consume();
         auto right = parseFactor();
@@ -331,10 +338,11 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
 std::unique_ptr<ASTNode> Parser::parsePower() {
     auto left = parsePrimary();
 
-    if (tokenIs("^")) {
+    if (tokenIs("^") || tokenIs("**")) {
+        TokenType op = getToken()->type;
         consume();
         auto right = parseFactor();
-        return std::make_unique<BinaryOpNode>(std::move(left), TokenType::_Caret, std::move(right));
+        return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
     }
     else {
         return left;

@@ -1,16 +1,16 @@
-Statement : [Identifier '='] Comparison
+Statement : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] Comparison
 
 Comparison : Expression [ ('==' | '!=' | '<' | '<=' | '>' | '>=') Expression ]
 
 Expression : Term [ ('+' | '-') Term ]*
 
-Term       : Factor [ ('*' | '/' | '//') Factor ]*
+Term       : Factor [ ('*' | '/' | '//' | '%') Factor ]*
 
 Factor     : [ ('+' | '-') ]? Power
 
-Power      : Primary [ '^' Factor ]?
+Power      : Primary [ ('^' | '**') Factor ]?
 
-Primary    : Atom | '(' Expression ')'
+Primary    : Atom | ('(' Expression ')')
 
 Atom : Identifier | Number | Boolean | String
 

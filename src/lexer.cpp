@@ -24,6 +24,17 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Caret: os << "Caret"; break;
         case TokenType::_FloorDiv: os << "FloorDiv"; break;
         case TokenType::_Compare: os << "Compare"; break;
+        case TokenType::_PlusEquals: os << "PlusEquals"; break;
+        case TokenType::_MinusEquals: os << "MinusEquals"; break;
+        case TokenType::_MultiplyEquals: os << "MultiplyEquals"; break;
+        case TokenType::_DivideEquals: os << "DivideEquals"; break;
+        case TokenType::_DoubleMultiply: os << "DoublelMultiply"; break;
+        case TokenType::_GreaterThan: os << "GreaterThan"; break;
+        case TokenType::_GreaterEquals: os << "GreaterEqual"; break;
+        case TokenType::_LessThan: os << "LessThan"; break;
+        case TokenType::_LessEquals: os << "LessEqual"; break;
+        case TokenType::_Mod: os << "Mod"; break;
+        case TokenType::_NotEqual: os << "NotEqual"; break;
         default: os << "Unknown"; break;
     }
     return os;
@@ -48,7 +59,18 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_CloseCurly, "}"},
     {TokenType::_Caret, "^"},
     {TokenType::_FloorDiv, "//"},
-    {TokenType::_Compare, "=="}
+    {TokenType::_PlusEquals, "+="},
+    {TokenType::_MinusEquals, "-="},
+    {TokenType::_MultiplyEquals, "*="},
+    {TokenType::_DivideEquals, "/="},
+    {TokenType::_DoubleMultiply, "**"},
+    {TokenType::_GreaterThan, ">"},
+    {TokenType::_GreaterEquals, ">="},
+    {TokenType::_LessThan, "<"},
+    {TokenType::_LessEquals, "<="},
+    {TokenType::_Mod, "%"},
+    {TokenType::_Compare, "=="},
+    {TokenType::_NotEqual, "!="}
 };
 
 std::map<char, TokenType> char_tokens{
@@ -62,7 +84,10 @@ std::map<char, TokenType> char_tokens{
     {';', TokenType::_Semi},
     {'{', TokenType::_OpenCurly},
     {'}', TokenType::_CloseCurly},
-    {'^', TokenType::_Caret}
+    {'^', TokenType::_Caret},
+    {'>', TokenType::_GreaterThan},
+    {'<', TokenType::_LessThan},
+    {'%', TokenType::_Mod}
 };
 
 std::map<std::string, TokenType> keyword_tokens;
@@ -223,8 +248,40 @@ std::vector<Token> Lexer::tokenize() {
                 getNextCharacter();
                 tokens.push_back(token);
             }
-            else if (character == '=' && peekNextCharacter() == '=') {
-                Token token{TokenType::_Compare, line, column};
+            else if (character == '*' && peekNextCharacter() == '*') {
+                Token token{TokenType::_DoubleMultiply, line, column};
+                getNextCharacter();
+                tokens.push_back(token);
+            }
+            else if (peekNextCharacter() == '=') {
+                TokenType op;
+                switch (character) {
+                    case '=' :
+                        op = TokenType::_Compare;
+                        break;
+                    case '+' :
+                        op = TokenType::_PlusEquals;
+                        break;
+                    case '-' :
+                        op = TokenType::_MinusEquals;
+                        break;
+                    case '*' :
+                        op = TokenType::_MultiplyEquals;
+                        break;
+                    case '/' :
+                        op = TokenType::_DivideEquals;
+                        break;
+                    case '>' :
+                        op = TokenType::_GreaterEquals;
+                        break;
+                    case '<' :
+                        op = TokenType::_LessEquals;
+                        break;
+                    default:
+                        handleError("Unrecognized operator", line, column);
+                }
+
+                Token token{op, line, column};
                 getNextCharacter();
                 tokens.push_back(token);
             }
@@ -232,6 +289,11 @@ std::vector<Token> Lexer::tokenize() {
                 Token token{char_tokens[character], line, column};
                 tokens.push_back(token);
             }
+        }
+        else if (character == '!' && peekNextCharacter() == '=') {
+            Token token{TokenType::_NotEqual, line, column};
+            getNextCharacter();
+            tokens.push_back(token);
         }
         else {
             handleError(std::format("Unrecognized character: {}", character), line, column);

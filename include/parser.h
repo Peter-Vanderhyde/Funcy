@@ -103,6 +103,7 @@ private:
     std::optional<const Token*> peek(int ahead) const;
     std::string getTokenStr() const;
     bool tokenIs(std::string str) const;
+    bool nextTokenIs(std::string str) const;
 
     std::unique_ptr<ASTNode> parseStatement();
     std::unique_ptr<ASTNode> parseComparison();

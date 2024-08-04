@@ -24,7 +24,7 @@ enum class TokenType{
     _CloseCurly,
     _Caret,
     _FloorDiv,
-    _AddEquals,
+    _PlusEquals,
     _MinusEquals,
     _MultiplyEquals,
     _DivideEquals,
@@ -34,7 +34,8 @@ enum class TokenType{
     _LessThan,
     _LessEquals,
     _Mod,
-    _Compare
+    _Compare,
+    _NotEqual
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);
