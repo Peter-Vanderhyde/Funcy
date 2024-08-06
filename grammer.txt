@@ -1,4 +1,6 @@
-Statement : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] Comparison
+Foundation : (Keyword [Comparison] '{' Foundation+ '}') | Statement
+
+Statement : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] Comparison ';'
 
 Comparison : Expression [ ('==' | '!=' | '<' | '<=' | '>' | '>=') Expression ]
 
@@ -14,6 +16,8 @@ Primary    : Atom | ('(' Expression ')')
 
 Atom : Identifier | Number | Boolean | String
 
+Keyword : 'if' | 'elif' | 'else' | 'while'
+
 Number     : Integer | Float
 
 Identifier : (a-zA-Z_)[a-zA-Z_0-9]*
@@ -25,3 +29,5 @@ String     : '"' [^"]* '"'
 Integer    : [0-9]+
 
 Float      : [0-9]+ '.' [0-9]+
+
+Add !, and, or, etc, builtin functions, lists, working elif else, break, continue

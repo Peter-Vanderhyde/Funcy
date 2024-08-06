@@ -35,7 +35,11 @@ enum class TokenType{
     _LessEquals,
     _Mod,
     _Compare,
-    _NotEqual
+    _NotEqual,
+    _If,
+    _Else,
+    _Elif,
+    _While
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);

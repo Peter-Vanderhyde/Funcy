@@ -9,6 +9,20 @@ void handleError(const std::string& message, int line, int column) {
     }
 }
 
+void printValue(const Value* value) {
+    if (auto int_value = std::get_if<int>(value)) {
+        std::cout << *int_value << std::endl;
+    } else if (auto double_value = std::get_if<double>(value)) {
+        std::cout << *double_value << std::endl;
+    } else if (auto bool_value = std::get_if<bool>(value)) {
+        std::cout << std::boolalpha << *bool_value << std::endl;
+    } else if (auto string_value = std::get_if<std::string>(value)) {
+        std::cout << *string_value << std::endl;
+    } else {
+        throw std::runtime_error("Received invalid value type to print.");
+    }
+}
+
 
 std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) const {
     if (isInteger()) {
@@ -212,6 +226,49 @@ std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& e
     return expr_value;
 }
 
+bool KeywordNode::getComparisonValue(Environment& env) const {
+    auto result = comparison->evaluate(env);
+    if (result && getValueStr(result.value()) == "bool") {
+        if (auto bool_value = std::get_if<bool>(result.value().get())) {
+            return *bool_value;
+        } else {
+            throw std::runtime_error("Boolean weirdness.");
+        }
+    }
+    else {
+        throw std::runtime_error("Syntax Error: Missing a boolean comparison for keyword to evaluate.");
+    }
+}
+
+std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) const {
+
+    if (comparison && getComparisonValue(env) == false) {
+        return std::nullopt;
+    }
+
+    env.addScope();
+    for (int i = 0; i < statements_block.size(); i++) {
+        std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
+        if (result) {
+            printValue(result.value().get());
+        }
+    }
+
+    if (keyword == TokenType::_While) {
+        while (getComparisonValue(env)) {
+            for (int i = 0; i < statements_block.size(); i++) {
+                auto result = statements_block[i]->evaluate(env);
+                if (result) {
+                    printValue(result.value().get());
+                }
+            }
+        }
+    }
+
+    env.removeScope();
+    return std::nullopt;
+}
+
 
 
 const Token* Parser::getToken() const {
@@ -221,14 +278,7 @@ const Token* Parser::getToken() const {
 std::vector<std::unique_ptr<ASTNode>> Parser::parse() {
     std::vector<std::unique_ptr<ASTNode>> statements;
     while (getToken()->type != TokenType::_EndOfFile) {
-        statements.push_back(parseStatement());
-        if (getToken()->type != TokenType::_Semi) {
-            std::cout << token_labels[getToken()->type];
-            handleError("Expected ';'", getToken()->line, getToken()->column);
-        }
-        else {
-            consume();
-        }
+        statements.push_back(parseFoundation());
     }
 
     return statements;
@@ -240,7 +290,6 @@ const Token* Parser::consume() {
         handleError("File ended unexpectedly!", t->line, t->column);
     }
 
-    //std::cout << getTokenStr() << std::endl;
     token_index += 1;
     return t;
 }
@@ -266,6 +315,49 @@ bool Parser::nextTokenIs(std::string str) const {
     return str == token_labels[peek().value()->type];
 }
 
+std::unique_ptr<ASTNode> Parser::parseFoundation() {
+    std::string t_str = getTokenStr();
+    if (keyword_tokens.contains(getTokenStr())) {
+        TokenType keyword = getToken()->type;
+        consume();
+        std::unique_ptr<ASTNode> comparison = nullptr;
+        if (t_str == "if" || t_str == "elif" || t_str == "while") {
+            if (tokenIs("{")) {
+                handleError("Syntax Error: Missing boolean expression ", getToken()->line, getToken()->column);
+            }
+
+            comparison = parseComparison();
+        }
+
+        if (!tokenIs("{")) {
+            handleError("Syntax Error: Expected '{' but got " + getTokenStr(), getToken()->line, getToken()->column);
+        }
+        consume();
+
+        std::vector<std::unique_ptr<ASTNode>> block;
+        while (!tokenIs("EOF") && !tokenIs("}")) {
+            block.push_back(parseFoundation());
+        }
+
+        if (tokenIs("EOF")) {
+            throw std::runtime_error("Syntax Error: Expected '}'.");
+        }
+        consume();
+
+        return std::make_unique<KeywordNode>(keyword, std::move(comparison), std::move(block));
+    }
+    else  {
+        auto statement =  parseStatement();
+        if (!tokenIs(";")) {
+            handleError("Expected ';' but got " + getTokenStr(), getToken()->line, getToken()->column);
+        } else {
+            consume();
+            return statement;
+        }
+        return nullptr;
+    }
+}
+
 std::unique_ptr<ASTNode> Parser::parseStatement() {
 
     if (tokenIs("Ident") && peek() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
@@ -277,10 +369,7 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
         return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
     }
     else {
-        auto comp = parseComparison();
-
-        // This is pretty cheaty
-        return std::make_unique<ParenthesisOpNode>(std::move(comp));
+        return parseComparison();
     }
 }
 

@@ -35,6 +35,10 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_LessEquals: os << "LessEqual"; break;
         case TokenType::_Mod: os << "Mod"; break;
         case TokenType::_NotEqual: os << "NotEqual"; break;
+        case TokenType::_If: os << "If"; break;
+        case TokenType::_Else: os << "Else"; break;
+        case TokenType::_Elif: os << "Elif"; break;
+        case TokenType::_While: os << "While"; break;
         default: os << "Unknown"; break;
     }
     return os;
@@ -70,7 +74,11 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_LessEquals, "<="},
     {TokenType::_Mod, "%"},
     {TokenType::_Compare, "=="},
-    {TokenType::_NotEqual, "!="}
+    {TokenType::_NotEqual, "!="},
+    {TokenType::_If, "if"},
+    {TokenType::_Else, "else"},
+    {TokenType::_Elif, "elif"},
+    {TokenType::_While, "while"}
 };
 
 std::map<char, TokenType> char_tokens{
@@ -90,7 +98,12 @@ std::map<char, TokenType> char_tokens{
     {'%', TokenType::_Mod}
 };
 
-std::map<std::string, TokenType> keyword_tokens;
+std::map<std::string, TokenType> keyword_tokens {
+    {"if", TokenType::_If},
+    {"else", TokenType::_Else},
+    {"elif", TokenType::_Elif},
+    {"while", TokenType::_While}
+};
 
 
 std::ostream& operator<<(std::ostream& os, const Token& token) {

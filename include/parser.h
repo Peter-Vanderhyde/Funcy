@@ -11,6 +11,8 @@
 template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(T1 lhs, T2 rhs, TokenType op);
 
+void printValue(const Value* value);
+
 
 class ASTNode {
 public:
@@ -88,6 +90,21 @@ public:
     std::unique_ptr<ASTNode> expr;
 };
 
+class KeywordNode : public ASTNode {
+public:
+    KeywordNode(TokenType keyword, std::unique_ptr<ASTNode> comparison, std::vector<std::unique_ptr<ASTNode>> statements_block)
+        : keyword{keyword}, comparison{std::move(comparison)}, statements_block{std::move(statements_block)} {}
+
+    ~KeywordNode() noexcept override = default;
+
+    bool getComparisonValue(Environment& env) const;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) const override;
+
+    TokenType keyword;
+    std::unique_ptr<ASTNode> comparison;
+    std::vector<std::unique_ptr<ASTNode>> statements_block;
+};
+
 class Parser {
 public:
     Parser(const std::vector<Token>& tokens)
@@ -105,6 +122,7 @@ private:
     bool tokenIs(std::string str) const;
     bool nextTokenIs(std::string str) const;
 
+    std::unique_ptr<ASTNode> parseFoundation();
     std::unique_ptr<ASTNode> parseStatement();
     std::unique_ptr<ASTNode> parseComparison();
     std::unique_ptr<ASTNode> parseExpression();
