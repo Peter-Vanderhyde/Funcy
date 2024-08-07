@@ -39,12 +39,18 @@ enum class TokenType{
     _If,
     _Else,
     _Elif,
-    _While
+    _While,
+    _Not,
+    _Exclamation,
+    _And,
+    _Or
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);
 
 extern std::map<TokenType, std::string> token_labels;
+
+extern std::map<std::string, TokenType> scoped_keyword_tokens;
 
 extern std::map<std::string, TokenType> keyword_tokens;
 

@@ -39,16 +39,21 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Else: os << "Else"; break;
         case TokenType::_Elif: os << "Elif"; break;
         case TokenType::_While: os << "While"; break;
+        case TokenType::_Not: os << "Not"; break;
+        case TokenType::_Exclamation: os << "Exclamation"; break;
+        case TokenType::_And: os << "And"; break;
+        case TokenType::_Or: os << "Or"; break;
+        //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
     return os;
 }
 
 std::map<TokenType, std::string> token_labels {
-    {TokenType::_Identifier, "Ident"},
-    {TokenType::_Float, "Float"},
-    {TokenType::_Integer, "Int"},
-    {TokenType::_String, "String"},
+    {TokenType::_Identifier, "ident"},
+    {TokenType::_Float, "float"},
+    {TokenType::_Integer, "int"},
+    {TokenType::_String, "string"},
     {TokenType::_Semi, ";"},
     {TokenType::_Plus, "+"},
     {TokenType::_Minus, "-"},
@@ -57,8 +62,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Equals, "="},
     {TokenType::_OpenParen, "("},
     {TokenType::_CloseParen, ")"},
-    {TokenType::_EndOfFile, "EOF"},
-    {TokenType::_Boolean, "Bool"},
+    {TokenType::_EndOfFile, "eof"},
+    {TokenType::_Boolean, "bool"},
     {TokenType::_OpenCurly, "{"},
     {TokenType::_CloseCurly, "}"},
     {TokenType::_Caret, "^"},
@@ -78,7 +83,12 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_If, "if"},
     {TokenType::_Else, "else"},
     {TokenType::_Elif, "elif"},
-    {TokenType::_While, "while"}
+    {TokenType::_While, "while"},
+    {TokenType::_Not, "not"},
+    {TokenType::_Exclamation, "!"},
+    {TokenType::_And, "and"},
+    {TokenType::_Or, "or"}
+    //{TokenType::_, ""}
 };
 
 std::map<char, TokenType> char_tokens{
@@ -95,14 +105,21 @@ std::map<char, TokenType> char_tokens{
     {'^', TokenType::_Caret},
     {'>', TokenType::_GreaterThan},
     {'<', TokenType::_LessThan},
-    {'%', TokenType::_Mod}
+    {'%', TokenType::_Mod},
+    {'!', TokenType::_Exclamation}
 };
 
-std::map<std::string, TokenType> keyword_tokens {
+std::map<std::string, TokenType> scoped_keyword_tokens {
     {"if", TokenType::_If},
     {"else", TokenType::_Else},
     {"elif", TokenType::_Elif},
     {"while", TokenType::_While}
+};
+
+std::map<std::string, TokenType> keyword_tokens {
+    {"not", TokenType::_Not},
+    {"and", TokenType::_And},
+    {"or", TokenType::_Or}
 };
 
 
@@ -190,6 +207,10 @@ std::vector<Token> Lexer::tokenize() {
             // Check if it's a keyword
             if (keyword_tokens.contains(identifier)) {
                 Token token{keyword_tokens[identifier], l, c};
+                tokens.push_back(token);
+            }
+            else if (scoped_keyword_tokens.contains(identifier)) {
+                Token token{scoped_keyword_tokens[identifier], l, c};
                 tokens.push_back(token);
             }
             else if (identifier == "true" || identifier == "false") {

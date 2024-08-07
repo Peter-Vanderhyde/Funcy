@@ -1,8 +1,23 @@
-Foundation : (Keyword [Comparison] '{' Foundation+ '}') | Statement
+Foundation  : Statement | ControlFlowStatement
 
-Statement : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] Comparison ';'
+ControlFlowStatement : 'return' Expression? ';'
+                     | 'break' ';'
+                     | 'continue' ';'
+                     | 'for' Identifier 'in' Expression Scope
+                     | 'while' Comparison Scope
+                     | 'if' Comparison Scope 
+                     | 'elif' Comparison Scope
+                     | 'else' Scope
 
-Comparison : Expression [ ('==' | '!=' | '<' | '<=' | '>' | '>=') Expression ]
+Statement  : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] Comparison ';'
+
+Comparison : LogicalOr [ ('==' | '!=' | '<' | '<=' | '>' | '>=') LogicalOr ]
+
+LogicalOr  : LogicalAnd ['or' LogicalAnd]*
+
+LogicalAnd : LogicalNot ['and' LogicalNot]*
+
+LogicalNot : ['not' | '!']* Expression
 
 Expression : Term [ ('+' | '-') Term ]*
 
@@ -14,9 +29,7 @@ Power      : Primary [ ('^' | '**') Factor ]?
 
 Primary    : Atom | ('(' Expression ')')
 
-Atom : Identifier | Number | Boolean | String
-
-Keyword : 'if' | 'elif' | 'else' | 'while'
+Atom       : Identifier | Number | Boolean | String
 
 Number     : Integer | Float
 
@@ -30,4 +43,7 @@ Integer    : [0-9]+
 
 Float      : [0-9]+ '.' [0-9]+
 
-Add !, and, or, etc, builtin functions, lists, working elif else, break, continue
+Scope      : '{' Foundation+ '}'
+
+Add !, and, or, etc, builtin functions, lists, working elif else, break, continue, for, return,
+const, int, double, float, bool, String, def, import, null

@@ -125,6 +125,9 @@ private:
     std::unique_ptr<ASTNode> parseFoundation();
     std::unique_ptr<ASTNode> parseStatement();
     std::unique_ptr<ASTNode> parseComparison();
+    std::unique_ptr<ASTNode> parseLogicalOr();
+    std::unique_ptr<ASTNode> parseLogicalAnd();
+    std::unique_ptr<ASTNode> parseLogicalNot();
     std::unique_ptr<ASTNode> parseExpression();
     std::unique_ptr<ASTNode> parseTerm();
     std::unique_ptr<ASTNode> parseFactor();

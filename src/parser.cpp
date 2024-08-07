@@ -91,6 +91,11 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs + rhs);
         else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
         else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
+        else if (op == TokenType::_And) {
+            return std::make_shared<Value>(lhs.length() > 0 && rhs.length() > 0);
+        } else if (op == TokenType::_Or) {
+            return std::make_shared<Value>(lhs.length() > 0 || rhs.length() > 0);
+        }
     }
     else if constexpr ((std::is_same_v<T1, int> || std::is_same_v<T1, bool> || std::is_same_v<T1, double>) && (std::is_same_v<T2, int> || std::is_same_v<T2, bool> || std::is_same_v<T2, double>)) {
         if (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
@@ -126,10 +131,26 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         else if (op == TokenType::_GreaterEquals) return std::make_shared<Value>(lhs >= rhs);
         else if (op == TokenType::_LessThan) return std::make_shared<Value>(lhs < rhs);
         else if (op == TokenType::_LessEquals) return std::make_shared<Value>(lhs <= rhs);
+        else if (op == TokenType::_And) return std::make_shared<Value>(lhs && rhs);
+        else if (op == TokenType::_Or) return std::make_shared<Value>(lhs || rhs);
     }
     else if constexpr ((std::is_same_v<T1, std::string> || std::is_same_v<T2, std::string>) && !std::is_same_v<T1, T2>) {
         // A MIX OF STRING AND BOOL
-        return std::nullopt;
+        if (op == TokenType::_And) {
+            if constexpr (std::is_same_v<T1, std::string>) {
+                return std::make_shared<Value>(lhs.length() > 0 && rhs);
+            }
+            else if constexpr (std::is_same_v<T2, std::string>) {
+                return std::make_shared<Value>(lhs && rhs.length() > 0);
+            }
+        } else if (op == TokenType::_Or) {
+            if constexpr (std::is_same_v<T1, std::string>) {
+                return std::make_shared<Value>(lhs.length() > 0 || rhs);
+            }
+            else if constexpr (std::is_same_v<T2, std::string>) {
+                return std::make_shared<Value>(lhs || rhs.length() > 0);
+            }
+        }
     }
     return std::nullopt;
 }
@@ -216,6 +237,12 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) co
             return right_value;
         }
     }
+    else if (RHS == "bool") {
+        if (op == TokenType::_Not) {
+            bool rhs = std::get<bool>(*right_value.value().get());
+            return std::make_shared<Value>(!rhs);
+        }
+    }
 
     throw std::runtime_error(std::format("Unsupported operand types for operation. operation was '{}' {}", token_labels[op], RHS));
     return std::nullopt;
@@ -246,26 +273,30 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) co
         return std::nullopt;
     }
 
-    env.addScope();
-    for (int i = 0; i < statements_block.size(); i++) {
-        std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
-        if (result) {
-            printValue(result.value().get());
+    std::string str = token_labels[keyword];
+    if (str == "if" || str == "elif" || str == "else" || str == "while" || str == "for") {
+        env.addScope();
+        for (int i = 0; i < statements_block.size(); i++) {
+            std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
+            if (result) {
+                printValue(result.value().get());
+            }
         }
-    }
 
-    if (keyword == TokenType::_While) {
-        while (getComparisonValue(env)) {
-            for (int i = 0; i < statements_block.size(); i++) {
-                auto result = statements_block[i]->evaluate(env);
-                if (result) {
-                    printValue(result.value().get());
+        if (str == "while") {
+            while (getComparisonValue(env)) {
+                for (int i = 0; i < statements_block.size(); i++) {
+                    auto result = statements_block[i]->evaluate(env);
+                    if (result) {
+                        printValue(result.value().get());
+                    }
                 }
             }
         }
+
+        env.removeScope();
     }
 
-    env.removeScope();
     return std::nullopt;
 }
 
@@ -316,8 +347,9 @@ bool Parser::nextTokenIs(std::string str) const {
 }
 
 std::unique_ptr<ASTNode> Parser::parseFoundation() {
+    // std::cout << "parse foundation" << std::endl;
     std::string t_str = getTokenStr();
-    if (keyword_tokens.contains(getTokenStr())) {
+    if (scoped_keyword_tokens.contains(getTokenStr())) {
         TokenType keyword = getToken()->type;
         consume();
         std::unique_ptr<ASTNode> comparison = nullptr;
@@ -335,11 +367,11 @@ std::unique_ptr<ASTNode> Parser::parseFoundation() {
         consume();
 
         std::vector<std::unique_ptr<ASTNode>> block;
-        while (!tokenIs("EOF") && !tokenIs("}")) {
+        while (!tokenIs("eof") && !tokenIs("}")) {
             block.push_back(parseFoundation());
         }
 
-        if (tokenIs("EOF")) {
+        if (tokenIs("eof")) {
             throw std::runtime_error("Syntax Error: Expected '}'.");
         }
         consume();
@@ -359,8 +391,9 @@ std::unique_ptr<ASTNode> Parser::parseFoundation() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseStatement() {
+    // std::cout << "parse statement" << std::endl;
 
-    if (tokenIs("Ident") && peek() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
+    if (tokenIs("ident") && peek() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
         auto left = parseIdentifier();
 
         TokenType op = getToken()->type;
@@ -374,19 +407,64 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseComparison() {
-    auto left = parseExpression();
+    // std::cout << "parse comparison" << std::endl;
+    auto left = parseLogicalOr();
 
     while (tokenIs("==") || tokenIs("!=") || tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=")) {
         TokenType op = getToken()->type;
         consume();
-        auto right = parseExpression();
+        auto right = parseLogicalOr();
         left = std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
     }
 
     return left;
 }
 
+std::unique_ptr<ASTNode> Parser::parseLogicalOr() {
+    // std::cout << "parse or" << std::endl;
+    auto left = parseLogicalAnd();
+
+    if (tokenIs("or")) {
+        TokenType k_word = TokenType::_Or;
+        consume();
+        auto right = parseLogicalAnd();
+        return std::make_unique<BinaryOpNode>(std::move(left), k_word, std::move(right));
+    }
+    else {
+        return left;
+    }
+}
+
+std::unique_ptr<ASTNode> Parser::parseLogicalAnd() {
+    // std::cout << "parse and" << std::endl;
+    auto left = parseLogicalNot();
+
+    if (tokenIs("and")) {
+        TokenType k_word = TokenType::_And;
+        consume();
+        auto right = parseLogicalNot();
+        return std::make_unique<BinaryOpNode>(std::move(left), k_word, std::move(right));
+    }
+    else {
+        return left;
+    }
+}
+
+std::unique_ptr<ASTNode> Parser::parseLogicalNot() {
+    // std::cout << "parse not" << std::endl;
+    if (tokenIs("not") || tokenIs("!")) {
+        TokenType k_word = TokenType::_Not;
+        consume();
+        auto right = parseExpression();
+        return std::make_unique<UnaryOpNode>(k_word, std::move(right));
+    }
+    else {
+        return parseExpression();
+    }
+}
+
 std::unique_ptr<ASTNode> Parser::parseExpression() {
+    // std::cout << "parse expression" << std::endl;
     auto left = parseTerm();
 
     while (tokenIs("+") || tokenIs("-")) {
@@ -400,6 +478,7 @@ std::unique_ptr<ASTNode> Parser::parseExpression() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseTerm() {
+    // std::cout << "parse term" << std::endl;
     auto left = parseFactor();
 
     while (tokenIs("*") || tokenIs("/") || tokenIs("//") || tokenIs("%")) {
@@ -413,6 +492,7 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseFactor() {
+    // std::cout << "parse factor" << std::endl;
     if (tokenIs("+") || tokenIs("-")) {
         TokenType op = getToken()->type;
         consume();
@@ -425,6 +505,7 @@ std::unique_ptr<ASTNode> Parser::parseFactor() {
 }
 
 std::unique_ptr<ASTNode> Parser::parsePower() {
+    // std::cout << "parse power" << std::endl;
     auto left = parsePrimary();
 
     if (tokenIs("^") || tokenIs("**")) {
@@ -439,6 +520,7 @@ std::unique_ptr<ASTNode> Parser::parsePower() {
 }
 
 std::unique_ptr<ASTNode> Parser::parsePrimary() {
+    // std::cout << "parse primary" << std::endl;
     if (tokenIs("(")) {
         consume();
         auto comp = parseComparison();
@@ -448,7 +530,7 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
         consume();
         return std::make_unique<ParenthesisOpNode>(std::move(comp));
     }
-    else if (tokenIs("Ident")) {
+    else if (tokenIs("ident")) {
         return parseIdentifier();
     }
     else {
@@ -457,7 +539,8 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseAtom() {
-    if (tokenIs("Int") || tokenIs("Float") || tokenIs("Bool") || tokenIs("String")) {
+    // std::cout << "parse atom" << std::endl;
+    if (tokenIs("int") || tokenIs("float") || tokenIs("bool") || tokenIs("string")) {
         const Token* token = getToken();
         if (auto int_value = std::get_if<int>(&token->value)) {
             consume();
@@ -483,7 +566,7 @@ std::unique_ptr<ASTNode> Parser::parseAtom() {
 }
 
 std::unique_ptr<ASTNode> Parser::parseIdentifier() {
-    if (tokenIs("Ident")) {
+    if (tokenIs("ident")) {
         const Token* token = getToken();
         consume();
         if (auto ident_value = std::get_if<std::string>(&token->value)) {

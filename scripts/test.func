@@ -1,11 +1,7 @@
-run_amount = 5;
-
-while run_amount > 0 {
-    "Running...";
-    run_amount -= 1;
-    if run_amount < 3 {
-        "Tired.";
-    } elif run_amount < 1 {
-        "Exhausted.";
-    }
+stop = false;
+index = 4;
+while index and not stop {
+    index -= 1;
+    "loop";
 }
+"finished";
