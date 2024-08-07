@@ -35,7 +35,7 @@ int main() {
     // }
 
     Parser parser{tokens};
-    std::vector<std::unique_ptr<ASTNode>> statements = parser.parse();
+    std::vector<std::shared_ptr<ASTNode>> statements = parser.parse();
     
     // ASTPrinter printer;
     // printer.print(statements);
@@ -43,11 +43,11 @@ int main() {
     Environment env;
     env.addScope();
     int stmnt_num = 0;
-    for (const auto& statement : statements) {
+    for (auto statement : statements) {
         stmnt_num += 1;
         std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
         if (result.has_value()) {
-            printValue(result.value().get());
+            printValue(result.value());
         }
         else {
             // std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;

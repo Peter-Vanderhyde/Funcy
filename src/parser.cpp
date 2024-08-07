@@ -9,14 +9,14 @@ void handleError(const std::string& message, int line, int column) {
     }
 }
 
-void printValue(const Value* value) {
-    if (auto int_value = std::get_if<int>(value)) {
+void printValue(const std::shared_ptr<Value> value) {
+    if (auto int_value = std::get_if<int>(value.get())) {
         std::cout << *int_value << std::endl;
-    } else if (auto double_value = std::get_if<double>(value)) {
+    } else if (auto double_value = std::get_if<double>(value.get())) {
         std::cout << *double_value << std::endl;
-    } else if (auto bool_value = std::get_if<bool>(value)) {
+    } else if (auto bool_value = std::get_if<bool>(value.get())) {
         std::cout << std::boolalpha << *bool_value << std::endl;
-    } else if (auto string_value = std::get_if<std::string>(value)) {
+    } else if (auto string_value = std::get_if<std::string>(value.get())) {
         std::cout << *string_value << std::endl;
     } else {
         throw std::runtime_error("Received invalid value type to print.");
@@ -24,7 +24,7 @@ void printValue(const Value* value) {
 }
 
 
-std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) const {
+std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
     if (isInteger()) {
         return std::make_shared<Value>(getInteger());
     } else if (isFloat()) {
@@ -76,10 +76,11 @@ std::string AtomNode::getString() const {
 }
 
 
-std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env) const {
+std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env) {
     if (env.has(value)) {
         return env.get(value);
     } else {
+        throw std::runtime_error(value + " is not defined.");
         return {};
     }
 }
@@ -155,7 +156,7 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
     return std::nullopt;
 }
 
-std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) const {
+std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
     // Postpone evaluating left
     std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
 
@@ -210,7 +211,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) c
     return std::nullopt;
 }
 
-std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) const {
+std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
     std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
     if (!right_value.has_value()) {
         throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': the operand could not be computed.",
@@ -227,6 +228,10 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) co
         else if (op == TokenType::_Plus) {
             return right_value;
         }
+        else if (op == TokenType::_Not) {
+            int rhs = std::get<int>(*right_value.value().get());
+            return std::make_shared<Value>(rhs == 0);
+        }
     }
     else if (RHS == "double") {
         if (op == TokenType::_Minus) {
@@ -235,6 +240,10 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) co
         }
         else if (op == TokenType::_Plus) {
             return right_value;
+        }
+        else if (op == TokenType::_Not) {
+            double rhs = std::get<double>(*right_value.value().get());
+            return std::make_shared<Value>(rhs == 0.0);
         }
     }
     else if (RHS == "bool") {
@@ -248,7 +257,7 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) co
     return std::nullopt;
 }
 
-std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& env) const {
+std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& env) {
     std::optional<std::shared_ptr<Value>> expr_value = expr->evaluate(env);
     return expr_value;
 }
@@ -267,19 +276,31 @@ bool KeywordNode::getComparisonValue(Environment& env) const {
     }
 }
 
-std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) const {
+std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
+    if (if_link) {
+        // It's connected to a former if statement
+        if (if_link->last_comparison_result) {
+            // The previous if was true, so skip
+            last_comparison_result = true;
+            return {};
+        }
+    }
 
     if (comparison && getComparisonValue(env) == false) {
+        last_comparison_result = false;
         return std::nullopt;
+    } else if (comparison) {
+        last_comparison_result = true;
     }
 
     std::string str = token_labels[keyword];
     if (str == "if" || str == "elif" || str == "else" || str == "while" || str == "for") {
         env.addScope();
+        
         for (int i = 0; i < statements_block.size(); i++) {
             std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
             if (result) {
-                printValue(result.value().get());
+                printValue(result.value());
             }
         }
 
@@ -288,7 +309,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) co
                 for (int i = 0; i < statements_block.size(); i++) {
                     auto result = statements_block[i]->evaluate(env);
                     if (result) {
-                        printValue(result.value().get());
+                        printValue(result.value());
                     }
                 }
             }
@@ -306,13 +327,21 @@ const Token* Parser::getToken() const {
     return &tokens.at(token_index);
 }
 
-std::vector<std::unique_ptr<ASTNode>> Parser::parse() {
-    std::vector<std::unique_ptr<ASTNode>> statements;
+std::vector<std::shared_ptr<ASTNode>> Parser::parse() {
+    std::vector<std::shared_ptr<ASTNode>> statements;
     while (getToken()->type != TokenType::_EndOfFile) {
         statements.push_back(parseFoundation());
     }
 
     return statements;
+}
+
+void Parser::addIfElseScope() {
+    last_if_else.push_back(nullptr);
+}
+
+void Parser::removeIfElseScope() {
+    last_if_else.pop_back();
 }
 
 const Token* Parser::consume() {
@@ -346,37 +375,10 @@ bool Parser::nextTokenIs(std::string str) const {
     return str == token_labels[peek().value()->type];
 }
 
-std::unique_ptr<ASTNode> Parser::parseFoundation() {
+std::shared_ptr<ASTNode> Parser::parseFoundation() {
     // std::cout << "parse foundation" << std::endl;
-    std::string t_str = getTokenStr();
-    if (scoped_keyword_tokens.contains(getTokenStr())) {
-        TokenType keyword = getToken()->type;
-        consume();
-        std::unique_ptr<ASTNode> comparison = nullptr;
-        if (t_str == "if" || t_str == "elif" || t_str == "while") {
-            if (tokenIs("{")) {
-                handleError("Syntax Error: Missing boolean expression ", getToken()->line, getToken()->column);
-            }
-
-            comparison = parseComparison();
-        }
-
-        if (!tokenIs("{")) {
-            handleError("Syntax Error: Expected '{' but got " + getTokenStr(), getToken()->line, getToken()->column);
-        }
-        consume();
-
-        std::vector<std::unique_ptr<ASTNode>> block;
-        while (!tokenIs("eof") && !tokenIs("}")) {
-            block.push_back(parseFoundation());
-        }
-
-        if (tokenIs("eof")) {
-            throw std::runtime_error("Syntax Error: Expected '}'.");
-        }
-        consume();
-
-        return std::make_unique<KeywordNode>(keyword, std::move(comparison), std::move(block));
+    if (keyword_tokens.contains(getTokenStr())) {
+        return parseControlFlowStatement();
     }
     else  {
         auto statement =  parseStatement();
@@ -390,7 +392,75 @@ std::unique_ptr<ASTNode> Parser::parseFoundation() {
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parseStatement() {
+std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
+    // std::cout << "parse control flow" << std::endl;
+    if (peek() && peek().value()->type == TokenType::_Equals) {
+        // Make sure they're not trying to use a keyword as a variable
+        handleError(getTokenStr() + " is a keyword and is not allowed to be redefined", getToken()->line, getToken()->column);
+    }
+
+    std::string t_str = getTokenStr();
+    if (scoped_keyword_tokens.contains(getTokenStr())) {
+        TokenType keyword = getToken()->type;
+        consume();
+        std::shared_ptr<ASTNode> comparison = nullptr;
+        if (t_str == "if" || t_str == "elif" || t_str == "while") {
+            if (tokenIs("{")) {
+                handleError("Syntax Error: Missing boolean expression ", getToken()->line, getToken()->column);
+            }
+
+            comparison = parseLogicalOr();
+        }
+
+        if (!tokenIs("{")) {
+            handleError("Syntax Error: Expected '{' but got " + getTokenStr(), getToken()->line, getToken()->column);
+        }
+        consume();
+
+        addIfElseScope();
+        std::vector<std::shared_ptr<ASTNode>> block;
+        while (!tokenIs("eof") && !tokenIs("}")) {
+            block.push_back(parseFoundation());
+        }
+
+        if (tokenIs("eof")) {
+            throw std::runtime_error("Syntax Error: Expected '}'.");
+        }
+        consume();
+
+        removeIfElseScope();
+
+        if (t_str == "if") {
+            std::shared_ptr<KeywordNode> keyword_node = std::make_shared<KeywordNode>(keyword, nullptr, comparison, block);
+            last_if_else.back() = keyword_node;
+            return keyword_node;
+        } else if (t_str == "elif") {
+            if (last_if_else.back() == nullptr) {
+                handleError("Missing 'if' before 'elif'", getToken()->line, getToken()->column);
+            }
+
+            std::shared_ptr<KeywordNode> keyword_node = std::make_shared<KeywordNode>(keyword, last_if_else.back(), comparison, block);
+            last_if_else.back() = keyword_node;
+            return keyword_node;
+        } else if (t_str == "else") {
+            if (last_if_else.back() == nullptr) {
+                handleError("Missing 'if' before 'else'", getToken()->line, getToken()->column);
+            }
+
+            std::shared_ptr<KeywordNode> keyword_node = std::make_shared<KeywordNode>(keyword, last_if_else.back(), comparison, block);
+            last_if_else.back() = nullptr;
+            return keyword_node;
+        }
+
+        return std::make_shared<KeywordNode>(keyword, nullptr, comparison, block);
+    }
+    else {
+        // Token not, and, or
+        return parseLogicalOr();
+    }
+}
+
+std::shared_ptr<ASTNode> Parser::parseStatement() {
     // std::cout << "parse statement" << std::endl;
 
     if (tokenIs("ident") && peek() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
@@ -398,29 +468,15 @@ std::unique_ptr<ASTNode> Parser::parseStatement() {
 
         TokenType op = getToken()->type;
         consume();
-        auto right = parseComparison();
-        return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
+        auto right = parseLogicalOr();
+        return std::make_shared<BinaryOpNode>(left, op, right);
     }
     else {
-        return parseComparison();
+        return parseLogicalOr();
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parseComparison() {
-    // std::cout << "parse comparison" << std::endl;
-    auto left = parseLogicalOr();
-
-    while (tokenIs("==") || tokenIs("!=") || tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=")) {
-        TokenType op = getToken()->type;
-        consume();
-        auto right = parseLogicalOr();
-        left = std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
-    }
-
-    return left;
-}
-
-std::unique_ptr<ASTNode> Parser::parseLogicalOr() {
+std::shared_ptr<ASTNode> Parser::parseLogicalOr() {
     // std::cout << "parse or" << std::endl;
     auto left = parseLogicalAnd();
 
@@ -428,42 +484,57 @@ std::unique_ptr<ASTNode> Parser::parseLogicalOr() {
         TokenType k_word = TokenType::_Or;
         consume();
         auto right = parseLogicalAnd();
-        return std::make_unique<BinaryOpNode>(std::move(left), k_word, std::move(right));
+        return std::make_shared<BinaryOpNode>(left, k_word, right);
     }
     else {
         return left;
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parseLogicalAnd() {
+std::shared_ptr<ASTNode> Parser::parseLogicalAnd() {
     // std::cout << "parse and" << std::endl;
-    auto left = parseLogicalNot();
+    auto left = parseEquality();
 
     if (tokenIs("and")) {
         TokenType k_word = TokenType::_And;
         consume();
-        auto right = parseLogicalNot();
-        return std::make_unique<BinaryOpNode>(std::move(left), k_word, std::move(right));
+        auto right = parseEquality();
+        return std::make_shared<BinaryOpNode>(left, k_word, right);
     }
     else {
         return left;
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parseLogicalNot() {
-    // std::cout << "parse not" << std::endl;
-    if (tokenIs("not") || tokenIs("!")) {
-        TokenType k_word = TokenType::_Not;
+std::shared_ptr<ASTNode> Parser::parseEquality() {
+    // std::cout << "parse equality" << std::endl;
+    auto left = parseRelation();
+
+    while (tokenIs("==") || tokenIs("!=")) {
+        TokenType op = getToken()->type;
         consume();
-        auto right = parseExpression();
-        return std::make_unique<UnaryOpNode>(k_word, std::move(right));
+        auto right = parseRelation();
+        left = std::make_shared<BinaryOpNode>(left, op, right);
     }
-    else {
-        return parseExpression();
-    }
+
+    return left;
 }
 
-std::unique_ptr<ASTNode> Parser::parseExpression() {
+std::shared_ptr<ASTNode> Parser::parseRelation() {
+    // std::cout << "parse relation" << std::endl;
+    auto left = parseExpression();
+
+    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=")) {
+        TokenType op = getToken()->type;
+        consume();
+        auto right = parseExpression();
+        left = std::make_shared<BinaryOpNode>(left, op, right);
+    }
+
+    return left;
+}
+
+std::shared_ptr<ASTNode> Parser::parseExpression() {
     // std::cout << "parse expression" << std::endl;
     auto left = parseTerm();
 
@@ -471,13 +542,13 @@ std::unique_ptr<ASTNode> Parser::parseExpression() {
         TokenType op = getToken()->type;
         consume();
         auto right = parseTerm();
-        left = std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<BinaryOpNode>(left, op, right);
     }
 
     return left;
 }
 
-std::unique_ptr<ASTNode> Parser::parseTerm() {
+std::shared_ptr<ASTNode> Parser::parseTerm() {
     // std::cout << "parse term" << std::endl;
     auto left = parseFactor();
 
@@ -485,50 +556,63 @@ std::unique_ptr<ASTNode> Parser::parseTerm() {
         TokenType op = getToken()->type;
         consume();
         auto right = parseFactor();
-        left = std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
+        left = std::make_shared<BinaryOpNode>(left, op, right);
     }
 
     return left;
 }
 
-std::unique_ptr<ASTNode> Parser::parseFactor() {
+std::shared_ptr<ASTNode> Parser::parseFactor() {
     // std::cout << "parse factor" << std::endl;
     if (tokenIs("+") || tokenIs("-")) {
         TokenType op = getToken()->type;
         consume();
         auto right = parsePower();
-        return std::make_unique<UnaryOpNode>(op, std::move(right));
+        return std::make_shared<UnaryOpNode>(op, right);
     }
     else {
         return parsePower();
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parsePower() {
+std::shared_ptr<ASTNode> Parser::parsePower() {
     // std::cout << "parse power" << std::endl;
-    auto left = parsePrimary();
+    auto left = parseLogicalNot();
 
     if (tokenIs("^") || tokenIs("**")) {
         TokenType op = getToken()->type;
         consume();
         auto right = parseFactor();
-        return std::make_unique<BinaryOpNode>(std::move(left), op, std::move(right));
+        return std::make_shared<BinaryOpNode>(left, op, right);
     }
     else {
         return left;
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parsePrimary() {
+std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
+    // std::cout << "parse not" << std::endl;
+    if (tokenIs("not") || tokenIs("!")) {
+        TokenType k_word = TokenType::_Not;
+        consume();
+        auto right = parsePrimary();
+        return std::make_shared<UnaryOpNode>(k_word, right);
+    }
+    else {
+        return parsePrimary();
+    }
+}
+
+std::shared_ptr<ASTNode> Parser::parsePrimary() {
     // std::cout << "parse primary" << std::endl;
     if (tokenIs("(")) {
         consume();
-        auto comp = parseComparison();
+        auto comp = parseLogicalOr();
         if (!tokenIs(")")) {
             handleError("Expected ')'", getToken()->line, getToken()->column);
         }
         consume();
-        return std::make_unique<ParenthesisOpNode>(std::move(comp));
+        return std::make_shared<ParenthesisOpNode>(comp);
     }
     else if (tokenIs("ident")) {
         return parseIdentifier();
@@ -538,25 +622,25 @@ std::unique_ptr<ASTNode> Parser::parsePrimary() {
     }
 }
 
-std::unique_ptr<ASTNode> Parser::parseAtom() {
+std::shared_ptr<ASTNode> Parser::parseAtom() {
     // std::cout << "parse atom" << std::endl;
     if (tokenIs("int") || tokenIs("float") || tokenIs("bool") || tokenIs("string")) {
         const Token* token = getToken();
         if (auto int_value = std::get_if<int>(&token->value)) {
             consume();
-            return std::make_unique<AtomNode>(*int_value);
+            return std::make_shared<AtomNode>(*int_value);
         }
         else if (auto float_value = std::get_if<double>(&token->value)) {
             consume();
-            return std::make_unique<AtomNode>(*float_value);
+            return std::make_shared<AtomNode>(*float_value);
         }
         else if (auto bool_value = std::get_if<bool>(&token->value)) {
             consume();
-            return std::make_unique<AtomNode>(*bool_value);
+            return std::make_shared<AtomNode>(*bool_value);
         }
         else if (auto string_value = std::get_if<std::string>(&token->value)) {
             consume();
-            return std::make_unique<AtomNode>(*string_value);
+            return std::make_shared<AtomNode>(*string_value);
         }
     }
     else {
@@ -565,12 +649,12 @@ std::unique_ptr<ASTNode> Parser::parseAtom() {
     return nullptr;
 }
 
-std::unique_ptr<ASTNode> Parser::parseIdentifier() {
+std::shared_ptr<ASTNode> Parser::parseIdentifier() {
     if (tokenIs("ident")) {
         const Token* token = getToken();
         consume();
         if (auto ident_value = std::get_if<std::string>(&token->value)) {
-            return std::make_unique<IdentifierNode>(*ident_value);
+            return std::make_shared<IdentifierNode>(*ident_value);
         }
         else {
             handleError("Attempted to create an identifier with an invalid type", token->line, token->column);

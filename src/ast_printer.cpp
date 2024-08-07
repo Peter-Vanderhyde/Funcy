@@ -3,10 +3,14 @@
 
 // Helper function to print spaces for indentation
 std::string indent(int depth) {
-    return std::string(depth * 2, ' ');
+    std::string spaces = "";
+    for (int i = 0; i < depth; i++) {
+        spaces += "| ";
+    }
+    return spaces;
 }
 
-void ASTPrinter::print(const std::vector<std::unique_ptr<ASTNode>>& nodes) const {
+void ASTPrinter::print(const std::vector<std::shared_ptr<ASTNode>>& nodes) const {
     for (const auto& node : nodes) {
         if (node) {
             printNode(*node, 0);

@@ -117,6 +117,10 @@ std::map<std::string, TokenType> scoped_keyword_tokens {
 };
 
 std::map<std::string, TokenType> keyword_tokens {
+    {"if", TokenType::_If},
+    {"else", TokenType::_Else},
+    {"elif", TokenType::_Elif},
+    {"while", TokenType::_While},
     {"not", TokenType::_Not},
     {"and", TokenType::_And},
     {"or", TokenType::_Or}
@@ -159,7 +163,7 @@ char Lexer::getNextCharacter() {
     current_position += 1;
     column += 1;
     if (next == '\n') {
-        column = 1;
+        column = 0;
         line += 1;
     }
     return next;
@@ -175,7 +179,7 @@ void Lexer::handleError(std::string message, int l, int c) {
 
 std::vector<Token> Lexer::tokenize() {
     line = 1;
-    column = 1;
+    column = 0;
     while (current_position < source_code.length()) {
         char character = getNextCharacter();
 
@@ -207,10 +211,6 @@ std::vector<Token> Lexer::tokenize() {
             // Check if it's a keyword
             if (keyword_tokens.contains(identifier)) {
                 Token token{keyword_tokens[identifier], l, c};
-                tokens.push_back(token);
-            }
-            else if (scoped_keyword_tokens.contains(identifier)) {
-                Token token{scoped_keyword_tokens[identifier], l, c};
                 tokens.push_back(token);
             }
             else if (identifier == "true" || identifier == "false") {

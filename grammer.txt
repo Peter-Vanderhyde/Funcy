@@ -9,15 +9,15 @@ ControlFlowStatement : 'return' Expression? ';'
                      | 'elif' Comparison Scope
                      | 'else' Scope
 
-Statement  : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] Comparison ';'
-
-Comparison : LogicalOr [ ('==' | '!=' | '<' | '<=' | '>' | '>=') LogicalOr ]
+Statement  : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] LogicalOr ';'
 
 LogicalOr  : LogicalAnd ['or' LogicalAnd]*
 
-LogicalAnd : LogicalNot ['and' LogicalNot]*
+LogicalAnd : Equality ['and' Equality]*
 
-LogicalNot : ['not' | '!']* Expression
+Equality   : Relation [ ('==' | '!=') Relation ]
+
+Relation   : Expression [ ( '<' | '<=' | '>' | '>=' ) Expression ]
 
 Expression : Term [ ('+' | '-') Term ]*
 
@@ -25,9 +25,11 @@ Term       : Factor [ ('*' | '/' | '//' | '%') Factor ]*
 
 Factor     : [ ('+' | '-') ]? Power
 
-Power      : Primary [ ('^' | '**') Factor ]?
+Power      : LogicalNot [ ('^' | '**') Factor ]?
 
-Primary    : Atom | ('(' Expression ')')
+LogicalNot : ['not' | '!']* Atom
+
+Primary    : Atom | ('(' LogicalOr ')')
 
 Atom       : Identifier | Number | Boolean | String
 
@@ -45,5 +47,7 @@ Float      : [0-9]+ '.' [0-9]+
 
 Scope      : '{' Foundation+ '}'
 
-Add !, and, or, etc, builtin functions, lists, working elif else, break, continue, for, return,
-const, int, double, float, bool, String, def, import, null
+Add !, and, or, etc, builtin functions, lists, working elif else, break, continue, for, in, return,
+const, int, double, float, bool, String, def, import, null, input
+
+binary int not

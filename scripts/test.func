@@ -1,7 +1,14 @@
-stop = false;
-index = 4;
-while index and not stop {
-    index -= 1;
-    "loop";
+go = true;
+
+if go {
+    i = 0;
+    while go {
+        "Running";
+        i += 1;
+        if i > 10 {
+            go = false;
+        }
+    }
 }
-"finished";
+
+"Finished";
