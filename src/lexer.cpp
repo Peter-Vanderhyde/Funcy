@@ -43,6 +43,8 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Exclamation: os << "Exclamation"; break;
         case TokenType::_And: os << "And"; break;
         case TokenType::_Or: os << "Or"; break;
+        case TokenType::_Break: os << "Break"; break;
+        case TokenType::_Continue: os << "Continue"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -87,7 +89,9 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Not, "not"},
     {TokenType::_Exclamation, "!"},
     {TokenType::_And, "and"},
-    {TokenType::_Or, "or"}
+    {TokenType::_Or, "or"},
+    {TokenType::_Break, "break"},
+    {TokenType::_Continue, "continue"}
     //{TokenType::_, ""}
 };
 
@@ -123,7 +127,9 @@ std::map<std::string, TokenType> keyword_tokens {
     {"while", TokenType::_While},
     {"not", TokenType::_Not},
     {"and", TokenType::_And},
-    {"or", TokenType::_Or}
+    {"or", TokenType::_Or},
+    {"break", TokenType::_Break},
+    {"continue", TokenType::_Continue}
 };
 
 

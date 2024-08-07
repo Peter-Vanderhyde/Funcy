@@ -47,7 +47,7 @@ Float      : [0-9]+ '.' [0-9]+
 
 Scope      : '{' Foundation+ '}'
 
-Add !, and, or, etc, builtin functions, lists, working elif else, break, continue, for, in, return,
+Add builtin functions, lists, break, continue, for, in, return,
 const, int, double, float, bool, String, def, import, null, input
 
 binary int not

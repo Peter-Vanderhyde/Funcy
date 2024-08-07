@@ -1,14 +1,12 @@
-go = true;
+i = 1;
 
-if go {
-    i = 0;
-    while go {
-        "Running";
-        i += 1;
-        if i > 10 {
-            go = false;
-        }
+while true {
+    i *= 2;
+    if i < 20 {
+        continue;
+    }
+    i;
+    elif i > 100 {
+        break;
     }
 }
-
-"Finished";

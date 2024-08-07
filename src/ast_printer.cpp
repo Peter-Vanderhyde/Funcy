@@ -46,11 +46,11 @@ void ASTPrinter::printNode(const ASTNode& node, int depth) const {
     } else if (const auto* paren_op_node = dynamic_cast<const ParenthesisOpNode*>(&node)) {
         std::cout << indent(depth + 1) << "Parenthesis: ( ... )" << "\n";
         if (paren_op_node->expr) printNode(*paren_op_node->expr, depth + 1);
-    } else if (const auto* keyword_node = dynamic_cast<const KeywordNode*>(&node)) {
-        std::cout << indent(depth + 1) << "Keyword: " << token_labels[keyword_node->keyword] << '\n';
-        if (keyword_node->comparison) printNode(*keyword_node->comparison, depth + 1);
-        for (int i = 0; i < keyword_node->statements_block.size(); i++) {
-            printNode(*keyword_node->statements_block.at(i), depth + 1);
+    } else if (const auto* scoped_node = dynamic_cast<const ScopedNode*>(&node)) {
+        std::cout << indent(depth + 1) << "Keyword: " << token_labels[scoped_node->keyword] << '\n';
+        if (scoped_node->comparison) printNode(*scoped_node->comparison, depth + 1);
+        for (int i = 0; i < scoped_node->statements_block.size(); i++) {
+            printNode(*scoped_node->statements_block.at(i), depth + 1);
         }
     }
 }

@@ -8,6 +8,17 @@
 #include "environment.h"
 
 
+class BreakException : public std::exception {};
+class ContinueException : public std::exception {};
+class ReturnException : public std::exception {
+public:
+    ReturnException(std::optional<std::shared_ptr<Value>> value)
+        : value{value} {}
+
+    std::optional<std::shared_ptr<Value>> value;
+};
+
+
 template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(T1 lhs, T2 rhs, TokenType op);
 
@@ -90,21 +101,34 @@ public:
     std::shared_ptr<ASTNode> expr;
 };
 
-class KeywordNode : public ASTNode {
+class ScopedNode : public ASTNode {
 public:
-    KeywordNode(TokenType keyword, std::shared_ptr<KeywordNode> if_link, std::shared_ptr<ASTNode> comparison, std::vector<std::shared_ptr<ASTNode>> statements_block)
+    ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison, std::vector<std::shared_ptr<ASTNode>> statements_block)
         : keyword{keyword}, if_link{if_link}, comparison{comparison}, last_comparison_result{false}, statements_block{statements_block} {}
 
-    ~KeywordNode() noexcept override = default;
+    ~ScopedNode() noexcept override = default;
 
     bool getComparisonValue(Environment& env) const;
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
     TokenType keyword;
-    const std::shared_ptr<KeywordNode> if_link;
+    const std::shared_ptr<ScopedNode> if_link;
     std::shared_ptr<ASTNode> comparison;
     bool last_comparison_result;
     std::vector<std::shared_ptr<ASTNode>> statements_block;
+};
+
+class KeywordNode : public ASTNode {
+public:
+    KeywordNode(TokenType keyword, std::shared_ptr<ASTNode> right=nullptr)
+        : keyword{keyword}, right{right} {}
+    
+    ~KeywordNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    TokenType keyword;
+    std::shared_ptr<ASTNode> right;
 };
 
 class Parser {
@@ -119,7 +143,7 @@ public:
 private:
     const std::vector<Token>& tokens;
     size_t token_index = 0;
-    std::vector<std::shared_ptr<KeywordNode>> last_if_else{nullptr};
+    std::vector<std::shared_ptr<ScopedNode>> last_if_else{nullptr};
 
     const Token* getToken() const;
     const Token* consume();

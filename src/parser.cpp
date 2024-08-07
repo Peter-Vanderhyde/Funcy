@@ -262,7 +262,7 @@ std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& e
     return expr_value;
 }
 
-bool KeywordNode::getComparisonValue(Environment& env) const {
+bool ScopedNode::getComparisonValue(Environment& env) const {
     auto result = comparison->evaluate(env);
     if (result && getValueStr(result.value()) == "bool") {
         if (auto bool_value = std::get_if<bool>(result.value().get())) {
@@ -276,7 +276,7 @@ bool KeywordNode::getComparisonValue(Environment& env) const {
     }
 }
 
-std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
+std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     if (if_link) {
         // It's connected to a former if statement
         if (if_link->last_comparison_result) {
@@ -296,21 +296,30 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     std::string str = token_labels[keyword];
     if (str == "if" || str == "elif" || str == "else" || str == "while" || str == "for") {
         env.addScope();
-        
-        for (int i = 0; i < statements_block.size(); i++) {
-            std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
-            if (result) {
-                printValue(result.value());
-            }
-        }
 
         if (str == "while") {
             while (getComparisonValue(env)) {
-                for (int i = 0; i < statements_block.size(); i++) {
-                    auto result = statements_block[i]->evaluate(env);
-                    if (result) {
-                        printValue(result.value());
+                try {
+                    for (int i = 0; i < statements_block.size(); i++) {
+                        auto result = statements_block[i]->evaluate(env);
+                        if (result) {
+                            printValue(result.value());
+                        }
                     }
+                }
+                catch (const BreakException) {
+                    break;
+                }
+                catch (const ContinueException) {
+                    continue;
+                }
+            }
+        }
+        else {
+            for (int i = 0; i < statements_block.size(); i++) {
+                std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
+                if (result) {
+                    printValue(result.value());
                 }
             }
         }
@@ -321,6 +330,19 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     return std::nullopt;
 }
 
+std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
+    if (keyword == TokenType::_Break) {
+        throw BreakException();
+    } else if (keyword == TokenType::_Continue) {
+        throw ContinueException();
+    }
+
+    if (right) {
+        return right->evaluate(env);
+    } else {
+        return {};
+    }
+}
 
 
 const Token* Parser::getToken() const {
@@ -417,7 +439,9 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         }
         consume();
 
+        // Prevent connected elif to if outside of scope
         addIfElseScope();
+
         std::vector<std::shared_ptr<ASTNode>> block;
         while (!tokenIs("eof") && !tokenIs("}")) {
             block.push_back(parseFoundation());
@@ -431,7 +455,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         removeIfElseScope();
 
         if (t_str == "if") {
-            std::shared_ptr<KeywordNode> keyword_node = std::make_shared<KeywordNode>(keyword, nullptr, comparison, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, nullptr, comparison, block);
             last_if_else.back() = keyword_node;
             return keyword_node;
         } else if (t_str == "elif") {
@@ -439,7 +463,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 handleError("Missing 'if' before 'elif'", getToken()->line, getToken()->column);
             }
 
-            std::shared_ptr<KeywordNode> keyword_node = std::make_shared<KeywordNode>(keyword, last_if_else.back(), comparison, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison, block);
             last_if_else.back() = keyword_node;
             return keyword_node;
         } else if (t_str == "else") {
@@ -447,16 +471,30 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 handleError("Missing 'if' before 'else'", getToken()->line, getToken()->column);
             }
 
-            std::shared_ptr<KeywordNode> keyword_node = std::make_shared<KeywordNode>(keyword, last_if_else.back(), comparison, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison, block);
             last_if_else.back() = nullptr;
             return keyword_node;
         }
 
-        return std::make_shared<KeywordNode>(keyword, nullptr, comparison, block);
+        return std::make_shared<ScopedNode>(keyword, nullptr, comparison, block);
     }
     else {
         // Token not, and, or
-        return parseLogicalOr();
+        if (t_str == "not" || t_str == "and" || t_str == "or") {
+            return parseLogicalOr();
+        }
+        else {
+            auto node = std::make_shared<KeywordNode>(getToken()->type);
+            consume();
+            if (tokenIs(";")) {
+                consume();
+                return node;
+            }
+            else {
+                handleError("Expected ; but got " + getTokenStr(), getToken()->line, getToken()->column);
+                return nullptr;
+            }
+        }
     }
 }
 

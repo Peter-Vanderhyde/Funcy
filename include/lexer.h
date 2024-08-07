@@ -43,7 +43,9 @@ enum class TokenType{
     _Not,
     _Exclamation,
     _And,
-    _Or
+    _Or,
+    _Break,
+    _Continue
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);
