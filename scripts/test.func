@@ -1,0 +1,18 @@
+# fibonnaci sequence
+
+a = 0;
+b = 0;
+result = 0;
+
+while result < 500 {
+    result = a + b;
+    a;
+    b = a;
+    a = result;
+    if (!a) {
+        a = 1;
+    }
+}
+
+result;
+"Past 500!";

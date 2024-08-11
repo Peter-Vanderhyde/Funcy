@@ -48,7 +48,5 @@ Float      : [0-9]+ '.' [0-9]+
 
 Scope      : '{' Foundation+ '}'
 
-Add builtin functions, lists, break, continue, for, in, return,
-const, int, double, float, bool, String, def, import, null, input
-
-binary int not
+Add builtin functions, lists, in, return,
+const, int, double, float, bool, String, func, import, null, input
