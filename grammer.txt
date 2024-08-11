@@ -8,7 +8,7 @@ ControlFlowStatement : 'return' LogicalOr? ';'
                      | 'if' Equality Scope 
                      | 'elif' Equality Scope
                      | 'else' Scope
-                     | 'for' Identifier 'in' Expression Scope
+                     | 'for' Statement ',' Relation ',' Statement Scope
 
 Statement  : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] LogicalOr ';'
 
