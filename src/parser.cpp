@@ -262,6 +262,19 @@ std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& e
     return expr_value;
 }
 
+std::optional<std::shared_ptr<Value>> ScopeNode::evaluate(Environment& env) {
+    env.addScope();
+    for (auto statement : block) {
+        auto result = statement->evaluate(env);
+        if (result) {
+            printValue(result.value());
+        }
+    }
+
+    env.removeScope();
+    return std::nullopt;
+}
+
 bool ScopedNode::getComparisonValue(Environment& env) const {
     auto result = comparison->evaluate(env);
     if (result && getValueStr(result.value()) == "bool") {
@@ -327,6 +340,61 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         env.removeScope();
     }
 
+    return std::nullopt;
+}
+
+std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
+    env.addScope();
+    initialization->evaluate(env);
+
+    int variable;
+    if (auto i = std::get_if<int>(env.get(*init_string).get())) {
+        variable = *i;
+    }
+    else {
+        throw std::runtime_error("For loop requires int variable.");
+    }
+
+    while (true) {
+        auto cond_value = condition_value->evaluate(env);
+        if (!cond_value) {
+            throw std::runtime_error("Unable to evaluate for loop condition.");
+        }
+
+        if (auto bool_value = std::get_if<bool>(cond_value.value().get())) {
+            if (!*bool_value) break;
+        } else {
+            throw std::runtime_error("For loop requires boolean condition.");
+        }
+
+        int original_variable = variable;
+
+        try {
+            for (auto statement : block) {
+                auto result = statement->evaluate(env);
+                if (result) {
+                    printValue(result.value());
+                }
+            }
+        }
+        catch (const BreakException) {
+            break;
+        }
+        catch (const ContinueException) {
+            continue;
+        }
+
+        variable = original_variable;
+        // set variable in env
+        env.set(*init_string.get(), std::make_shared<Value>(variable));
+        // increment them
+        increment->evaluate(env);
+        if (auto i = std::get_if<int>(env.get(*init_string).get())) {
+            variable = *i;
+        }
+    }
+
+    env.removeScope();
     return std::nullopt;
 }
 
@@ -403,11 +471,14 @@ std::shared_ptr<ASTNode> Parser::parseFoundation() {
         return parseControlFlowStatement();
     }
     else  {
-        auto statement =  parseStatement();
-        if (!tokenIs(";")) {
+        bool plain_scope = tokenIs("{");
+        auto statement = parseStatement(nullptr);
+        if (!plain_scope && !tokenIs(";")) {
             handleError("Expected ';' but got " + getTokenStr(), getToken()->line, getToken()->column);
-        } else {
+        } else if (!plain_scope) {
             consume();
+            return statement;
+        } else {
             return statement;
         }
         return nullptr;
@@ -425,13 +496,39 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
     if (scoped_keyword_tokens.contains(getTokenStr())) {
         TokenType keyword = getToken()->type;
         consume();
-        std::shared_ptr<ASTNode> comparison = nullptr;
+        std::shared_ptr<ASTNode> comparison_expr = nullptr;
+        std::shared_ptr<ASTNode> for_initialization;
+        auto variable_str = std::make_shared<std::string>(""); // For loop saves the string of the variable to increment
+        std::shared_ptr<ASTNode> for_increment;
         if (t_str == "if" || t_str == "elif" || t_str == "while") {
             if (tokenIs("{")) {
                 handleError("Syntax Error: Missing boolean expression ", getToken()->line, getToken()->column);
             }
 
-            comparison = parseLogicalOr();
+            comparison_expr = parseLogicalOr();
+        } else if (t_str == "for") {
+            if (tokenIs("{") || !tokenIs("ident")) {
+                handleError("Syntax Error: Missing for loop expression", getToken()->line, getToken()->column);
+            }
+            for_initialization = parseStatement(variable_str);
+            // if (!tokenIs("in")) {
+            //     handleError("Syntax Error: For loop missing 'in' keyword", getToken()->line, getToken()->column);
+            // }
+            // consume();
+            if (!tokenIs(",")) {
+                handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
+            }
+            consume();
+            comparison_expr = parseRelation();
+            if (!tokenIs(",")) {
+                handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
+            }
+            consume();
+            auto var_test = std::make_shared<std::string>("");
+            for_increment = parseStatement(var_test);
+            if (*var_test != *variable_str) {
+                handleError("For loop requires manipulation of the initialized variable", getToken()->line, getToken()->column);
+            }
         }
 
         if (!tokenIs("{")) {
@@ -455,7 +552,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         removeIfElseScope();
 
         if (t_str == "if") {
-            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, nullptr, comparison, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, nullptr, comparison_expr, block);
             last_if_else.back() = keyword_node;
             return keyword_node;
         } else if (t_str == "elif") {
@@ -463,7 +560,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 handleError("Missing 'if' before 'elif'", getToken()->line, getToken()->column);
             }
 
-            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison_expr, block);
             last_if_else.back() = keyword_node;
             return keyword_node;
         } else if (t_str == "else") {
@@ -471,12 +568,14 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 handleError("Missing 'if' before 'else'", getToken()->line, getToken()->column);
             }
 
-            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison_expr, block);
             last_if_else.back() = nullptr;
             return keyword_node;
+        } else if (t_str == "for") {
+            return std::make_shared<ForNode>(keyword, for_initialization, variable_str, comparison_expr, for_increment, block);
+        } else {
+            return std::make_shared<ScopedNode>(keyword, nullptr, comparison_expr, block);
         }
-
-        return std::make_shared<ScopedNode>(keyword, nullptr, comparison, block);
     }
     else {
         // Token not, and, or
@@ -498,11 +597,11 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
     }
 }
 
-std::shared_ptr<ASTNode> Parser::parseStatement() {
+std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> varString = nullptr) {
     // std::cout << "parse statement" << std::endl;
 
     if (tokenIs("ident") && peek() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
-        auto left = parseIdentifier();
+        auto left = parseIdentifier(varString);
 
         TokenType op = getToken()->type;
         consume();
@@ -645,15 +744,27 @@ std::shared_ptr<ASTNode> Parser::parsePrimary() {
     // std::cout << "parse primary" << std::endl;
     if (tokenIs("(")) {
         consume();
-        auto comp = parseLogicalOr();
+        auto parse_or = parseLogicalOr();
         if (!tokenIs(")")) {
-            handleError("Expected ')'", getToken()->line, getToken()->column);
+            handleError("Expected ')' but got " + getTokenStr(), getToken()->line, getToken()->column);
         }
         consume();
-        return std::make_shared<ParenthesisOpNode>(comp);
+        return std::make_shared<ParenthesisOpNode>(parse_or);
+    }
+    else if (tokenIs("{")) {
+        consume();
+        std::vector<std::shared_ptr<ASTNode>> block;
+        while (!tokenIs("eof") && !tokenIs("}")) {
+            block.push_back(parseFoundation());
+        }
+        if (!tokenIs("}")) {
+            handleError("Expected '}'" + getTokenStr(), getToken()->line, getToken()->column);
+        }
+        consume();
+        return std::make_shared<ScopeNode>(block);
     }
     else if (tokenIs("ident")) {
-        return parseIdentifier();
+        return parseIdentifier(nullptr);
     }
     else {
         return parseAtom();
@@ -687,11 +798,14 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
     return nullptr;
 }
 
-std::shared_ptr<ASTNode> Parser::parseIdentifier() {
+std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString = nullptr) {
     if (tokenIs("ident")) {
         const Token* token = getToken();
         consume();
         if (auto ident_value = std::get_if<std::string>(&token->value)) {
+            if (varString != nullptr) {
+                *varString = *ident_value;
+            }
             return std::make_shared<IdentifierNode>(*ident_value);
         }
         else {

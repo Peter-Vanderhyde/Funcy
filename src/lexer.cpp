@@ -45,6 +45,9 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Or: os << "Or"; break;
         case TokenType::_Break: os << "Break"; break;
         case TokenType::_Continue: os << "Continue"; break;
+        case TokenType::_For: os << "For"; break;
+        case TokenType::_In: os << "In"; break;
+        case TokenType::_Comma: os << "Comma"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -91,7 +94,10 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_And, "and"},
     {TokenType::_Or, "or"},
     {TokenType::_Break, "break"},
-    {TokenType::_Continue, "continue"}
+    {TokenType::_Continue, "continue"},
+    {TokenType::_For, "for"},
+    {TokenType::_In, "in"},
+    {TokenType::_Comma, ","}
     //{TokenType::_, ""}
 };
 
@@ -110,14 +116,16 @@ std::map<char, TokenType> char_tokens{
     {'>', TokenType::_GreaterThan},
     {'<', TokenType::_LessThan},
     {'%', TokenType::_Mod},
-    {'!', TokenType::_Exclamation}
+    {'!', TokenType::_Exclamation},
+    {',', TokenType::_Comma}
 };
 
 std::map<std::string, TokenType> scoped_keyword_tokens {
     {"if", TokenType::_If},
     {"else", TokenType::_Else},
     {"elif", TokenType::_Elif},
-    {"while", TokenType::_While}
+    {"while", TokenType::_While},
+    {"for", TokenType::_For}
 };
 
 std::map<std::string, TokenType> keyword_tokens {
@@ -129,7 +137,9 @@ std::map<std::string, TokenType> keyword_tokens {
     {"and", TokenType::_And},
     {"or", TokenType::_Or},
     {"break", TokenType::_Break},
-    {"continue", TokenType::_Continue}
+    {"continue", TokenType::_Continue},
+    {"for", TokenType::_For},
+    {"in", TokenType::_In}
 };
 
 
@@ -317,6 +327,9 @@ std::vector<Token> Lexer::tokenize() {
                     case '<' :
                         op = TokenType::_LessEquals;
                         break;
+                    case '!' :
+                        op = TokenType::_NotEqual;
+                        break;
                     default:
                         handleError("Unrecognized operator", line, column);
                 }
@@ -329,11 +342,6 @@ std::vector<Token> Lexer::tokenize() {
                 Token token{char_tokens[character], line, column};
                 tokens.push_back(token);
             }
-        }
-        else if (character == '!' && peekNextCharacter() == '=') {
-            Token token{TokenType::_NotEqual, line, column};
-            getNextCharacter();
-            tokens.push_back(token);
         }
         else {
             handleError(std::format("Unrecognized character: {}", character), line, column);

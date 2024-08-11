@@ -101,6 +101,18 @@ public:
     std::shared_ptr<ASTNode> expr;
 };
 
+class ScopeNode : public ASTNode {
+public:
+    ScopeNode(std::vector<std::shared_ptr<ASTNode>> block)
+        : block{block} {}
+    
+    ~ScopeNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    std::vector<std::shared_ptr<ASTNode>> block;
+};
+
 class ScopedNode : public ASTNode {
 public:
     ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison, std::vector<std::shared_ptr<ASTNode>> statements_block)
@@ -116,6 +128,23 @@ public:
     std::shared_ptr<ASTNode> comparison;
     bool last_comparison_result;
     std::vector<std::shared_ptr<ASTNode>> statements_block;
+};
+
+class ForNode : public ASTNode {
+public:
+    ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string, std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment, std::vector<std::shared_ptr<ASTNode>> block)
+        : keyword{keyword}, initialization{initialization}, init_string{init_string}, condition_value{condition_value}, increment{increment}, block{block} {}
+    
+    ~ForNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    
+    TokenType keyword;
+    std::shared_ptr<ASTNode> initialization;
+    std::shared_ptr<std::string> init_string;
+    std::shared_ptr<ASTNode> condition_value;
+    std::shared_ptr<ASTNode> increment;
+    std::vector<std::shared_ptr<ASTNode>> block;
 };
 
 class KeywordNode : public ASTNode {
@@ -154,7 +183,7 @@ private:
 
     std::shared_ptr<ASTNode> parseFoundation();
     std::shared_ptr<ASTNode> parseControlFlowStatement();
-    std::shared_ptr<ASTNode> parseStatement();
+    std::shared_ptr<ASTNode> parseStatement(std::shared_ptr<std::string> varString);
     std::shared_ptr<ASTNode> parseLogicalOr();
     std::shared_ptr<ASTNode> parseLogicalAnd();
     std::shared_ptr<ASTNode> parseEquality();
@@ -166,5 +195,5 @@ private:
     std::shared_ptr<ASTNode> parseLogicalNot();
     std::shared_ptr<ASTNode> parsePrimary();
     std::shared_ptr<ASTNode> parseAtom();
-    std::shared_ptr<ASTNode> parseIdentifier();
+    std::shared_ptr<ASTNode> parseIdentifier(std::shared_ptr<std::string> varString);
 };

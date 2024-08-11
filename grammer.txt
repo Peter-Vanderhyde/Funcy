@@ -1,13 +1,14 @@
 Foundation  : Statement | ControlFlowStatement
 
-ControlFlowStatement : 'return' Expression? ';'
+ControlFlowStatement : 'return' LogicalOr? ';'
                      | 'break' ';'
                      | 'continue' ';'
                      | 'for' Identifier 'in' Expression Scope
-                     | 'while' Comparison Scope
-                     | 'if' Comparison Scope 
-                     | 'elif' Comparison Scope
+                     | 'while' Equality Scope
+                     | 'if' Equality Scope 
+                     | 'elif' Equality Scope
                      | 'else' Scope
+                     | 'for' Identifier 'in' Expression Scope
 
 Statement  : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] LogicalOr ';'
 
@@ -29,7 +30,7 @@ Power      : LogicalNot [ ('^' | '**') Factor ]?
 
 LogicalNot : ['not' | '!']* Atom
 
-Primary    : Atom | ('(' LogicalOr ')')
+Primary    : Atom | ('(' LogicalOr ')') | Scope
 
 Atom       : Identifier | Number | Boolean | String
 
