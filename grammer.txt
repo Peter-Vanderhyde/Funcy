@@ -3,12 +3,13 @@ Foundation  : Statement | ControlFlowStatement
 ControlFlowStatement : 'return' LogicalOr? ';'
                      | 'break' ';'
                      | 'continue' ';'
-                     | 'for' Identifier 'in' Expression Scope
+                     | 'for' Statement ',' Relation ',' Statement Scope
                      | 'while' Equality Scope
                      | 'if' Equality Scope 
                      | 'elif' Equality Scope
                      | 'else' Scope
                      | 'for' Statement ',' Relation ',' Statement Scope
+                     | 'func' Identifier '(' [ Identifier [',' Identifier]* ]? ')' Scope
 
 Statement  : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] LogicalOr ';'
 
@@ -32,9 +33,11 @@ LogicalNot : ['not' | '!']* Atom
 
 Primary    : Atom | ('(' LogicalOr ')') | Scope
 
-Atom       : Identifier | Number | Boolean | String
+Atom       : FunctionCall | Identifier | Number | Boolean | String
 
 Number     : Integer | Float
+
+FunctionCall : Identifier '(' [LogicalOr [',' LogicalOr]* ]? ')'
 
 Identifier : (a-zA-Z_)[a-zA-Z_0-9]*
 
@@ -50,3 +53,16 @@ Scope      : '{' Foundation+ '}'
 
 Add builtin functions, lists, in, return,
 const, int, double, float, bool, String, func, import, null, input
+
+Functions:
+
+Pass in the current environment to the function and make a copy of it to reset the env when done
+When setting the parameters and new variables, create a separate map for local variables and the parameters,
+    so if they're named the same as the global vars, they don't overwrite or interact.
+It is okay that you can't access a global of the same name as a local if you use the same name. That's how Python seems to be.
+
+Return a value from the function and reset the old env back.
+(If I later add global var access, just set the specified vars to the new value)
+
+When evaluating the definition, just set the name in the env.
+When evaluating the call, that's when you set the env values and evaluate the block.

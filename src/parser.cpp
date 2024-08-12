@@ -182,6 +182,11 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                                             token_labels[op]));
         }
 
+        if (getValueStr(left_value.value()) == "function" || getValueStr(right_value.value()) == "function") {
+            throw std::runtime_error(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
+                                                getValueStr(left_value.value()), token_labels[op], getValueStr(right_value.value())));
+        }
+
         // Perform arithmetic operation
         auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
             return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
@@ -412,6 +417,81 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     }
 }
 
+std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
+    return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<FuncNode>(*this)));
+}
+
+void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Environment& base_env, Environment& local_env) {
+    if (values.size() != args.size()) {
+        throw std::runtime_error(std::format("Incorrect number of args were passed in. {} instead of {}", values.size(), args.size()));
+    }
+
+    for (int i = 0; i < values.size(); i++) {
+        if (auto ident_node = dynamic_cast<IdentifierNode*>(args.at(i).get())) {
+            std::string arg_string = ident_node->value;
+            local_env.set(arg_string, values.at(i));
+        } else {
+            throw std::runtime_error("Unable to convert identifier for function argument.");
+        }
+    }
+
+    return;
+}
+
+std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& env) {
+    Environment local_env = env;
+    local_env.addScope();
+    setArgs(values, env, local_env);
+    for (auto statement : block) {
+        if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
+            func_statement->base_env = std::make_shared<Environment>(env);
+            auto result = func_statement->evaluate(local_env);
+            if (result) {
+                printValue(result.value());
+            }
+        } else {
+            auto result = statement->evaluate(local_env);
+            if (result) {
+                printValue(result.value());
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
+    auto mapped_value = identifier->evaluate(env).value();
+    if (auto func_value = std::get_if<std::shared_ptr<ASTNode>>(mapped_value.get())) {
+        if (auto func = dynamic_cast<FuncNode*>(func_value->get())) {
+            if (base_env) {
+                return func->callFunc(evaluateArgs(env), *base_env.get());
+            }
+            else {
+                return func->callFunc(evaluateArgs(env), env);
+            }
+        } else {
+            throw std::runtime_error("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->value + ".");
+        }
+    } else {
+        throw std::runtime_error("Object type " + getValueStr(mapped_value) + " is not callable");
+    }
+    return std::nullopt;
+}
+
+std::vector<std::shared_ptr<Value>> FuncCallNode::evaluateArgs(Environment& env) {
+    std::vector<std::shared_ptr<Value>> evaluated_values;
+    for (auto value_node : values) {
+        auto result = value_node->evaluate(env);
+        if (!result) {
+            throw std::runtime_error("Unable to evalute function argument");
+        }
+        evaluated_values.push_back(result.value());
+    }
+
+    return evaluated_values;
+}
+
 
 const Token* Parser::getToken() const {
     return &tokens.at(token_index);
@@ -500,6 +580,9 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         std::shared_ptr<ASTNode> for_initialization;
         auto variable_str = std::make_shared<std::string>(""); // For loop saves the string of the variable to increment
         std::shared_ptr<ASTNode> for_increment;
+        std::vector<std::shared_ptr<ASTNode>> func_args;
+        std::shared_ptr<ASTNode> func_name;
+        auto func_str = std::make_shared<std::string>("");
         if (t_str == "if" || t_str == "elif" || t_str == "while") {
             if (tokenIs("{")) {
                 handleError("Syntax Error: Missing boolean expression ", getToken()->line, getToken()->column);
@@ -528,6 +611,45 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             for_increment = parseStatement(var_test);
             if (*var_test != *variable_str) {
                 handleError("For loop requires manipulation of the initialized variable", getToken()->line, getToken()->column);
+            }
+        } else if (t_str == "func") {
+            if (!tokenIs("ident")) {
+                handleError("Expected an identifier but got " + getTokenStr(), getToken()->line, getToken()->column);
+            }
+            func_name = parseIdentifier(func_str);
+            if (!tokenIs("(")) {
+                handleError("Expected an '(' but got " + getTokenStr(), getToken()->line, getToken()->column);
+            }
+            consume();
+            auto arg_name = std::make_shared<std::string>("");
+            std::vector<std::string> arg_strings;
+            while (!tokenIs(")") && !tokenIs("eof") && !tokenIs("{")) {
+                if (!tokenIs("ident")) {
+                    handleError("Expected argument but got " + getTokenStr(), getToken()->line, getToken()->column);
+                }
+                func_args.push_back(parseIdentifier(arg_name));
+                if (std::find(arg_strings.begin(), arg_strings.end(), *arg_name) == arg_strings.end()) {
+                    arg_strings.push_back(*arg_name);
+                    *arg_name = "";
+                } else {
+                    handleError("Duplicate argument names found in function creation", getToken()->line, getToken()->column);
+                }
+
+                if (tokenIs("ident")) {
+                    handleError("Expected ',' but got argument", getToken()->line, getToken()->column);
+                } else if (tokenIs(",")) {
+                    consume();
+                    if (!tokenIs("ident")) {
+                        handleError("Expected argument but got " + getTokenStr(), getToken()->line, getToken()->column);
+                    }
+                }
+            }
+            if (tokenIs("eof")) {
+                handleError("Missing ')'", getToken()->line, getToken()->column);
+            } else if (tokenIs("{")) {
+                handleError("Missing ')' before '{'", getToken()->line, getToken()->column);
+            } else {
+                consume();
             }
         }
 
@@ -573,6 +695,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             return keyword_node;
         } else if (t_str == "for") {
             return std::make_shared<ForNode>(keyword, for_initialization, variable_str, comparison_expr, for_increment, block);
+        } else if (t_str == "func") {
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_args, block));
         } else {
             return std::make_shared<ScopedNode>(keyword, nullptr, comparison_expr, block);
         }
@@ -763,9 +887,6 @@ std::shared_ptr<ASTNode> Parser::parsePrimary() {
         consume();
         return std::make_shared<ScopeNode>(block);
     }
-    else if (tokenIs("ident")) {
-        return parseIdentifier(nullptr);
-    }
     else {
         return parseAtom();
     }
@@ -792,10 +913,44 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
             return std::make_shared<AtomNode>(*string_value);
         }
     }
+    else if (tokenIs("ident") && peek() && peek().value()->type == TokenType::_OpenParen) {
+        return parseFuncCall();
+    }
+    else if (tokenIs("ident")) {
+        return parseIdentifier(nullptr);
+    }
     else {
         handleError(std::format("Expected atom but got {}", getTokenStr()), getToken()->line, getToken()->column);
     }
     return nullptr;
+}
+
+std::shared_ptr<ASTNode> Parser::parseFuncCall() {
+    if (!tokenIs("ident")) {
+        handleError("Expected function name but got " + getTokenStr(), getToken()->line, getToken()->column);
+    }
+    auto identifier = parseIdentifier(nullptr);
+    if (!tokenIs("(")) {
+        handleError("Missing '(' at function call", getToken()->line, getToken()->column);
+    }
+    consume();
+    std::vector<std::shared_ptr<ASTNode>> arguments;
+    while (!tokenIs(")") && !tokenIs("eof") && !tokenIs(";")) {
+        arguments.push_back(parseLogicalOr());
+        if (!tokenIs(")") && !tokenIs(",")) {
+            handleError("Expected ','", getToken()->line, getToken()->column);
+        } else if (tokenIs(",")) {
+            consume();
+            if (tokenIs(")")) {
+                handleError("Expected another argument", getToken()->line, getToken()->column);
+            }
+        }
+    }
+    if (tokenIs("eof") || tokenIs(";")) {
+        handleError("Expected ')'", getToken()->line, getToken()->column);
+    }
+    consume();
+    return std::make_shared<FuncCallNode>(identifier, arguments);
 }
 
 std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString = nullptr) {
@@ -816,4 +971,119 @@ std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> va
         handleError(std::format("Expected identifier but got {}", getTokenStr()), getToken()->line, getToken()->column);
     }
     return nullptr;
+}
+
+
+////////////////////////////////////////////////////////////////
+// ENVIRONMENT
+////////////////////////////////////////////////////////////////
+
+std::string getValueStr(std::shared_ptr<Value> value) {
+    if (std::holds_alternative<int>(*value.get())) {
+        return "int";
+    } else if (std::holds_alternative<double>(*value.get())) {
+        return "double";
+    } else if (std::holds_alternative<bool>(*value.get())) {
+        return "bool";
+    } else if (std::holds_alternative<std::string>(*value.get())) {
+        return "string";
+    } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*value.get())) {
+        return "function";
+    } else {
+        throw std::runtime_error("Attempted to get string of unrecognized type.");
+    }
+    return "";
+}
+
+void Scope::set(const std::string variable, std::shared_ptr<Value> value) {
+    variables[variable] = value;
+}
+
+std::shared_ptr<Value> Scope::get(const std::string variable) const {
+    auto element = variables.find(variable);
+    if (element != variables.end()) {
+        return element->second;
+    } else {
+        throw std::runtime_error(std::format("Unrecognized variable {}.", variable));
+    }
+}
+
+bool Scope::has(const std::string variable) const {
+    return variables.find(variable) != variables.end();
+}
+
+// Method to display the contents of the environment
+void Scope::display() const {
+    for (const std::pair<const std::string, std::shared_ptr<Value>> pair : variables) {
+        const std::string& name = pair.first;
+        std::shared_ptr<Value> value = pair.second;
+
+        std::cout << name << " = ";
+        std::visit([](const auto& v) { std::cout << v; }, *value.get());
+        std::cout << std::endl;
+    }
+}
+
+
+void Environment::addScope() {
+    scopes.push_back(Scope());
+}
+
+void Environment::removeScope() {
+    scopes.pop_back();
+}
+
+void Environment::set(const std::string variable, std::shared_ptr<Value> value) {
+    if (scopes.empty()) {
+        throw std::runtime_error("Attempted to access empty environment.");
+    }
+    for (int i = scopes.size() - 1; i > -1; i--) {
+        if (scopes.at(i).has(variable)) {
+            scopes.at(i).set(variable, value);
+            return;
+        }
+    }
+
+    scopes.back().set(variable, value);
+}
+
+// Method to display the contents of the environment
+void Environment::display() const {
+    if (scopes.empty()) {
+        throw std::runtime_error("No environment to display.");
+    }
+
+    for (auto scope : scopes) {
+        scope.display();
+    }
+}
+
+std::shared_ptr<Value> Environment::get(const std::string variable) const {
+    if (scopes.empty()) {
+        throw std::runtime_error("Attempted to access empty environment.");
+    }
+    for (const auto scope : scopes) {
+        if (scope.has(variable)) {
+            return scope.get(variable);
+        }
+    }
+
+    throw std::runtime_error(std::format("Unrecognized variable {}.", variable));
+}
+
+bool Environment::has(const std::string variable) const {
+    if (scopes.empty()) {
+        throw std::runtime_error("Attempted to access empty environment.");
+    }
+    for (const auto scope : scopes) {
+        if (scope.has(variable)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int Environment::scopeDepth() const {
+    return scopes.size();
 }

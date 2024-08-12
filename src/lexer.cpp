@@ -48,6 +48,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_For: os << "For"; break;
         case TokenType::_In: os << "In"; break;
         case TokenType::_Comma: os << "Comma"; break;
+        case TokenType::_Func: os << "Func"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -97,7 +98,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Continue, "continue"},
     {TokenType::_For, "for"},
     {TokenType::_In, "in"},
-    {TokenType::_Comma, ","}
+    {TokenType::_Comma, ","},
+    {TokenType::_Func, "func"}
     //{TokenType::_, ""}
 };
 
@@ -125,7 +127,8 @@ std::map<std::string, TokenType> scoped_keyword_tokens {
     {"else", TokenType::_Else},
     {"elif", TokenType::_Elif},
     {"while", TokenType::_While},
-    {"for", TokenType::_For}
+    {"for", TokenType::_For},
+    {"func", TokenType::_Func}
 };
 
 std::map<std::string, TokenType> keyword_tokens {
@@ -139,7 +142,8 @@ std::map<std::string, TokenType> keyword_tokens {
     {"break", TokenType::_Break},
     {"continue", TokenType::_Continue},
     {"for", TokenType::_For},
-    {"in", TokenType::_In}
+    {"in", TokenType::_In},
+    {"func", TokenType::_Func}
 };
 
 

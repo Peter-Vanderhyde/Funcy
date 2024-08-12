@@ -4,9 +4,44 @@
 #include <optional>
 #include <memory>
 #include <math.h>
+#include <unordered_map>
+#include <algorithm>
 #include "lexer.h"
-#include "environment.h"
 
+class ASTNode;
+
+using Value = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>>;
+
+class Scope {
+public:
+    Scope() {};
+
+    void set(const std::string variable, std::shared_ptr<Value> value);
+    std::shared_ptr<Value> get(const std::string variable) const;
+    bool has(const std::string variable) const;
+    // Method to display the contents of the environment
+    void display() const;
+private:
+    std::unordered_map<std::string, std::shared_ptr<Value>> variables;
+};
+
+
+class Environment {
+public:
+    Environment() {};
+
+    void addScope();
+    void removeScope();
+
+    void set(const std::string variable, std::shared_ptr<Value> value);
+    std::shared_ptr<Value> get(const std::string variable) const;
+    bool has(const std::string variable) const;
+    // Method to display the contents of the environment
+    void display() const;
+    int scopeDepth() const;
+private:
+    std::vector<Scope> scopes;
+};
 
 class BreakException : public std::exception {};
 class ContinueException : public std::exception {};
@@ -160,6 +195,37 @@ public:
     std::shared_ptr<ASTNode> right;
 };
 
+class FuncNode : public ASTNode {
+public:
+    FuncNode(std::vector<std::shared_ptr<ASTNode>> args, std::vector<std::shared_ptr<ASTNode>> block)
+        : args{args}, block{block} {}
+    
+    ~FuncNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    void setArgs(std::vector<std::shared_ptr<Value>> values, Environment& base_env, Environment& local_env);
+    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& env);
+    
+    std::vector<std::shared_ptr<ASTNode>> args;
+    Environment local_env;
+    std::vector<std::shared_ptr<ASTNode>> block;
+};
+
+class FuncCallNode : public ASTNode {
+public:
+    FuncCallNode(std::shared_ptr<ASTNode> identifier, std::vector<std::shared_ptr<ASTNode>> values)
+        : identifier{identifier}, values{values} {}
+    
+    ~FuncCallNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::vector<std::shared_ptr<Value>> evaluateArgs(Environment& env);
+
+    std::shared_ptr<ASTNode> identifier;
+    std::vector<std::shared_ptr<ASTNode>> values;
+    std::shared_ptr<Environment> base_env = nullptr;
+};
+
 class Parser {
 public:
     Parser(const std::vector<Token>& tokens)
@@ -195,5 +261,9 @@ private:
     std::shared_ptr<ASTNode> parseLogicalNot();
     std::shared_ptr<ASTNode> parsePrimary();
     std::shared_ptr<ASTNode> parseAtom();
+    std::shared_ptr<ASTNode> parseFuncCall();
     std::shared_ptr<ASTNode> parseIdentifier(std::shared_ptr<std::string> varString);
 };
+
+
+std::string getValueStr(std::shared_ptr<Value> value);

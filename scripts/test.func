@@ -1,18 +1,13 @@
-# fibonnaci sequence
-
-a = 0;
-b = 0;
-result = 0;
-
-while result < 500 {
-    result = a + b;
-    a;
-    b = a;
-    a = result;
-    if (!a) {
-        a = 1;
+func add(x, y) {
+    func display(value) {
+        value;
     }
+
+    display(x + y);
 }
 
-result;
-"Past 500!";
+func main() {
+    add("Peter ", "Vanderhyde");
+}
+
+main();

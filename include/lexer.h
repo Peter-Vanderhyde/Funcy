@@ -48,7 +48,8 @@ enum class TokenType{
     _Continue,
     _For,
     _In,
-    _Comma
+    _Comma,
+    _Func
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);
