@@ -49,6 +49,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_In: os << "In"; break;
         case TokenType::_Comma: os << "Comma"; break;
         case TokenType::_Func: os << "Func"; break;
+        case TokenType::_Return: os << "Return"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -99,7 +100,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_For, "for"},
     {TokenType::_In, "in"},
     {TokenType::_Comma, ","},
-    {TokenType::_Func, "func"}
+    {TokenType::_Func, "func"},
+    {TokenType::_Return, "return"}
     //{TokenType::_, ""}
 };
 
@@ -143,7 +145,8 @@ std::map<std::string, TokenType> keyword_tokens {
     {"continue", TokenType::_Continue},
     {"for", TokenType::_For},
     {"in", TokenType::_In},
-    {"func", TokenType::_Func}
+    {"func", TokenType::_Func},
+    {"return", TokenType::_Return}
 };
 
 

@@ -409,6 +409,9 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     } else if (keyword == TokenType::_Continue) {
         throw ContinueException();
     }
+    else if (keyword == TokenType::_Return) {
+        throw ReturnException(right->evaluate(env));
+    }
 
     if (right) {
         return right->evaluate(env);
@@ -443,17 +446,22 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     local_env.addScope();
     setArgs(values, env, local_env);
     for (auto statement : block) {
-        if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
-            func_statement->base_env = std::make_shared<Environment>(env);
-            auto result = func_statement->evaluate(local_env);
-            if (result) {
-                printValue(result.value());
+        try {
+            if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
+                func_statement->base_env = std::make_shared<Environment>(env);
+                auto result = func_statement->evaluate(local_env);
+                if (result) {
+                    printValue(result.value());
+                }
+            } else {
+                auto result = statement->evaluate(local_env);
+                if (result) {
+                    printValue(result.value());
+                }
             }
-        } else {
-            auto result = statement->evaluate(local_env);
-            if (result) {
-                printValue(result.value());
-            }
+        }
+        catch (const ReturnException& e) {
+            return e.value;
         }
     }
 
@@ -707,8 +715,16 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             return parseLogicalOr();
         }
         else {
-            auto node = std::make_shared<KeywordNode>(getToken()->type);
-            consume();
+            std::shared_ptr<KeywordNode> node;
+            if (tokenIs("return") && !nextTokenIs(";")) {
+                consume();
+                auto right = parseLogicalOr();
+                node = std::make_shared<KeywordNode>(TokenType::_Return, right);
+            }
+            else {
+                node = std::make_shared<KeywordNode>(getToken()->type);
+                consume();
+            }
             if (tokenIs(";")) {
                 consume();
                 return node;

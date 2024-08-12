@@ -44,14 +44,25 @@ int main() {
     env.addScope();
     int stmnt_num = 0;
     for (auto statement : statements) {
-        stmnt_num += 1;
-        std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
-        if (result.has_value()) {
-            printValue(result.value());
+        try {
+            stmnt_num += 1;
+            std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
+            if (result.has_value()) {
+                printValue(result.value());
+            }
+            else {
+                // std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;
+                continue;
+            }
         }
-        else {
-            // std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;
-            continue;
+        catch (const ReturnException) {
+            throw std::runtime_error("Return was used outside of function.");
+        }
+        catch (const BreakException) {
+            throw std::runtime_error("Break was used outside of loop.");
+        }
+        catch (const ContinueException) {
+            throw std::runtime_error("Continue was used outside of loop.");
         }
     }
 }

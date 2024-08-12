@@ -1,13 +1,5 @@
-func add(x, y) {
-    func display(value) {
-        value;
-    }
-
-    display(x + y);
+func double(x) {
+    return x * 2;
 }
 
-func main() {
-    add("Peter ", "Vanderhyde");
-}
-
-main();
+double(5);
