@@ -39,8 +39,12 @@ public:
     // Method to display the contents of the environment
     void display() const;
     int scopeDepth() const;
+    void addLoop();
+    void removeLoop();
+    bool inLoop() const;
 private:
     std::vector<Scope> scopes;
+    int loop_depth;
 };
 
 class BreakException : public std::exception {};

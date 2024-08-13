@@ -1,5 +1,10 @@
-func double(x) {
-    return x * 2;
+func test() {
+    func test2() {
+        return;
+    }
+    "Hey";
+    test2();
+    "Hello";
 }
 
-double(5);
+test();

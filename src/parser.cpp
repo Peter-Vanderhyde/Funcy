@@ -316,6 +316,7 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         env.addScope();
 
         if (str == "while") {
+            env.addLoop();
             while (getComparisonValue(env)) {
                 try {
                     for (int i = 0; i < statements_block.size(); i++) {
@@ -332,6 +333,7 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                     continue;
                 }
             }
+            env.removeLoop();
         }
         else {
             for (int i = 0; i < statements_block.size(); i++) {
@@ -350,6 +352,7 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
 
 std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     env.addScope();
+    env.addLoop();
     initialization->evaluate(env);
 
     int variable;
@@ -400,17 +403,32 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     }
 
     env.removeScope();
+    env.removeLoop();
     return std::nullopt;
 }
 
 std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     if (keyword == TokenType::_Break) {
-        throw BreakException();
+        if (env.inLoop()) {
+            throw BreakException();
+        }
+        else {
+            throw std::runtime_error("Break used outside of loop.");
+        }
     } else if (keyword == TokenType::_Continue) {
-        throw ContinueException();
+        if (env.inLoop()) {
+            throw ContinueException();
+        }
+        else {
+            throw std::runtime_error("Continue used outside of loop.");
+        }
     }
     else if (keyword == TokenType::_Return) {
-        throw ReturnException(right->evaluate(env));
+        if (right != nullptr) {
+            throw ReturnException(right->evaluate(env));
+        } else {
+            throw ReturnException(std::nullopt);
+        }
     }
 
     if (right) {
@@ -443,6 +461,9 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Environment& 
 
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& env) {
     Environment local_env = env;
+    while (local_env.inLoop()) {
+        local_env.removeLoop();
+    }
     local_env.addScope();
     setArgs(values, env, local_env);
     for (auto statement : block) {
@@ -1102,4 +1123,16 @@ bool Environment::has(const std::string variable) const {
 
 int Environment::scopeDepth() const {
     return scopes.size();
+}
+
+void Environment::addLoop() {
+    loop_depth += 1;
+}
+
+void Environment::removeLoop() {
+    loop_depth -= 1;
+}
+
+bool Environment::inLoop() const {
+    return loop_depth > 0;
 }

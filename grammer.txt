@@ -31,9 +31,9 @@ Power      : LogicalNot [ ('^' | '**') Factor ]?
 
 LogicalNot : ['not' | '!']* Atom
 
-Primary    : Atom | ('(' LogicalOr ')') | Scope
+Primary    : Atom | FunctionCall | ( '(' LogicalOr ')' ) | Scope
 
-Atom       : FunctionCall | Identifier | Number | Boolean | String
+Atom       : Identifier | Number | Boolean | String | List
 
 Number     : Integer | Float
 
@@ -44,6 +44,8 @@ Identifier : (a-zA-Z_)[a-zA-Z_0-9]*
 Boolean    : true | false
 
 String     : '"' [^"]* '"'
+
+List       : '[' [LogicalOr [',' LogicalOr]* ]? ']'
 
 Integer    : [0-9]+
 
