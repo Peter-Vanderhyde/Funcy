@@ -1,8 +1,3 @@
-func combine(list) {
-    myList = ["this", "is"];
-    return myList + list;
-}
 
-x = ["my", "list"];
 
-combine(x);
+'Peter\'s';

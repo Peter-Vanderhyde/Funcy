@@ -254,7 +254,7 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back(token);
             }
         }
-        else if (isdigit(character) || character == '"') {
+        else if (isdigit(character) || character == '"' || character == '\'') {
             // Handle literals
             std::string literal = "";
             literal += character;
@@ -262,16 +262,23 @@ std::vector<Token> Lexer::tokenize() {
             int c = column;
 
             char next = peekNextCharacter();
-            if (character == '"') {
+            if (character == '"' || character == '\'') {
                 // It's a string
+                char starting_char = character;
                 literal = "";
-                while (current_position <= source_code.length() && next != '"') {
+                while (current_position <= source_code.length()) {
+                    if (next == '\\') {
+                        getNextCharacter();
+                        if (current_position > source_code.length()) break;
+                    } else if (next == starting_char) {
+                        break;
+                    }
                     literal += getNextCharacter();
                     next = peekNextCharacter();
                 }
 
                 if (current_position >= source_code.length()) {
-                    handleError("Expected '\"'", l, c);
+                    handleError("Expected closing quotes", l, c);
                 }
 
                 getNextCharacter();
