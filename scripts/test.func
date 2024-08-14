@@ -1,10 +1,8 @@
-func test() {
-    func test2() {
-        return;
-    }
-    "Hey";
-    test2();
-    "Hello";
+func combine(list) {
+    myList = ["this", "is"];
+    return myList + list;
 }
 
-test();
+x = ["my", "list"];
+
+combine(x);

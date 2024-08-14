@@ -10,6 +10,7 @@ enum class TokenType{
     _Float,
     _Integer,
     _String,
+    _List,
     _Semi,
     _Plus,
     _Minus,
@@ -50,7 +51,9 @@ enum class TokenType{
     _In,
     _Comma,
     _Func,
-    _Return
+    _Return,
+    _OpenSquare,
+    _CloseSquare
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);

@@ -9,6 +9,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Float: os << "Float"; break;
         case TokenType::_Integer: os << "Integer"; break;
         case TokenType::_String: os << "String"; break;
+        case TokenType::_List: os << "List"; break;
         case TokenType::_Semi: os << "Semi"; break;
         case TokenType::_Plus: os << "Plus"; break;
         case TokenType::_Minus: os << "Minus"; break;
@@ -50,6 +51,8 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Comma: os << "Comma"; break;
         case TokenType::_Func: os << "Func"; break;
         case TokenType::_Return: os << "Return"; break;
+        case TokenType::_OpenSquare: os << "OpenSquare"; break;
+        case TokenType::_CloseSquare: os << "CloseSquare"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -61,6 +64,7 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Float, "float"},
     {TokenType::_Integer, "int"},
     {TokenType::_String, "string"},
+    {TokenType::_List, "list"},
     {TokenType::_Semi, ";"},
     {TokenType::_Plus, "+"},
     {TokenType::_Minus, "-"},
@@ -101,7 +105,9 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_In, "in"},
     {TokenType::_Comma, ","},
     {TokenType::_Func, "func"},
-    {TokenType::_Return, "return"}
+    {TokenType::_Return, "return"},
+    {TokenType::_OpenSquare, "["},
+    {TokenType::_CloseSquare, "]"}
     //{TokenType::_, ""}
 };
 
@@ -121,7 +127,9 @@ std::map<char, TokenType> char_tokens{
     {'<', TokenType::_LessThan},
     {'%', TokenType::_Mod},
     {'!', TokenType::_Exclamation},
-    {',', TokenType::_Comma}
+    {',', TokenType::_Comma},
+    {'[', TokenType::_OpenSquare},
+    {']', TokenType::_CloseSquare}
 };
 
 std::map<std::string, TokenType> scoped_keyword_tokens {

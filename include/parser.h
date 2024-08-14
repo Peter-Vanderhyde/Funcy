@@ -10,7 +10,17 @@
 
 class ASTNode;
 
-using Value = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>>;
+struct Value;
+using List = std::vector<std::shared_ptr<Value>>;
+using VariantType = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>, List>;
+
+using ASTList = std::vector<std::shared_ptr<ASTNode>>;
+
+std::ostream& operator<<(std::ostream& os, const List& list);
+
+struct Value : public VariantType {
+    using VariantType::VariantType;
+};
 
 class Scope {
 public:
@@ -98,6 +108,17 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
     std::string value;
+};
+
+class ListNode : public ASTNode {
+public:
+    ListNode(ASTList list)
+        : list{list} {}
+    ~ListNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    ASTList list;
 };
 
 // Node for binary operations (e.g., +, -, *, /, //, ^)
@@ -264,6 +285,7 @@ private:
     std::shared_ptr<ASTNode> parsePower();
     std::shared_ptr<ASTNode> parseLogicalNot();
     std::shared_ptr<ASTNode> parsePrimary();
+    std::shared_ptr<ASTNode> parseCollection();
     std::shared_ptr<ASTNode> parseAtom();
     std::shared_ptr<ASTNode> parseFuncCall();
     std::shared_ptr<ASTNode> parseIdentifier(std::shared_ptr<std::string> varString);

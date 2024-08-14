@@ -9,6 +9,31 @@ void handleError(const std::string& message, int line, int column) {
     }
 }
 
+// << overload for the List type
+std::ostream& operator<<(std::ostream& os, const List& list) {
+    os << "[";
+    for (size_t i = 0; i < list.size(); ++i) {
+        if (list[i]) {
+            // Use std::visit to handle the variant inside the shared_ptr<Value>
+            std::visit([&os](const auto& v) {
+                if constexpr (std::is_same_v<std::decay_t<decltype(v)>, bool>) {
+                    os << std::boolalpha << v;  // Print bool values as true/false
+                } else {
+                    os << v;
+                }
+            }, *list[i]);
+        } else {
+            os << "null";
+        }
+
+        if (i < list.size() - 1) {
+            os << ", ";
+        }
+    }
+    os << "]";
+    return os;
+}
+
 void printValue(const std::shared_ptr<Value> value) {
     if (auto int_value = std::get_if<int>(value.get())) {
         std::cout << *int_value << std::endl;
@@ -18,6 +43,8 @@ void printValue(const std::shared_ptr<Value> value) {
         std::cout << std::boolalpha << *bool_value << std::endl;
     } else if (auto string_value = std::get_if<std::string>(value.get())) {
         std::cout << *string_value << std::endl;
+    } else if (auto list_value = std::get_if<List>(value.get())) {
+        std::cout << *list_value << std::endl;
     } else {
         throw std::runtime_error("Received invalid value type to print.");
     }
@@ -85,74 +112,100 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
     }
 }
 
+std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
+    List evaluatedList;
+
+    for (const auto& element : list) {
+        if (element) {
+            // Evaluate the ASTNode and add the result to the evaluated list
+            auto result = element->evaluate(env);
+            if (result) {
+                evaluatedList.emplace_back(result.value());
+            } else {
+                evaluatedList.emplace_back(nullptr); // If evaluation fails, store null
+            }
+        } else {
+            throw std::runtime_error("List contained a nullptr pointing to an ASTNode."); // Null ASTNode pointer
+        }
+    }
+
+    return std::make_shared<Value>(evaluatedList);
+}
+
+
 template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op) {
-    if constexpr (std::is_same_v<T1, std::string> && std::is_same_v<T2, std::string>) {
+    // Helper function to give the bool value of each type
+    auto checkTruthy = [](const Value& value) -> bool {
+        return std::visit([](const auto& v) -> bool {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, bool>) {
+                return v;
+            } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, double>) {
+                return v != 0;
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                return !v.empty();
+            } else if constexpr (std::is_same_v<T, List>) {
+                return !v.empty();
+            }
+            return false;
+        }, value);
+    };
+
+    // Handle AND OR for all type cases
+    if (op == TokenType::_And) return std::make_shared<Value>(checkTruthy(lhs) && checkTruthy(rhs));
+    else if (op == TokenType::_Or) return std::make_shared<Value>(checkTruthy(lhs) || checkTruthy(rhs));
+
+    if constexpr (std::is_same_v<T1, List> && std::is_same_v<T2, List>) {
+        // BOTH ARE LISTS
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
+            List result = lhs;  // Start with a copy of the first list
+            result.insert(result.end(), rhs.begin(), rhs.end());  // Append the second list
+            return std::make_shared<Value>(result);
+        }
+        else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
+        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
+    }
+    else if constexpr (std::is_same_v<T1, std::string> && std::is_same_v<T2, std::string>) {
         // BOTH STRINGS
         if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs + rhs);
         else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
         else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
-        else if (op == TokenType::_And) {
-            return std::make_shared<Value>(lhs.length() > 0 && rhs.length() > 0);
-        } else if (op == TokenType::_Or) {
-            return std::make_shared<Value>(lhs.length() > 0 || rhs.length() > 0);
-        }
     }
-    else if constexpr ((std::is_same_v<T1, int> || std::is_same_v<T1, bool> || std::is_same_v<T1, double>) && (std::is_same_v<T2, int> || std::is_same_v<T2, bool> || std::is_same_v<T2, double>)) {
-        if (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
-            if (!std::is_same_v<T1, T2>) {
-                double lhs_double = static_cast<double>(lhs);
-                double rhs_double = static_cast<double>(rhs);
-            }
-        }
-        // MIX OF INTS OR BOOLS OR DOUBLES
-        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs + rhs);
-        else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) return std::make_shared<Value>(lhs - rhs);
-        else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) return std::make_shared<Value>(lhs * rhs);
+    else if constexpr ((std::is_same_v<T1, int> || std::is_same_v<T1, bool> || std::is_same_v<T1, double>) &&
+                       (std::is_same_v<T2, int> || std::is_same_v<T2, bool> || std::is_same_v<T2, double>)) {
+        // Explicitly handle mixed types
+        double lhs_double = static_cast<double>(lhs);
+        double rhs_double = static_cast<double>(rhs);
+
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs_double + rhs_double);
+        else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) return std::make_shared<Value>(lhs_double - rhs_double);
+        else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) return std::make_shared<Value>(lhs_double * rhs_double);
         else if (op == TokenType::_Divide || op == TokenType::_DivideEquals) {
-            if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
-            return std::make_shared<Value>(static_cast<double>(lhs) / static_cast<double>(rhs));
+            if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
+            return std::make_shared<Value>(lhs_double / rhs_double);
         }
         else if (op == TokenType::_FloorDiv) {
-            if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
-            return std::make_shared<Value>(static_cast<int>(lhs / rhs));
+            if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
+            return std::make_shared<Value>(static_cast<int>(lhs_double / rhs_double));
         }
         else if (op == TokenType::_Mod) {
-            if (rhs == 0) throw std::runtime_error("Attempted division by 0.");
-            if (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
-                throw std::runtime_error("The modulus '%' can only be peformed on ints.");
+            if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
+            if constexpr (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
+                throw std::runtime_error("The modulus '%' can only be performed on ints.");
             } else {
                 return std::make_shared<Value>(static_cast<int>(lhs) % static_cast<int>(rhs));
             }
         }
-        else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) return std::make_shared<Value>(std::pow(lhs, rhs));
-        else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
-        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
-        else if (op == TokenType::_GreaterThan) return std::make_shared<Value>(lhs > rhs);
-        else if (op == TokenType::_GreaterEquals) return std::make_shared<Value>(lhs >= rhs);
-        else if (op == TokenType::_LessThan) return std::make_shared<Value>(lhs < rhs);
-        else if (op == TokenType::_LessEquals) return std::make_shared<Value>(lhs <= rhs);
-        else if (op == TokenType::_And) return std::make_shared<Value>(lhs && rhs);
-        else if (op == TokenType::_Or) return std::make_shared<Value>(lhs || rhs);
+        else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) return std::make_shared<Value>(std::pow(lhs_double, rhs_double));
+        else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs_double == rhs_double);
+        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs_double != rhs_double);
+        else if (op == TokenType::_GreaterThan) return std::make_shared<Value>(lhs_double > rhs_double);
+        else if (op == TokenType::_GreaterEquals) return std::make_shared<Value>(lhs_double >= rhs_double);
+        else if (op == TokenType::_LessThan) return std::make_shared<Value>(lhs_double < rhs_double);
+        else if (op == TokenType::_LessEquals) return std::make_shared<Value>(lhs_double <= rhs_double);
     }
-    else if constexpr ((std::is_same_v<T1, std::string> || std::is_same_v<T2, std::string>) && !std::is_same_v<T1, T2>) {
-        // A MIX OF STRING AND BOOL
-        if (op == TokenType::_And) {
-            if constexpr (std::is_same_v<T1, std::string>) {
-                return std::make_shared<Value>(lhs.length() > 0 && rhs);
-            }
-            else if constexpr (std::is_same_v<T2, std::string>) {
-                return std::make_shared<Value>(lhs && rhs.length() > 0);
-            }
-        } else if (op == TokenType::_Or) {
-            if constexpr (std::is_same_v<T1, std::string>) {
-                return std::make_shared<Value>(lhs.length() > 0 || rhs);
-            }
-            else if constexpr (std::is_same_v<T2, std::string>) {
-                return std::make_shared<Value>(lhs || rhs.length() > 0);
-            }
-        }
-    }
+
     return std::nullopt;
 }
 
@@ -925,8 +978,30 @@ std::shared_ptr<ASTNode> Parser::parsePrimary() {
         return std::make_shared<ScopeNode>(block);
     }
     else {
+        return parseCollection();
+    }
+}
+
+std::shared_ptr<ASTNode> Parser::parseCollection() {
+    if (!tokenIs("[")) {
         return parseAtom();
     }
+    consume();
+    ASTList list;
+    while (!tokenIs("]") && !tokenIs("eof") && !tokenIs(";")) {
+        auto element = parseLogicalOr();
+        list.push_back(element);
+        if (tokenIs(",") && !nextTokenIs("]")) {
+            consume();
+        } else if (tokenIs(",")) {
+            handleError("Expected more values", getToken()->line, getToken()->column);
+        }
+    }
+    if (tokenIs("eof") || tokenIs(";")) {
+        handleError("Expected ']'", getToken()->line, getToken()->column);
+    }
+    consume();
+    return std::make_shared<ListNode>(list);
 }
 
 std::shared_ptr<ASTNode> Parser::parseAtom() {
@@ -1026,6 +1101,8 @@ std::string getValueStr(std::shared_ptr<Value> value) {
         return "string";
     } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*value.get())) {
         return "function";
+    } else if (std::holds_alternative<List>(*value.get())) {
+        return "list";
     } else {
         throw std::runtime_error("Attempted to get string of unrecognized type.");
     }
