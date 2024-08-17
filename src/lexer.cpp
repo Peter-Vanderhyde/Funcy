@@ -53,6 +53,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Return: os << "Return"; break;
         case TokenType::_OpenSquare: os << "OpenSquare"; break;
         case TokenType::_CloseSquare: os << "CloseSquare"; break;
+        case TokenType::_Colon: os << "Colon"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -107,7 +108,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Func, "func"},
     {TokenType::_Return, "return"},
     {TokenType::_OpenSquare, "["},
-    {TokenType::_CloseSquare, "]"}
+    {TokenType::_CloseSquare, "]"},
+    {TokenType::_Colon, ":"}
     //{TokenType::_, ""}
 };
 
@@ -129,7 +131,8 @@ std::map<char, TokenType> char_tokens{
     {'!', TokenType::_Exclamation},
     {',', TokenType::_Comma},
     {'[', TokenType::_OpenSquare},
-    {']', TokenType::_CloseSquare}
+    {']', TokenType::_CloseSquare},
+    {':', TokenType::_Colon}
 };
 
 std::map<std::string, TokenType> scoped_keyword_tokens {

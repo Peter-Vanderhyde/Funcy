@@ -12,7 +12,7 @@ class ASTNode;
 
 struct Value;
 using List = std::vector<std::shared_ptr<Value>>;
-using VariantType = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>, List>;
+using VariantType = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>, std::shared_ptr<List>>;
 
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 
@@ -78,6 +78,8 @@ class ASTNode {
 public:
     virtual ~ASTNode() noexcept = default;
     virtual std::optional<std::shared_ptr<Value>> evaluate(Environment& env) = 0;
+
+    bool debug = false;
 };
 
 // Node for numeric literals
@@ -119,6 +121,22 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
     ASTList list;
+};
+
+class IndexNode : public ASTNode {
+public:
+    IndexNode(std::shared_ptr<ASTNode> container, std::shared_ptr<ASTNode> start_index, std::shared_ptr<ASTNode> end_index=nullptr)
+        : container{container}, start_index{start_index}, end_index{end_index} {}
+    ~IndexNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> getIndex(Environment& env,
+                                                    std::variant<std::shared_ptr<std::string>, std::shared_ptr<List>> listr);
+    void assignIndex(Environment& env, std::shared_ptr<Value> value);
+
+    std::shared_ptr<ASTNode> container;
+    std::shared_ptr<ASTNode> start_index;
+    std::shared_ptr<ASTNode> end_index;
 };
 
 // Node for binary operations (e.g., +, -, *, /, //, ^)
@@ -228,8 +246,8 @@ public:
     ~FuncNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
-    void setArgs(std::vector<std::shared_ptr<Value>> values, Environment& base_env, Environment& local_env);
-    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& env);
+    void setArgs(List values, Environment& base_env, Environment& local_env);
+    std::optional<std::shared_ptr<Value>> callFunc(List values, Environment& env);
     
     std::vector<std::shared_ptr<ASTNode>> args;
     Environment local_env;
@@ -244,7 +262,7 @@ public:
     ~FuncCallNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
-    std::vector<std::shared_ptr<Value>> evaluateArgs(Environment& env);
+    List evaluateArgs(Environment& env);
 
     std::shared_ptr<ASTNode> identifier;
     std::vector<std::shared_ptr<ASTNode>> values;
@@ -260,6 +278,7 @@ public:
 
     void addIfElseScope();
     void removeIfElseScope();
+    bool debug = false;
 private:
     const std::vector<Token>& tokens;
     size_t token_index = 0;
@@ -270,7 +289,7 @@ private:
     std::optional<const Token*> peek(int ahead) const;
     std::string getTokenStr() const;
     bool tokenIs(std::string str) const;
-    bool nextTokenIs(std::string str) const;
+    bool nextTokenIs(std::string str, int ahead) const;
 
     std::shared_ptr<ASTNode> parseFoundation();
     std::shared_ptr<ASTNode> parseControlFlowStatement();
@@ -285,6 +304,7 @@ private:
     std::shared_ptr<ASTNode> parsePower();
     std::shared_ptr<ASTNode> parseLogicalNot();
     std::shared_ptr<ASTNode> parsePrimary();
+    std::shared_ptr<ASTNode> parseIndexing();
     std::shared_ptr<ASTNode> parseCollection();
     std::shared_ptr<ASTNode> parseAtom();
     std::shared_ptr<ASTNode> parseFuncCall();

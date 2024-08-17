@@ -53,7 +53,8 @@ enum class TokenType{
     _Func,
     _Return,
     _OpenSquare,
-    _CloseSquare
+    _CloseSquare,
+    _Colon
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);

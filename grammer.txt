@@ -11,7 +11,7 @@ ControlFlowStatement : 'return' LogicalOr? ';'
                      | 'for' Statement ',' Relation ',' Statement Scope
                      | 'func' Identifier '(' [ Identifier [',' Identifier]* ]? ')' Scope
 
-Statement  : [Identifier ('=' | '+=' | '-=' | '*=' | '/=')] LogicalOr ';'
+Statement  : [ ( Identifier | SetIndex ) ('=' | '+=' | '-=' | '*=' | '/=')] LogicalOr ';'
 
 LogicalOr  : LogicalAnd ['or' LogicalAnd]*
 
@@ -31,7 +31,9 @@ Power      : LogicalNot [ ('^' | '**') Factor ]?
 
 LogicalNot : ['not' | '!']* Atom
 
-Primary    : Collection | FunctionCall | ( '(' LogicalOr ')' ) | Scope
+Primary    : Indexing | FunctionCall | ( '(' LogicalOr ')' ) | Scope
+
+Indexing   : Collection [ GetIndex ]?
 
 Collection : Atom | List
 
@@ -47,6 +49,10 @@ Boolean    : true | false
 
 String     : ('"' | ''') [^"]* ('"' | ''')
 
+GetIndex   : <(List | Identifier | String)> ( '[' <Number>Expression [ ':' <Number>Expression ]? ']' )+
+
+SetIndex   : Identifier ( '[' <Number>Expression ']' )+
+
 List       : '[' [LogicalOr [',' LogicalOr]* ]? ']'
 
 Integer    : [0-9]+
@@ -57,3 +63,11 @@ Scope      : '{' Foundation+ '}'
 
 Add builtin functions, lists, in,
 const, int, double, float, bool, String, import, null, input
+
+Remove bool as a mathematical num
+Add lines and columns to all errors
+Check why x[1:4] = [4] results in [1]
+Accessing list inside list gives
+Entered
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  Index node container was an unexpected type.

@@ -52,5 +52,25 @@ void ASTPrinter::printNode(const ASTNode& node, int depth) const {
         for (int i = 0; i < scoped_node->statements_block.size(); i++) {
             printNode(*scoped_node->statements_block.at(i), depth + 1);
         }
+    } else if (const auto* list_node = dynamic_cast<const ListNode*>(&node)) {
+        std::cout << indent(depth + 1) << "List: size=" << list_node->list.size() << '\n';
+        std::cout << indent(depth + 1) << "[\n";
+        for (int i = 0; i < list_node->list.size(); i++) {
+            printNode(*list_node->list.at(i), depth + 2);
+        }
+        std::cout << indent(depth + 1) << "]\n";
+    } else if (const auto* index_node = dynamic_cast<const IndexNode*>(&node)) {
+        if (index_node->end_index != nullptr) {
+            std::cout << indent(depth + 1) << "Sliced Index:\n";
+            std::cout << indent(depth + 1) << "Start:\n";
+            printNode(*index_node->start_index, depth + 2);
+            std::cout << indent(depth + 1) << "End:\n";
+            printNode(*index_node->end_index, depth + 2);
+        } else {
+            std::cout << indent(depth + 1) << "Index:\n";
+            printNode(*index_node->start_index, depth + 2);
+        }
+        std::cout << indent(depth + 1) << "Object:\n";
+        printNode(*index_node->container, depth + 2);
     }
 }
