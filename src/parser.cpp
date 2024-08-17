@@ -44,16 +44,16 @@ std::ostream& operator<<(std::ostream& os, const List& list) {
 
 void printValue(const std::shared_ptr<Value> value) {
     if (auto int_value = std::get_if<int>(value.get())) {
-        std::cout << *int_value << std::endl;
+        std::cout << *int_value;
     } else if (auto double_value = std::get_if<double>(value.get())) {
-        std::cout << *double_value << std::endl;
+        std::cout << *double_value;
     } else if (auto bool_value = std::get_if<bool>(value.get())) {
-        std::cout << std::boolalpha << *bool_value << std::endl;
+        std::cout << std::boolalpha << *bool_value;
     } else if (std::holds_alternative<std::string>(*value)) {
         auto string_value = std::get<std::string>(*value);
-        std::cout << string_value << std::endl;
+        std::cout << string_value;
     } else if (auto list_value = std::get<std::shared_ptr<List>>(*value)) {
-        std::cout << *list_value << std::endl;
+        std::cout << *list_value;
     } else {
         throw std::runtime_error("Received invalid value type to print.");
     }
@@ -117,6 +117,8 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
     if (debug) std::cout << "evaluate identifier" << std::endl;
     if (env.has(value)) {
         return env.get(value);
+    } else if (env.hasFunction(value)) {
+        return env.getFunction(value);
     } else {
         throw std::runtime_error(value + " is not defined.");
         return {};
@@ -596,9 +598,9 @@ std::optional<std::shared_ptr<Value>> ScopeNode::evaluate(Environment& env) {
     env.addScope();
     for (auto statement : block) {
         auto result = statement->evaluate(env);
-        if (result) {
-            printValue(result.value());
-        }
+        // if (result) {
+        //     printValue(result.value());
+        // }
     }
 
     env.removeScope();
@@ -647,9 +649,9 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                 try {
                     for (int i = 0; i < statements_block.size(); i++) {
                         auto result = statements_block[i]->evaluate(env);
-                        if (result) {
-                            printValue(result.value());
-                        }
+                        // if (result) {
+                        //     printValue(result.value());
+                        // }
                     }
                 }
                 catch (const BreakException) {
@@ -664,9 +666,9 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         else {
             for (int i = 0; i < statements_block.size(); i++) {
                 std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
-                if (result) {
-                    printValue(result.value());
-                }
+                // if (result) {
+                //     printValue(result.value());
+                // }
             }
         }
 
@@ -683,8 +685,9 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     initialization->evaluate(env);
 
     int variable;
-    if (auto i = std::get_if<int>(env.get(*init_string).get())) {
-        variable = *i;
+    if (std::holds_alternative<int>(*env.get(*init_string))) {
+        auto i = std::get<int>(*env.get(*init_string));
+        variable = i;
     }
     else {
         throw std::runtime_error("For loop requires int variable.");
@@ -707,9 +710,9 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         try {
             for (auto statement : block) {
                 auto result = statement->evaluate(env);
-                if (result) {
-                    printValue(result.value());
-                }
+                // if (result) {
+                //     printValue(result.value());
+                // }
             }
         }
         catch (const BreakException) {
@@ -724,8 +727,9 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         env.set(*init_string.get(), std::make_shared<Value>(variable));
         // increment them
         increment->evaluate(env);
-        if (auto i = std::get_if<int>(env.get(*init_string).get())) {
-            variable = *i;
+        if (std::holds_alternative<int>(*env.get(*init_string))) {
+            auto i = std::get<int>(*env.get(*init_string));
+            variable = i;
         }
     }
 
@@ -800,14 +804,14 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(List values, Environmen
             if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
                 func_statement->base_env = std::make_shared<Environment>(env);
                 auto result = func_statement->evaluate(local_env);
-                if (result) {
-                    printValue(result.value());
-                }
+                // if (result) {
+                //     printValue(result.value());
+                // }
             } else {
                 auto result = statement->evaluate(local_env);
-                if (result) {
-                    printValue(result.value());
-                }
+                // if (result) {
+                //     printValue(result.value());
+                // }
             }
         }
         catch (const ReturnException& e) {
@@ -821,8 +825,9 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(List values, Environmen
 std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
     if (debug) std::cout << "evaluate function call" << std::endl;
     auto mapped_value = identifier->evaluate(env).value();
-    if (auto func_value = std::get_if<std::shared_ptr<ASTNode>>(mapped_value.get())) {
-        if (auto func = dynamic_cast<FuncNode*>(func_value->get())) {
+    if (std::holds_alternative<std::shared_ptr<ASTNode>>(*mapped_value)) {
+        auto func_value = std::get<std::shared_ptr<ASTNode>>(*mapped_value);
+        if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
             if (base_env) {
                 return func->callFunc(evaluateArgs(env), *base_env.get());
             }
@@ -832,6 +837,9 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         } else {
             throw std::runtime_error("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->value + ".");
         }
+    } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*mapped_value)) {
+        auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
+        return (*func_value)(evaluateArgs(env));
     } else {
         throw std::runtime_error("Object type " + getValueStr(mapped_value) + " is not callable");
     }
@@ -1536,4 +1544,22 @@ void Environment::removeLoop() {
 
 bool Environment::inLoop() const {
     return loop_depth > 0;
+}
+
+void Environment::addFunction(const std::string& name, std::shared_ptr<Value> func) {
+    built_in_functions[name] = func;
+}
+
+std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
+    auto func = built_in_functions.find(name);
+    if (func != built_in_functions.end()) {
+        return func->second;
+    }
+
+    throw std::runtime_error("Unrecognized built in function: " + name);
+}
+
+bool Environment::hasFunction(const std::string& name) const {
+    auto func = built_in_functions.find(name);
+    return func != built_in_functions.end();
 }

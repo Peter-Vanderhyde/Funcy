@@ -1,10 +1,9 @@
 #include "lexer.h"
-#include "parser.h"
+#include "library.h"
 #include "ast_printer.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
-
 
 std::string readSourceCodeFromFile(const std::string& filename) {
     std::ifstream file(filename);
@@ -41,19 +40,13 @@ int main() {
     // printer.print(statements);
 
     Environment env;
+    env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
     env.addScope();
     int stmnt_num = 0;
     for (auto statement : statements) {
         try {
             stmnt_num += 1;
             std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
-            if (result.has_value()) {
-                printValue(result.value());
-            }
-            else {
-                // std::cout << std::format("Result {}: No return.", stmnt_num) << std::endl;
-                continue;
-            }
         }
         catch (const ReturnException) {
             throw std::runtime_error("Return was used outside of function.");

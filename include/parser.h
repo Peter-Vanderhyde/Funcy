@@ -6,13 +6,15 @@
 #include <math.h>
 #include <unordered_map>
 #include <algorithm>
+#include <functional>
 #include "lexer.h"
 
 class ASTNode;
 
 struct Value;
 using List = std::vector<std::shared_ptr<Value>>;
-using VariantType = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>, std::shared_ptr<List>>;
+using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(const std::vector<std::shared_ptr<Value>>&)>;
+using VariantType = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>, std::shared_ptr<List>, std::shared_ptr<BuiltInFunction>>;
 
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 
@@ -52,9 +54,14 @@ public:
     void addLoop();
     void removeLoop();
     bool inLoop() const;
+
+    void addFunction(const std::string& name, std::shared_ptr<Value> func);
+    std::shared_ptr<Value> getFunction(const std::string& name) const;
+    bool hasFunction(const std::string& name) const;
 private:
     std::vector<Scope> scopes;
     int loop_depth;
+    std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
 };
 
 class BreakException : public std::exception {};
