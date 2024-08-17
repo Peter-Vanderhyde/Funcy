@@ -1,8 +1,7 @@
-# Make input/built in functions
+# Make type specific built in functions
 # Make default args in functions/unkown number of args
-# Make type conversions
 # Make a null type
-# using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(const std::vector<std::shared_ptr<Value>>&)>;
+# Make in
 
-print(1 + 5, "Hey");
-print("Hello WORLD!!!!!");
+x = input("How are you? ");
+print(int(x));

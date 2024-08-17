@@ -1,5 +1,14 @@
+#include <variant>
+#include <sstream>
+#include <iomanip>
 #include "parser.h"
 
 using BuiltInFunctionReturn = std::optional<std::shared_ptr<Value>>;
 
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args);

@@ -19,6 +19,8 @@ std::ostream& operator<<(std::ostream& os, const List& list) {
                 using T = std::decay_t<decltype(v)>;
                 if constexpr (std::is_same_v<T, bool>) {
                     os << std::boolalpha << v;  // Print bool values as true/false
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    os << "'" << v << "'";
                 } else if constexpr (std::is_same_v<T, std::shared_ptr<List>>) {
                     if (v) {
                         os << *v;  // Recursively print the inner list
@@ -45,8 +47,13 @@ std::ostream& operator<<(std::ostream& os, const List& list) {
 void printValue(const std::shared_ptr<Value> value) {
     if (auto int_value = std::get_if<int>(value.get())) {
         std::cout << *int_value;
-    } else if (auto double_value = std::get_if<double>(value.get())) {
-        std::cout << *double_value;
+    } else if (std::holds_alternative<double>(*value)) {
+        auto double_value = std::get<double>(*value);
+        if (double_value == static_cast<int>(double_value)) {
+            std::cout << double_value << ".0";
+        } else {
+            std::cout << double_value;
+        }
     } else if (auto bool_value = std::get_if<bool>(value.get())) {
         std::cout << std::boolalpha << *bool_value;
     } else if (std::holds_alternative<std::string>(*value)) {
@@ -196,6 +203,19 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
             }
         } else {
             throw std::runtime_error("Was unable to evaluate the index.");
+        }
+    } else if (auto func_node = std::dynamic_pointer_cast<FuncCallNode>(container)) {
+        auto eval = func_node->evaluate(env);
+        if (eval) {
+            if (std::holds_alternative<std::string>(*eval.value())) {
+                auto str_val = std::get<std::string>(*eval.value());
+                return getIndex(env, std::make_shared<std::string>(str_val));
+            } else if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
+                auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
+                return getIndex(env, list_val);
+            } else {
+                throw std::runtime_error("Function call evaluation did not return a list or string for indexing.");
+            }
         }
     }
     else {
