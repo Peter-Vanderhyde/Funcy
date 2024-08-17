@@ -343,7 +343,7 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
         return;
     }
     if (!std::holds_alternative<std::shared_ptr<List>>(*env_val)) {
-        throw std::runtime_error("Attempted to get index of " + getValueStr(env_val));
+        throw std::runtime_error(getValueStr(env_val) + " object does not support item assignment.");
         return;
     }
     std::shared_ptr<List> env_list = std::get<std::shared_ptr<List>>(*env_val);

@@ -1,3 +1,4 @@
-x = "Hello";
-y = x[-2:-1] + x[-1];
-y;
+# Make input
+# Make default args in functions
+# Make type conversions
+# Make a null type
