@@ -17,7 +17,8 @@ enum class ValueType {
     List,
     Function,
     BuiltInFunction,
-    Null
+    Null,
+    Type
 };
 
 extern std::unordered_map<TokenType, ValueType> token_value_map;

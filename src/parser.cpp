@@ -10,7 +10,8 @@ std::unordered_map<TokenType, ValueType> token_value_map{
     {TokenType::_StrType, ValueType::String},
     {TokenType::_ListType, ValueType::List},
     {TokenType::_FuncType, ValueType::Function},
-    {TokenType::_BuiltInType, ValueType::BuiltInFunction}
+    {TokenType::_BuiltInType, ValueType::BuiltInFunction},
+    {TokenType::_NullType, ValueType::Null}
 };
 
 
@@ -464,7 +465,6 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
 
 template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op) {
-    // Try to find why the second type is int
     // Helper function to give the bool value of each type
     auto checkTruthy = [](const Value& value) -> bool {
         return std::visit([](const auto& v) -> bool {
@@ -478,7 +478,7 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
             } else if constexpr (std::is_same_v<T, List>) {
                 return !v.empty();
             } else if constexpr (std::is_same_v<T, ValueType>) {
-                return true;
+                return v != ValueType::Null;
             }
             return false;
         }, value);
@@ -487,7 +487,12 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
     // Handle AND OR for all type cases
     if (op == TokenType::_And) return std::make_shared<Value>(checkTruthy(lhs) && checkTruthy(rhs));
     else if (op == TokenType::_Or) return std::make_shared<Value>(checkTruthy(lhs) || checkTruthy(rhs));
-
+    else if ((op == TokenType::_Compare || op == TokenType::_NotEqual)) {
+        if ((std::is_same_v<T1, ValueType> || std::is_same_v<T2, ValueType>) && !std::is_same_v<T1, T2>) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    
     if constexpr (std::is_same_v<T1, std::shared_ptr<List>> && std::is_same_v<T2, std::shared_ptr<List>>) {
         // BOTH ARE LISTS
         if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
@@ -650,6 +655,12 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(!rhs);
         }
     }
+    else if (RHS == "type") {
+        ValueType rhs = std::get<ValueType>(*right_value.value());
+        if (rhs == ValueType::Null && op == TokenType::_Not) {
+            return std::make_shared<Value>(true);
+        }
+    }
 
     throw std::runtime_error(std::format("Unsupported operand types for operation. operation was '{}' {}", token_labels[op], RHS));
     return std::nullopt;
@@ -666,9 +677,6 @@ std::optional<std::shared_ptr<Value>> ScopeNode::evaluate(Environment& env) {
     env.addScope();
     for (auto statement : block) {
         auto result = statement->evaluate(env);
-        // if (result) {
-        //     printValue(result.value());
-        // }
     }
 
     env.removeScope();
@@ -1548,6 +1556,8 @@ ValueType getValueType(std::shared_ptr<Value> value) {
         return ValueType::List;
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
         return ValueType::BuiltInFunction;
+    } else if (std::holds_alternative<ValueType>(*value)) {
+        return ValueType::Type;
     } else {
         throw std::runtime_error("Attempted to get type of unrecognized type.");
         return ValueType::Null;
@@ -1569,6 +1579,10 @@ std::string getTypeStr(ValueType value) {
         return "Type:Function";
     } else if (value == ValueType::BuiltInFunction) {
         return "Type:BuiltInFunction";
+    } else if (value == ValueType::Null) {
+        return "Type:Null";
+    } else if (value == ValueType::Type) {
+        return "Type:Type";
     }
     throw std::runtime_error("Reached end of type str.");
     return "";

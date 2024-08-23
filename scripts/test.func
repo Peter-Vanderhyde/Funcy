@@ -1,8 +1,10 @@
 # Make default args in functions/unkown number of args
-# Make a null type
 # Make in
 
-x = 90.0;
+x = Null;
 
-print(type(int(x)) == Float);
-print(type(int(x)) == Integer);
+if 10 > 50 {
+    x = 80;
+}
+
+print(x == Null);
