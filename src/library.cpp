@@ -1,4 +1,7 @@
 #include "library.h"
+#include "parser.h"
+#include "pch.h"
+#include <iostream>
 
 
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args) {
@@ -175,4 +178,12 @@ BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args) {
     } else {
         throw std::runtime_error("Input expected a string argument.");
     }
+}
+
+BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 1) {
+        throw std::runtime_error("Type takes exactly one argument.");
+    }
+
+    return std::make_shared<Value>(getValueType(args[0]));
 }

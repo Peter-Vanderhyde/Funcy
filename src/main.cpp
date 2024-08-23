@@ -1,6 +1,7 @@
 #include "lexer.h"
 #include "library.h"
 #include "ast_printer.h"
+#include "pch.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -47,6 +48,7 @@ int main() {
     env.addFunction("string", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
     env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
     env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
+    env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
     env.addScope();
     int stmnt_num = 0;
     for (auto statement : statements) {

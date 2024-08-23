@@ -1,5 +1,6 @@
 #include "ast_printer.h"
 #include <typeinfo>
+#include <iostream>
 
 // Helper function to print spaces for indentation
 std::string indent(int depth) {

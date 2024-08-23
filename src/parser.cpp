@@ -1,4 +1,18 @@
 #include "parser.h"
+#include "pch.h"
+#include <iostream>
+
+
+std::unordered_map<TokenType, ValueType> token_value_map{
+    {TokenType::_IntType, ValueType::Integer},
+    {TokenType::_FloatType, ValueType::Float},
+    {TokenType::_BoolType, ValueType::Boolean},
+    {TokenType::_StrType, ValueType::String},
+    {TokenType::_ListType, ValueType::List},
+    {TokenType::_FuncType, ValueType::Function},
+    {TokenType::_BuiltInType, ValueType::BuiltInFunction}
+};
+
 
 
 void handleError(const std::string& message, int line, int column) {
@@ -7,6 +21,12 @@ void handleError(const std::string& message, int line, int column) {
     } else {
         throw std::runtime_error(message);
     }
+}
+
+// << overload for the ValueType
+std::ostream& operator<<(std::ostream& os, const ValueType& v_type) {
+    os << getTypeStr(v_type);
+    return os;
 }
 
 // << overload for the List type
@@ -27,7 +47,8 @@ std::ostream& operator<<(std::ostream& os, const List& list) {
                     } else {
                         os << "null";
                     }
-                } else {
+                }
+                else {
                     os << v;
                 }
             }, *list[i]);
@@ -45,8 +66,9 @@ std::ostream& operator<<(std::ostream& os, const List& list) {
 
 
 void printValue(const std::shared_ptr<Value> value) {
-    if (auto int_value = std::get_if<int>(value.get())) {
-        std::cout << *int_value;
+    if (std::holds_alternative<int>(*value)) {
+        auto int_value = std::get<int>(*value);
+        std::cout << int_value;
     } else if (std::holds_alternative<double>(*value)) {
         auto double_value = std::get<double>(*value);
         if (double_value == static_cast<int>(double_value)) {
@@ -54,14 +76,29 @@ void printValue(const std::shared_ptr<Value> value) {
         } else {
             std::cout << double_value;
         }
-    } else if (auto bool_value = std::get_if<bool>(value.get())) {
-        std::cout << std::boolalpha << *bool_value;
+    } else if (std::holds_alternative<bool>(*value)) {
+        auto bool_value = std::get<bool>(*value);
+        std::cout << std::boolalpha << bool_value;
     } else if (std::holds_alternative<std::string>(*value)) {
         auto string_value = std::get<std::string>(*value);
         std::cout << string_value;
-    } else if (auto list_value = std::get<std::shared_ptr<List>>(*value)) {
+    } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
+        auto list_value = std::get<std::shared_ptr<List>>(*value);
         std::cout << *list_value;
-    } else {
+    } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*value)) {
+        auto func_value = std::get<std::shared_ptr<ASTNode>>(*value);
+        if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
+            std::cout << "Function";
+        } else {
+            throw std::runtime_error("Tried to print value that was an unknown ASTNode.");
+        }
+    } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
+        std::cout << "Built-in Function";
+    } else if (std::holds_alternative<ValueType>(*value)) {
+        auto v_type = std::get<ValueType>(*value);
+        std::cout << getTypeStr(v_type);
+    }
+    else {
         throw std::runtime_error("Received invalid value type to print.");
     }
 }
@@ -159,7 +196,8 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
         // Make sure it's a string
         auto eval = atom_node->evaluate(env);
         if (eval) {
-            if (auto string_val = std::make_shared<std::string>(std::get<std::string>(*eval.value()))) {
+            if (std::holds_alternative<std::string>(*eval.value())) {
+                auto string_val = std::make_shared<std::string>(std::get<std::string>(*eval.value()));
                 return getIndex(env, string_val);
             } else {
                 throw std::runtime_error("Atom evaluation did not return a string for indexing.");
@@ -170,7 +208,8 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
     } else if (auto list_node = std::dynamic_pointer_cast<ListNode>(container)) {
         auto eval = list_node->evaluate(env);
         if (eval) {
-            if (auto list_val = std::get<std::shared_ptr<List>>(*eval.value())) {
+            if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
+                auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
                 return getIndex(env, list_val);
             } else {
                 throw std::runtime_error("List evaluation did not return a list for indexing.");
@@ -196,7 +235,8 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
     } else if (auto index_node = std::dynamic_pointer_cast<IndexNode>(container)) {
         auto eval = index_node->evaluate(env);
         if (eval) {
-            if (auto list_val = std::get<std::shared_ptr<List>>(*eval.value())) {
+            if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
+                auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
                 return getIndex(env, list_val);
             } else {
                 throw std::runtime_error("Index evaluation did not return a list for indexing.");
@@ -342,7 +382,8 @@ void setAtIndex(std::shared_ptr<List> env_list, int list_index, std::shared_ptr<
                 s = "";
                 i++;
             }
-        } else if (auto list_val = std::get<std::shared_ptr<List>>(*value)) {
+        } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
+            auto list_val = std::get<std::shared_ptr<List>>(*value);
             // Assigning a list
             for (int i = list_val->size() - 1; i >= 0; i--) {
                 if (list_index == env_list->size()) {
@@ -423,6 +464,7 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
 
 template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op) {
+    // Try to find why the second type is int
     // Helper function to give the bool value of each type
     auto checkTruthy = [](const Value& value) -> bool {
         return std::visit([](const auto& v) -> bool {
@@ -435,6 +477,8 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
                 return !v.empty();
             } else if constexpr (std::is_same_v<T, List>) {
                 return !v.empty();
+            } else if constexpr (std::is_same_v<T, ValueType>) {
+                return true;
             }
             return false;
         }, value);
@@ -492,6 +536,10 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         else if (op == TokenType::_GreaterEquals) return std::make_shared<Value>(lhs_double >= rhs_double);
         else if (op == TokenType::_LessThan) return std::make_shared<Value>(lhs_double < rhs_double);
         else if (op == TokenType::_LessEquals) return std::make_shared<Value>(lhs_double <= rhs_double);
+    }
+    else if constexpr (std::is_same_v<T1, ValueType> && std::is_same_v<T2, ValueType>) {
+        if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
+        if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
     }
 
     return std::nullopt;
@@ -570,7 +618,7 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
 
     std::string RHS = getValueStr(right_value.value());
 
-    if (RHS == "int") {
+    if (RHS == "integer") {
         if (op == TokenType::_Minus) {
             int rhs = std::get<int>(*right_value.value());
             return std::make_shared<Value>(-rhs);
@@ -583,7 +631,7 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(rhs == 0);
         }
     }
-    else if (RHS == "double") {
+    else if (RHS == "float") {
         if (op == TokenType::_Minus) {
             double rhs = std::get<double>(*right_value.value());
             return std::make_shared<Value>(-rhs);
@@ -596,7 +644,7 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(rhs == 0.0);
         }
     }
-    else if (RHS == "bool") {
+    else if (RHS == "boolean") {
         if (op == TokenType::_Not) {
             bool rhs = std::get<bool>(*right_value.value());
             return std::make_shared<Value>(!rhs);
@@ -629,9 +677,10 @@ std::optional<std::shared_ptr<Value>> ScopeNode::evaluate(Environment& env) {
 
 bool ScopedNode::getComparisonValue(Environment& env) const {
     auto result = comparison->evaluate(env);
-    if (result && getValueStr(result.value()) == "bool") {
-        if (auto bool_value = std::get_if<bool>(result.value().get())) {
-            return *bool_value;
+    if (result && getValueStr(result.value()) == "boolean") {
+        if (std::holds_alternative<bool>(*result.value())) {
+            auto bool_value = std::get<bool>(*result.value());
+            return bool_value;
         } else {
             throw std::runtime_error("Boolean weirdness.");
         }
@@ -719,8 +768,9 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             throw std::runtime_error("Unable to evaluate for loop condition.");
         }
 
-        if (auto bool_value = std::get_if<bool>(cond_value.value().get())) {
-            if (!*bool_value) break;
+        if (std::holds_alternative<bool>(*cond_value.value())) {
+            auto bool_value = std::get<bool>(*cond_value.value());
+            if (!bool_value) break;
         } else {
             throw std::runtime_error("For loop requires boolean condition.");
         }
@@ -781,6 +831,9 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         } else {
             throw ReturnException(std::nullopt);
         }
+    }
+    else if (token_value_map.contains(keyword)) {
+        return std::make_shared<Value>(token_value_map[keyword]);
     }
 
     if (right) {
@@ -1089,30 +1142,37 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         }
     }
     else {
-        // Token not, and, or
-        if (t_str == "not" || t_str == "and" || t_str == "or") {
-            return parseLogicalOr();
+        auto node = parseKeyword();
+        if (tokenIs(";")) {
+            consume();
+            return node;
         }
         else {
-            std::shared_ptr<KeywordNode> node;
-            if (tokenIs("return") && !nextTokenIs(";")) {
-                consume();
-                auto right = parseLogicalOr();
-                node = std::make_shared<KeywordNode>(TokenType::_Return, right);
-            }
-            else {
-                node = std::make_shared<KeywordNode>(getToken()->type);
-                consume();
-            }
-            if (tokenIs(";")) {
-                consume();
-                return node;
-            }
-            else {
-                handleError("Expected ; but got " + getTokenStr(), getToken()->line, getToken()->column);
-                return nullptr;
-            }
+            handleError("Expected ; but got " + getTokenStr(), getToken()->line, getToken()->column);
+            return nullptr;
         }
+    }
+    return nullptr;
+}
+
+std::shared_ptr<ASTNode> Parser::parseKeyword() {
+    // Token not, and, or
+    std::string t_str = getTokenStr();
+    if (t_str == "not" || t_str == "and" || t_str == "or") {
+        return parseLogicalOr();
+    }
+    else {
+        std::shared_ptr<KeywordNode> node;
+        if (tokenIs("return") && !nextTokenIs(";")) {
+            consume();
+            auto right = parseLogicalOr();
+            node = std::make_shared<KeywordNode>(TokenType::_Return, right);
+        }
+        else {
+            node = std::make_shared<KeywordNode>(getToken()->type);
+            consume();
+        }
+        return node;
     }
     return nullptr;
 }
@@ -1356,23 +1416,27 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
 
 std::shared_ptr<ASTNode> Parser::parseAtom() {
     if (debug) std::cout << "parse atom " << getTokenStr() << std::endl;
-    if (tokenIs("int") || tokenIs("float") || tokenIs("bool") || tokenIs("string")) {
+    if (tokenIs("integer") || tokenIs("float") || tokenIs("boolean") || tokenIs("string")) {
         const Token* token = getToken();
-        if (auto int_value = std::get_if<int>(&token->value)) {
+        if (std::holds_alternative<int>(token->value)) {
+            auto int_value = std::get<int>(token->value);
             consume();
-            return std::make_shared<AtomNode>(*int_value);
+            return std::make_shared<AtomNode>(int_value);
         }
-        else if (auto float_value = std::get_if<double>(&token->value)) {
+        else if (std::holds_alternative<double>(token->value)) {
+            auto float_value = std::get<double>(token->value);
             consume();
-            return std::make_shared<AtomNode>(*float_value);
+            return std::make_shared<AtomNode>(float_value);
         }
-        else if (auto bool_value = std::get_if<bool>(&token->value)) {
+        else if (std::holds_alternative<bool>(token->value)) {
+            auto bool_value = std::get<bool>(token->value);
             consume();
-            return std::make_shared<AtomNode>(*bool_value);
+            return std::make_shared<AtomNode>(bool_value);
         }
-        else if (auto string_value = std::get_if<std::string>(&token->value)) {
+        else if (std::holds_alternative<std::string>(token->value)) {
+            auto string_value = std::get<std::string>(token->value);
             consume();
-            return std::make_shared<AtomNode>(*string_value);
+            return std::make_shared<AtomNode>(string_value);
         }
     }
     else if (tokenIs("ident") && peek() && peek().value()->type == TokenType::_OpenParen) {
@@ -1380,6 +1444,9 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
     }
     else if (tokenIs("ident")) {
         return parseIdentifier(nullptr);
+    }
+    else if (getTokenStr().find("type:") != std::string::npos) {
+        return parseKeyword();
     }
     else {
         handleError(std::format("Expected atom but got {}", getTokenStr()), getToken()->line, getToken()->column);
@@ -1421,11 +1488,12 @@ std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> va
     if (tokenIs("ident")) {
         const Token* token = getToken();
         consume();
-        if (auto ident_value = std::get_if<std::string>(&token->value)) {
+        if (std::holds_alternative<std::string>(token->value)) {
+            auto ident_value = std::get<std::string>(token->value);
             if (varString != nullptr) {
-                *varString = *ident_value;
+                *varString = ident_value;
             }
-            return std::make_shared<IdentifierNode>(*ident_value);
+            return std::make_shared<IdentifierNode>(ident_value);
         }
         else {
             handleError("Attempted to create an identifier with an invalid type", token->line, token->column);
@@ -1444,20 +1512,65 @@ std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> va
 
 std::string getValueStr(std::shared_ptr<Value> value) {
     if (std::holds_alternative<int>(*value)) {
-        return "int";
+        return "integer";
     } else if (std::holds_alternative<double>(*value)) {
-        return "double";
+        return "float";
     } else if (std::holds_alternative<bool>(*value)) {
-        return "bool";
+        return "boolean";
     } else if (std::holds_alternative<std::string>(*value)) {
         return "string";
     } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*value)) {
         return "function";
     } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
         return "list";
+    } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
+        return "built-in function";
+    } else if (std::holds_alternative<ValueType>(*value)) {
+        return "type";
     } else {
         throw std::runtime_error("Attempted to get string of unrecognized type.");
     }
+    return "";
+}
+
+ValueType getValueType(std::shared_ptr<Value> value) {
+    if (std::holds_alternative<int>(*value)) {
+        return ValueType::Integer;
+    } else if (std::holds_alternative<double>(*value)) {
+        return ValueType::Float;
+    } else if (std::holds_alternative<bool>(*value)) {
+        return ValueType::Boolean;
+    } else if (std::holds_alternative<std::string>(*value)) {
+        return ValueType::String;
+    } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*value)) {
+        return ValueType::Function;
+    } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
+        return ValueType::List;
+    } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
+        return ValueType::BuiltInFunction;
+    } else {
+        throw std::runtime_error("Attempted to get type of unrecognized type.");
+        return ValueType::Null;
+    }
+}
+
+std::string getTypeStr(ValueType value) {
+    if (value == ValueType::Integer) {
+        return "Type:Integer";
+    } else if (value == ValueType::Float) {
+        return "Type:Float";
+    } else if (value == ValueType::Boolean) {
+        return "Type:Bool";
+    } else if (value == ValueType::String) {
+        return "Type:String";
+    } else if (value == ValueType::List) {
+        return "Type:List";
+    } else if (value == ValueType::Function) {
+        return "Type:Function";
+    } else if (value == ValueType::BuiltInFunction) {
+        return "Type:BuiltInFunction";
+    }
+    throw std::runtime_error("Reached end of type str.");
     return "";
 }
 
@@ -1576,7 +1689,7 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
         return func->second;
     }
 
-    throw std::runtime_error("Unrecognized built in function: " + name);
+    throw std::runtime_error("Unrecognized built-in function: " + name);
 }
 
 bool Environment::hasFunction(const std::string& name) const {

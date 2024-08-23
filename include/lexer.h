@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <iostream>
 
 enum class TokenType{
     _Identifier,
@@ -11,6 +10,9 @@ enum class TokenType{
     _Integer,
     _String,
     _List,
+    _Boolean,
+    _Function,
+    _BuiltInFunction,
     _Semi,
     _Plus,
     _Minus,
@@ -20,7 +22,6 @@ enum class TokenType{
     _OpenParen,
     _CloseParen,
     _EndOfFile,
-    _Boolean,
     _OpenCurly,
     _CloseCurly,
     _Caret,
@@ -54,7 +55,14 @@ enum class TokenType{
     _Return,
     _OpenSquare,
     _CloseSquare,
-    _Colon
+    _Colon,
+    _IntType,
+    _FloatType,
+    _BoolType,
+    _StrType,
+    _ListType,
+    _FuncType,
+    _BuiltInType
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);

@@ -1,21 +1,31 @@
 #pragma once
 #include <vector>
-#include <format>
 #include <optional>
 #include <memory>
 #include <math.h>
-#include <unordered_map>
-#include <algorithm>
 #include <functional>
-#include <iomanip>
 #include "lexer.h"
 
 class ASTNode;
 
 struct Value;
+enum class ValueType {
+    Integer,
+    Float,
+    Boolean,
+    String,
+    List,
+    Function,
+    BuiltInFunction,
+    Null
+};
+
+extern std::unordered_map<TokenType, ValueType> token_value_map;
+
 using List = std::vector<std::shared_ptr<Value>>;
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(const std::vector<std::shared_ptr<Value>>&)>;
-using VariantType = std::variant<int, double, bool, std::string, std::shared_ptr<ASTNode>, std::shared_ptr<List>, std::shared_ptr<BuiltInFunction>>;
+using VariantType = std::variant<int, double, bool, TokenType, std::string, std::shared_ptr<ASTNode>,
+                        std::shared_ptr<List>, std::shared_ptr<BuiltInFunction>, ValueType>;
 
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 
@@ -301,6 +311,7 @@ private:
 
     std::shared_ptr<ASTNode> parseFoundation();
     std::shared_ptr<ASTNode> parseControlFlowStatement();
+    std::shared_ptr<ASTNode> parseKeyword();
     std::shared_ptr<ASTNode> parseStatement(std::shared_ptr<std::string> varString);
     std::shared_ptr<ASTNode> parseLogicalOr();
     std::shared_ptr<ASTNode> parseLogicalAnd();
@@ -321,3 +332,5 @@ private:
 
 
 std::string getValueStr(std::shared_ptr<Value> value);
+ValueType getValueType(std::shared_ptr<Value> value);
+std::string getTypeStr(ValueType value);

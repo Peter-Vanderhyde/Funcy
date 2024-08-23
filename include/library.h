@@ -1,7 +1,10 @@
+#pragma once
 #include <variant>
 #include <sstream>
-#include <iomanip>
-#include "parser.h"
+#include "pch.h"
+
+class Parser;
+struct Value;
 
 using BuiltInFunctionReturn = std::optional<std::shared_ptr<Value>>;
 
@@ -12,3 +15,4 @@ BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& a
 BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args);

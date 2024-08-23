@@ -1,5 +1,6 @@
 #include "lexer.h"
-#include <format>
+#include "pch.h"
+#include <iostream>
 
 
 
@@ -10,6 +11,9 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_Integer: os << "Integer"; break;
         case TokenType::_String: os << "String"; break;
         case TokenType::_List: os << "List"; break;
+        case TokenType::_Boolean: os << "Boolean"; break;
+        case TokenType::_Function: os << "Function"; break;
+        case TokenType::_BuiltInFunction: os << "Built-in Function"; break;
         case TokenType::_Semi: os << "Semi"; break;
         case TokenType::_Plus: os << "Plus"; break;
         case TokenType::_Minus: os << "Minus"; break;
@@ -19,7 +23,6 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_OpenParen: os << "OpenParen"; break;
         case TokenType::_CloseParen: os << "CloseParen"; break;
         case TokenType::_EndOfFile: os << "EndOfFile"; break;
-        case TokenType::_Boolean: os << "Boolean"; break;
         case TokenType::_OpenCurly: os << "OpenCurly"; break;
         case TokenType::_CloseCurly: os << "CloseCurly"; break;
         case TokenType::_Caret: os << "Caret"; break;
@@ -54,6 +57,13 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_OpenSquare: os << "OpenSquare"; break;
         case TokenType::_CloseSquare: os << "CloseSquare"; break;
         case TokenType::_Colon: os << "Colon"; break;
+        case TokenType::_IntType: os << "Type:Integer"; break;
+        case TokenType::_FloatType: os << "Type:Float"; break;
+        case TokenType::_BoolType: os << "Type:Boolean"; break;
+        case TokenType::_ListType: os << "Type:List"; break;
+        case TokenType::_StrType: os << "Type:String"; break;
+        case TokenType::_FuncType: os << "Type:Function"; break;
+        case TokenType::_BuiltInType: os << "Type:Built-in Function"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -63,7 +73,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
 std::map<TokenType, std::string> token_labels {
     {TokenType::_Identifier, "ident"},
     {TokenType::_Float, "float"},
-    {TokenType::_Integer, "int"},
+    {TokenType::_Integer, "integer"},
     {TokenType::_String, "string"},
     {TokenType::_List, "list"},
     {TokenType::_Semi, ";"},
@@ -75,7 +85,7 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_OpenParen, "("},
     {TokenType::_CloseParen, ")"},
     {TokenType::_EndOfFile, "eof"},
-    {TokenType::_Boolean, "bool"},
+    {TokenType::_Boolean, "boolean"},
     {TokenType::_OpenCurly, "{"},
     {TokenType::_CloseCurly, "}"},
     {TokenType::_Caret, "^"},
@@ -109,7 +119,14 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_Return, "return"},
     {TokenType::_OpenSquare, "["},
     {TokenType::_CloseSquare, "]"},
-    {TokenType::_Colon, ":"}
+    {TokenType::_Colon, ":"},
+    {TokenType::_IntType, "type:int"},
+    {TokenType::_FloatType, "type:float"},
+    {TokenType::_BoolType, "type:bool"},
+    {TokenType::_StrType, "type:str"},
+    {TokenType::_ListType, "type:list"},
+    {TokenType::_FuncType, "type:func"},
+    {TokenType::_BuiltInType, "type:built-in func"}
     //{TokenType::_, ""}
 };
 
@@ -157,7 +174,14 @@ std::map<std::string, TokenType> keyword_tokens {
     {"for", TokenType::_For},
     {"in", TokenType::_In},
     {"func", TokenType::_Func},
-    {"return", TokenType::_Return}
+    {"return", TokenType::_Return},
+    {"Integer", TokenType::_IntType},
+    {"Float", TokenType::_FloatType},
+    {"String", TokenType::_StrType},
+    {"Boolean", TokenType::_BoolType},
+    {"List", TokenType::_ListType},
+    {"Function", TokenType::_FuncType},
+    {"BuiltInFunction", TokenType::_BuiltInType}
 };
 
 

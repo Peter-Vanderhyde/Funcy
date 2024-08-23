@@ -1,7 +1,8 @@
-# Make type specific built in functions
 # Make default args in functions/unkown number of args
 # Make a null type
 # Make in
 
-x = input("How are you? ");
-print(int(x));
+x = 90.0;
+
+print(type(int(x)) == Float);
+print(type(int(x)) == Integer);
