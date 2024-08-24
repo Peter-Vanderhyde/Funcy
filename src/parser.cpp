@@ -166,8 +166,18 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
         return env.getFunction(value);
     } else {
         throw std::runtime_error(value + " is not defined.");
-        return {};
     }
+    return std::nullopt;
+}
+
+std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env, std::shared_ptr<ValueType> member_type) {
+    if (debug) std::cout << "evaluate identifier" << std::endl;
+    if (env.hasMember(member_type, value)) {
+        return env.getMember(member_type, value);
+    } else {
+        throw std::runtime_error(value + " is not defined.");
+    }
+    return std::nullopt;
 }
 
 std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
@@ -258,6 +268,8 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
                 throw std::runtime_error("Function call evaluation did not return a list or string for indexing.");
             }
         }
+    } else if (container == nullptr) {
+        throw std::runtime_error("Null object is not subscriptable.");
     }
     else {
         throw std::runtime_error("Index node container was an unexpected type.");
@@ -552,11 +564,10 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
 
 std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
     if (debug) std::cout << "evaluate binary" << std::endl;
-    // Postpone evaluating left
-    std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
 
     if (op == TokenType::_Equals) {
         // An equals is a special case
+        std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
         if (!right_value.has_value()) {
             throw std::runtime_error("Failed to set variable. Operand could not be computed.");
         }
@@ -570,8 +581,21 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         else {
             throw std::runtime_error("The operator '=' can only be used with variables.");
         }
+    } else if (op == TokenType::_Dot) {
+        // Handle member functions of types
+        std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
+        if (!left_value.has_value()) {
+            throw std::runtime_error("Failed to get member function. Identifier could not be computed.");
+        }
+
+        std::shared_ptr<ValueType> member_type = std::make_shared<ValueType>(getValueType(left_value.value()));
+        if (auto func_node = dynamic_cast<FuncCallNode*>(&*right)) {
+            func_node->member_value = left_value.value();
+            return func_node->evaluate(env, member_type);
+        }
     }
     else {
+        std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
         std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
         // Arithmetic operations need two values to operate on
         if (!left_value.has_value() || !right_value.has_value()) {
@@ -923,6 +947,35 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         return (*func_value)(evaluateArgs(env));
     } else {
         throw std::runtime_error("Object type " + getValueStr(mapped_value) + " is not callable");
+    }
+    return std::nullopt;
+}
+
+std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, std::shared_ptr<ValueType> member_type) {
+    if (debug) std::cout << "evaluate function call" << std::endl;
+    auto ident_node = dynamic_cast<IdentifierNode*>(&*identifier);
+    auto mapped_value = ident_node->evaluate(env, member_type).value();
+    if (std::holds_alternative<std::shared_ptr<ASTNode>>(*mapped_value)) {
+        auto func_value = std::get<std::shared_ptr<ASTNode>>(*mapped_value);
+        if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
+            auto values = evaluateArgs(env);
+            values.insert(values.begin(), member_value);
+            if (base_env) {
+                return func->callFunc(values, *base_env.get());
+            }
+            else {
+                return func->callFunc(values, env);
+            }
+        } else {
+            throw std::runtime_error("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->value + ".");
+        }
+    } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*mapped_value)) {
+        auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
+        auto values = evaluateArgs(env);
+        values.insert(values.begin(), member_value);
+        return (*func_value)(values);
+    } else {
+        throw std::runtime_error("Object type " + getTypeStr(*member_type) + " has no member function " + ident_node->value + ".");
     }
     return std::nullopt;
 }
@@ -1369,13 +1422,42 @@ std::shared_ptr<ASTNode> Parser::parsePrimary() {
         return std::make_shared<ScopeNode>(block);
     }
     else {
-        return parseIndexing();
+        return parseMemberAccess();
     }
 }
 
-std::shared_ptr<ASTNode> Parser::parseIndexing() {
+std::shared_ptr<ASTNode> Parser::parseMemberAccess() {
+    std::shared_ptr<ASTNode> node = parseIndexing();
+
+    while (true) {
+        if (tokenIs(".")) {
+            consume();
+            if (tokenIs("ident")) {
+                std::shared_ptr<ASTNode> right;
+                if (nextTokenIs("(")) {
+                    right = parseFuncCall();
+                } else {
+                    right = parseIdentifier();
+                }
+                node = std::make_shared<BinaryOpNode>(node, TokenType::_Dot, right);
+            }
+        } else if (tokenIs("[")) {
+            node = parseIndexing(node);
+        } else if (tokenIs("(")) {
+            node = parseFuncCall(node);
+        } else {
+            break;
+        }
+    }
+
+    return node;
+}
+
+std::shared_ptr<ASTNode> Parser::parseIndexing(std::shared_ptr<ASTNode> left) {
     if (debug) std::cout << "parse indexing " << getTokenStr() << std::endl;
-    auto left = parseCollection();
+    if (!left) {
+        left = parseCollection();
+    }
     while (tokenIs("[")) {
         consume();
         auto start = parseExpression(); // Assuming it ends up as an int
@@ -1462,12 +1544,14 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
     return nullptr;
 }
 
-std::shared_ptr<ASTNode> Parser::parseFuncCall() {
+std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifier) {
     if (debug) std::cout << "parse func call " << getTokenStr() << std::endl;
-    if (!tokenIs("ident")) {
-        handleError("Expected function name but got " + getTokenStr(), getToken()->line, getToken()->column);
+    if (!identifier) {
+        if (!tokenIs("ident")) {
+            handleError("Expected function name but got " + getTokenStr(), getToken()->line, getToken()->column);
+        }
+        identifier = parseIdentifier(nullptr);
     }
-    auto identifier = parseIdentifier(nullptr);
     if (!tokenIs("(")) {
         handleError("Missing '(' at function call", getToken()->line, getToken()->column);
     }
@@ -1491,7 +1575,7 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall() {
     return std::make_shared<FuncCallNode>(identifier, arguments);
 }
 
-std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString = nullptr) {
+std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString) {
     if (debug) std::cout << "parse identifier " << getTokenStr() << std::endl;
     if (tokenIs("ident")) {
         const Token* token = getToken();
@@ -1709,4 +1793,22 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
 bool Environment::hasFunction(const std::string& name) const {
     auto func = built_in_functions.find(name);
     return func != built_in_functions.end();
+}
+
+void Environment::addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func) {
+    member_functions[type][name] = func;
+}
+
+std::shared_ptr<Value> Environment::getMember(std::shared_ptr<ValueType> type, const std::string& name) const {
+    auto func = member_functions.at(*type).find(name);
+    if (func != member_functions.at(*type).end()) {
+        return func->second;
+    }
+
+    throw std::runtime_error("Unrecognized member function: " + name);
+}
+
+bool Environment::hasMember(std::shared_ptr<ValueType> type, const std::string& name) const {
+    auto func = member_functions.at(*type).find(name);
+    return func != member_functions.at(*type).end();
 }

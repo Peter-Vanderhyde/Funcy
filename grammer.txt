@@ -29,15 +29,17 @@ Factor     : [ ('+' | '-') ]? Power
 
 Power      : LogicalNot [ ('^' | '**') Factor ]?
 
-LogicalNot : ['not' | '!']* Atom
+LogicalNot : ['not' | '!']* Primary
 
-Primary    : Indexing | FunctionCall | ( '(' LogicalOr ')' ) | Scope
+Primary    : MemberAccess | Indexing | FunctionCall | ( '(' LogicalOr ')' ) | Scope
+
+MemberAccess : Primary [ '.' (Identifier | FunctionCall) ]*
 
 Indexing   : Collection [ GetIndex ]?
 
 Collection : Atom | List
 
-Atom       : Identifier | Number | Boolean | String
+Atom       : Identifier | Number | Boolean | String | Keyword
 
 Number     : Integer | Float
 
@@ -61,8 +63,8 @@ Float      : [0-9]+ '.' [0-9]+
 
 Scope      : '{' Foundation+ '}'
 
-Add builtin functions, lists, in,
-const, int, double, float, bool, String, import, null, input
+Add in,
+const, import
 
 Remove bool as a mathematical num
 Add lines and columns to all errors

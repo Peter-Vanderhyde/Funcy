@@ -65,6 +65,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_FuncType: os << "Type:Function"; break;
         case TokenType::_BuiltInType: os << "Type:Built-in Function"; break;
         case TokenType::_NullType: os << "Type:Null"; break;
+        case TokenType::_Dot: os << "Dot"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -128,7 +129,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_ListType, "type:list"},
     {TokenType::_FuncType, "type:func"},
     {TokenType::_BuiltInType, "type:built-in func"},
-    {TokenType::_NullType, "type:null"}
+    {TokenType::_NullType, "type:null"},
+    {TokenType::_Dot, "."}
     //{TokenType::_, ""}
 };
 
@@ -151,7 +153,8 @@ std::map<char, TokenType> char_tokens{
     {',', TokenType::_Comma},
     {'[', TokenType::_OpenSquare},
     {']', TokenType::_CloseSquare},
-    {':', TokenType::_Colon}
+    {':', TokenType::_Colon},
+    {'.', TokenType::_Dot}
 };
 
 std::map<std::string, TokenType> scoped_keyword_tokens {

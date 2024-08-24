@@ -49,6 +49,11 @@ int main() {
     env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
     env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
     env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
+
+    env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
+    env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
+    env.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
+
     env.addScope();
     int stmnt_num = 0;
     for (auto statement : statements) {

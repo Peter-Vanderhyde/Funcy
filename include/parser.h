@@ -70,10 +70,15 @@ public:
     void addFunction(const std::string& name, std::shared_ptr<Value> func);
     std::shared_ptr<Value> getFunction(const std::string& name) const;
     bool hasFunction(const std::string& name) const;
+
+    void addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func);
+    std::shared_ptr<Value> getMember(std::shared_ptr<ValueType> type, const std::string& name) const;
+    bool hasMember(std::shared_ptr<ValueType> type, const std::string& name) const;
 private:
     std::vector<Scope> scopes;
     int loop_depth;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
+    std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> member_functions;
 };
 
 class BreakException : public std::exception {};
@@ -127,6 +132,7 @@ public:
     IdentifierNode(std::string value) : value{value} {}
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, std::shared_ptr<ValueType> member_type);
 
     std::string value;
 };
@@ -281,10 +287,12 @@ public:
     ~FuncCallNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, std::shared_ptr<ValueType> member_type);
     List evaluateArgs(Environment& env);
 
     std::shared_ptr<ASTNode> identifier;
     std::vector<std::shared_ptr<ASTNode>> values;
+    std::shared_ptr<Value> member_value;
     std::shared_ptr<Environment> base_env = nullptr;
 };
 
@@ -324,11 +332,12 @@ private:
     std::shared_ptr<ASTNode> parsePower();
     std::shared_ptr<ASTNode> parseLogicalNot();
     std::shared_ptr<ASTNode> parsePrimary();
-    std::shared_ptr<ASTNode> parseIndexing();
+    std::shared_ptr<ASTNode> parseMemberAccess();
+    std::shared_ptr<ASTNode> parseIndexing(std::shared_ptr<ASTNode> left = nullptr);
     std::shared_ptr<ASTNode> parseCollection();
     std::shared_ptr<ASTNode> parseAtom();
-    std::shared_ptr<ASTNode> parseFuncCall();
-    std::shared_ptr<ASTNode> parseIdentifier(std::shared_ptr<std::string> varString);
+    std::shared_ptr<ASTNode> parseFuncCall(std::shared_ptr<ASTNode> identifier = nullptr);
+    std::shared_ptr<ASTNode> parseIdentifier(std::shared_ptr<std::string> varString = nullptr);
 };
 
 

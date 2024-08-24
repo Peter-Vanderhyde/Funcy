@@ -63,7 +63,8 @@ enum class TokenType{
     _ListType,
     _FuncType,
     _BuiltInType,
-    _NullType
+    _NullType,
+    _Dot
 };
 
 std::ostream& operator<<(std::ostream& os, TokenType type);

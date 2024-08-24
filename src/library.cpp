@@ -4,6 +4,9 @@
 #include <iostream>
 
 
+///  BUILT-IN FUNCTIONS  ///
+
+
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args) {
     for (const auto& arg : args) {
         printValue(arg);
@@ -186,4 +189,63 @@ BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args) {
     }
 
     return std::make_shared<Value>(getValueType(args[0]));
+}
+
+
+///  MEMBER FUNCTIONS  ///
+
+
+BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 1) {
+        throw std::runtime_error("Size takes exactly 1 argument.");
+    }
+
+    if (std::holds_alternative<std::shared_ptr<List>>(*args[0])) {
+        auto list = std::get<std::shared_ptr<List>>(*args[0]);
+        int size = list->size();
+        return std::make_shared<Value>(size);
+    } else {
+        throw std::runtime_error("Size expected a list but got a " + getValueStr(args[0]));
+    }
+    return std::nullopt;
+}
+
+BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 2) {
+        throw std::runtime_error("Append takes exactly 2 arguments.");
+    }
+
+    auto list = std::get<std::shared_ptr<List>>(*args[0]);
+    list->push_back(args[1]);
+    return std::nullopt;
+}
+
+BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 1 && args.size() != 2) {
+        throw std::runtime_error("Pop takes at most 1 argument.");
+    }
+
+    int index;
+    if (args.size() == 1) {
+        index = -1;
+    } else {
+        if (!std::holds_alternative<int>(*args[1])) {
+            throw std::runtime_error("Pop expected int.");
+        }
+        index = std::get<int>(*args[1]);
+    }
+    auto list = std::get<std::shared_ptr<List>>(*args[0]);
+    int size = list->size();
+
+    if (index >= size || index < size * -1) {
+        throw std::runtime_error("List pop index out of range.");
+    } else if (index < 0) {
+        auto value = list->at(list->size() - -index);
+        list->erase(list->end() - -index);
+        return value;
+    } else {
+        auto value = list->at(index);
+        list->erase(list->begin() + index);
+        return value;
+    }
 }
