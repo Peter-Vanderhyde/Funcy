@@ -6,24 +6,32 @@ func getInput(prompt, possible_responses) {
     while response.lower() not in possible_responses {
         response = input(prompt);
     }
-    return response;
+    return response.lower();
+}
+
+func printBoard(board) {
+    for y = 0, y < board.size(), y += 1 {
+        print(board[y][0] + '|' + board[y][1] + '|' + board[y][2]);
+        if y != 2 {
+            print("---+---+---");
+        }
+    }
 }
 
 
 func main() {
-    print("Welcome to Tic-Tac-Toe!");
-
     board = [
         [' 7 ', ' 8 ', ' 9 '],
         [' 4 ', ' 5 ', ' 6 '],
         [' 1 ', ' 2 ', ' 3 ']
-    ]
+    ];
     player_turn = 0;
 
     winner = Null;
     while not winner {
         printBoard(board);
-        winner = doTurn(player_turn, board);
+        winner = 'x';
+        #winner = doTurn(player_turn, board);
     }
     
     if winner != 'x' and winner != 'o' {
@@ -31,10 +39,11 @@ func main() {
 
     }
 
-    answer = getInput("Would you like to play again?", ['y', 'n', 'yes', 'no']);
+    answer = getInput("Would you like to play again? (y/n)", ['y', 'n', 'yes', 'no']);
     return answer == 'y' or answer == 'yes';
 }
 
+print("Welcome to Tic-Tac-Toe!");
 replay = true;
 while replay {
     replay = main();

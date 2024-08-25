@@ -750,6 +750,12 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(true);
         }
     }
+    else if (RHS == "string") {
+        if (op == TokenType::_Not) {
+            std::string rhs = std::get<std::string>(*right_value.value());
+            return std::make_shared<Value>(rhs == "");
+        }
+    }
 
     throw std::runtime_error(std::format("Unsupported operand types for operation. operation was '{}' {}", token_labels[op], RHS));
     return std::nullopt;
@@ -1442,11 +1448,20 @@ std::shared_ptr<ASTNode> Parser::parseRelation() {
     if (debug) std::cout << "parse relation " << getTokenStr() << std::endl;
     auto left = parseExpression();
 
-    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=") || tokenIs("in")) {
-        TokenType op = getToken()->type;
-        consume();
-        auto right = parseExpression();
-        left = std::make_shared<BinaryOpNode>(left, op, right);
+    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=") || tokenIs("in") || (tokenIs("not") && nextTokenIs("in"))) {
+        if (tokenIs("not")) {
+            consume();
+            TokenType op = getToken()->type;
+            consume();
+            auto right = parseExpression();
+            left = std::make_shared<BinaryOpNode>(left, op, right);
+            left = std::make_shared<UnaryOpNode>(TokenType::_Not, left);
+        } else {
+            TokenType op = getToken()->type;
+            consume();
+            auto right = parseExpression();
+            left = std::make_shared<BinaryOpNode>(left, op, right);
+        }
     }
 
     return left;
