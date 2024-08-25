@@ -66,6 +66,7 @@ std::ostream& operator<<(std::ostream& os, TokenType type) {
         case TokenType::_BuiltInType: os << "Type:Built-in Function"; break;
         case TokenType::_NullType: os << "Type:Null"; break;
         case TokenType::_Dot: os << "Dot"; break;
+        case TokenType::_Import: os << "Import"; break;
         //case TokenType::_: os << ""; break;
         default: os << "Unknown"; break;
     }
@@ -130,7 +131,8 @@ std::map<TokenType, std::string> token_labels {
     {TokenType::_FuncType, "type:func"},
     {TokenType::_BuiltInType, "type:built-in func"},
     {TokenType::_NullType, "type:null"},
-    {TokenType::_Dot, "."}
+    {TokenType::_Dot, "."},
+    {TokenType::_Import, "import"}
     //{TokenType::_, ""}
 };
 
@@ -187,7 +189,8 @@ std::map<std::string, TokenType> keyword_tokens {
     {"List", TokenType::_ListType},
     {"Function", TokenType::_FuncType},
     {"BuiltInFunction", TokenType::_BuiltInType},
-    {"Null", TokenType::_NullType}
+    {"Null", TokenType::_NullType},
+    {"import", TokenType::_Import}
 };
 
 

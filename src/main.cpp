@@ -19,8 +19,13 @@ std::string readSourceCodeFromFile(const std::string& filename) {
     return buffer.str(); // Return the contents as a std::string
 }
 
-int main() {
-    std::string filename = "../scripts/test.func"; // Replace with your file name
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        throw std::runtime_error("Program usage: Funcy <program_path>");
+        return 0;
+    }
+
+    std::string filename = argv[1]; // Replace with your file name
     std::string source_code = readSourceCodeFromFile(filename);
 
     if (source_code.empty()) {

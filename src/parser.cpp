@@ -864,6 +864,9 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
             throw ReturnException(std::nullopt);
         }
     }
+    else if (keyword == TokenType::_Import) {
+        
+    }
     else if (token_value_map.contains(keyword)) {
         return std::make_shared<Value>(token_value_map[keyword]);
     }
@@ -1228,6 +1231,11 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
             consume();
             auto right = parseLogicalOr();
             node = std::make_shared<KeywordNode>(TokenType::_Return, right);
+        }
+        else if (tokenIs("import")) {
+            consume();
+            auto right = parseIdentifier();
+            node = std::make_shared<KeywordNode>(TokenType::_Import, right);
         }
         else {
             node = std::make_shared<KeywordNode>(getToken()->type);
