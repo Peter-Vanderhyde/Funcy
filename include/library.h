@@ -8,6 +8,8 @@ struct Value;
 
 using BuiltInFunctionReturn = std::optional<std::shared_ptr<Value>>;
 
+std::string readSourceCodeFromFile(const std::string& filename);
+
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args);

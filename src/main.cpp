@@ -2,22 +2,10 @@
 #include "library.h"
 #include "ast_printer.h"
 #include "pch.h"
-#include <fstream>
+#include "global_context.h"
 #include <sstream>
 #include <iostream>
 
-std::string readSourceCodeFromFile(const std::string& filename) {
-    std::ifstream file(filename);
-    if (!file) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return "";
-    }
-
-    std::stringstream buffer;
-    buffer << file.rdbuf(); // Read the file's contents into the buffer
-
-    return buffer.str(); // Return the contents as a std::string
-}
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -29,8 +17,10 @@ int main(int argc, char* argv[]) {
     std::string source_code = readSourceCodeFromFile(filename);
 
     if (source_code.empty()) {
-        throw std::runtime_error("File is empty or could not be read.");
+        throw std::runtime_error("File " + filename + " is empty or could not be read.");
     }
+
+    GlobalContext::instance().setFilename(filename);
 
     Lexer lexer{source_code};
     std::vector<Token> tokens = lexer.tokenize();

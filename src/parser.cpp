@@ -1,5 +1,7 @@
 #include "parser.h"
 #include "pch.h"
+#include "global_context.h"
+#include "library.h"
 #include <iostream>
 
 
@@ -526,33 +528,53 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         // Explicitly handle mixed types
         double lhs_double = static_cast<double>(lhs);
         double rhs_double = static_cast<double>(rhs);
+        std::shared_ptr<Value> value = std::make_shared<Value>();
 
-        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs_double + rhs_double);
-        else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) return std::make_shared<Value>(lhs_double - rhs_double);
-        else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) return std::make_shared<Value>(lhs_double * rhs_double);
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) value = std::make_shared<Value>(lhs_double + rhs_double);
+        else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) value = std::make_shared<Value>(lhs_double - rhs_double);
+        else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) value = std::make_shared<Value>(lhs_double * rhs_double);
         else if (op == TokenType::_Divide || op == TokenType::_DivideEquals) {
             if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
             return std::make_shared<Value>(lhs_double / rhs_double);
         }
         else if (op == TokenType::_FloorDiv) {
             if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
-            return std::make_shared<Value>(static_cast<int>(lhs_double / rhs_double));
+            value = std::make_shared<Value>(static_cast<int>(lhs_double / rhs_double));
         }
         else if (op == TokenType::_Mod) {
             if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
             if constexpr (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
                 throw std::runtime_error("The modulus '%' can only be performed on ints.");
             } else {
-                return std::make_shared<Value>(static_cast<int>(lhs) % static_cast<int>(rhs));
+                value = std::make_shared<Value>(static_cast<int>(lhs) % static_cast<int>(rhs));
             }
         }
-        else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) return std::make_shared<Value>(std::pow(lhs_double, rhs_double));
+        else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) value = std::make_shared<Value>(std::pow(lhs_double, rhs_double));
         else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs_double == rhs_double);
         else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs_double != rhs_double);
         else if (op == TokenType::_GreaterThan) return std::make_shared<Value>(lhs_double > rhs_double);
         else if (op == TokenType::_GreaterEquals) return std::make_shared<Value>(lhs_double >= rhs_double);
         else if (op == TokenType::_LessThan) return std::make_shared<Value>(lhs_double < rhs_double);
         else if (op == TokenType::_LessEquals) return std::make_shared<Value>(lhs_double <= rhs_double);
+
+        if (std::is_same_v<T1, int> && std::is_same_v<T2, int>) {
+            // Make sure that, if it starts an int and doesn't need to become double, it stays int.
+            if (!value) {
+                throw std::runtime_error("Reached end of arithmetic without value.");
+            }
+            if (std::holds_alternative<double>(*value)) {
+                auto double_value = std::get<double>(*value);
+                if (double_value == static_cast<int>(double_value)) {
+                    return std::make_shared<Value>(static_cast<int>(double_value));
+                } else {
+                    return value;
+                }
+            } else {
+                return value;
+            }
+        } else {
+            return value;
+        }
     }
     else if constexpr (std::is_same_v<T1, ValueType> && std::is_same_v<T2, ValueType>) {
         if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
@@ -865,7 +887,57 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         }
     }
     else if (keyword == TokenType::_Import) {
+        std::string path = GlobalContext::instance().getFilename();
+        std::string new_path = path.substr(0, path.find_last_of('/'));
+        auto right_value = right->evaluate(env);
+        if (!right_value.has_value() || !std::holds_alternative<std::string>(*right_value.value())) {
+            throw std::runtime_error("Import expected filename string.");
+        }
+        new_path = new_path + "/" + std::get<std::string>(*right_value.value()) + ".funcy";
+        if (new_path == path) {
+            throw std::runtime_error("A file cannot import itself.");
+        }
+
+        std::string source_code = readSourceCodeFromFile(new_path);
+
+        if (source_code.empty()) {
+            throw std::runtime_error("File " + new_path + " is empty or could not be read.");
+        }
+
+        GlobalContext::instance().setFilename(new_path);
+
+        Lexer lexer{source_code};
+        std::vector<Token> tokens = lexer.tokenize();
+
+        // for (auto token : tokens) {
+        //     std::cout << token << std::endl;
+        // }
+
+        Parser parser{tokens};
+        std::vector<std::shared_ptr<ASTNode>> statements = parser.parse();
         
+        // ASTPrinter printer;
+        // printer.print(statements);
+
+        int stmnt_num = 0;
+        for (auto statement : statements) {
+            try {
+                stmnt_num += 1;
+                std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
+            }
+            catch (const ReturnException) {
+                throw std::runtime_error("Return was used outside of function.");
+            }
+            catch (const BreakException) {
+                throw std::runtime_error("Break was used outside of loop.");
+            }
+            catch (const ContinueException) {
+                throw std::runtime_error("Continue was used outside of loop.");
+            }
+        }
+
+        GlobalContext::instance().removeFilename();
+        return std::nullopt;
     }
     else if (token_value_map.contains(keyword)) {
         return std::make_shared<Value>(token_value_map[keyword]);
@@ -874,7 +946,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     if (right) {
         return right->evaluate(env);
     } else {
-        return {};
+        return std::nullopt;
     }
 }
 
@@ -1234,7 +1306,7 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
         }
         else if (tokenIs("import")) {
             consume();
-            auto right = parseIdentifier();
+            auto right = parseAtom();
             node = std::make_shared<KeywordNode>(TokenType::_Import, right);
         }
         else {
