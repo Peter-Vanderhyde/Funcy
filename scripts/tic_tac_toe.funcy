@@ -1,0 +1,43 @@
+# My first full program in my new language, Funcy
+
+
+func getInput(prompt, possible_responses) {
+    response = "";
+    while response.lower() not in possible_responses {
+        response = input(prompt);
+    }
+    return response;
+}
+
+
+func main() {
+    print("Welcome to Tic-Tac-Toe!");
+
+    board = [
+        [' 7 ', ' 8 ', ' 9 '],
+        [' 4 ', ' 5 ', ' 6 '],
+        [' 1 ', ' 2 ', ' 3 ']
+    ]
+    player_turn = 0;
+
+    winner = Null;
+    while not winner {
+        printBoard(board);
+        winner = doTurn(player_turn, board);
+    }
+    
+    if winner != 'x' and winner != 'o' {
+        print("It's a tie!");
+
+    }
+
+    answer = getInput("Would you like to play again?", ['y', 'n', 'yes', 'no']);
+    return answer == 'y' or answer == 'yes';
+}
+
+replay = true;
+while replay {
+    replay = main();
+}
+
+print("Thanks for playing!");

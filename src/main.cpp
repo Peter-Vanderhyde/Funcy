@@ -44,10 +44,14 @@ int main(int argc, char* argv[]) {
     env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
     env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
     env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
+    env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
     env.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
+
+    env.addMember(ValueType::String, "lower", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLower)));
+    env.addMember(ValueType::String, "upper", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringUpper)));
 
     env.addScope();
     int stmnt_num = 0;

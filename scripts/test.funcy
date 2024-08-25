@@ -1,9 +1,5 @@
 # Make default args in functions/unkown number of args
 # Make in
 
-import "library";
-
-x = [8, 65, 45, string];
-print(x.pop()(x[-1])[1]);
-
-print(add(x.pop(0), x.pop()));
+s = "HellO WorLd";
+print(s.lower(), s.upper());

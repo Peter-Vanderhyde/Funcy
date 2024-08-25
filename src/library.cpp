@@ -25,6 +25,7 @@ std::string readSourceCodeFromFile(const std::string& filename) {
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args) {
     for (const auto& arg : args) {
         printValue(arg);
+        std::cout << " ";
     }
     std::cout << std::endl;
     return std::nullopt;
@@ -32,7 +33,7 @@ BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args) {
 
 BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 1) {
-        throw std::runtime_error("Int conversion takes exactly one argument");
+        throw std::runtime_error("Int conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -65,7 +66,7 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
 
 std::optional<std::shared_ptr<Value>> floatConverter(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 1) {
-        throw std::runtime_error("Double conversion takes exactly one argument");
+        throw std::runtime_error("Float conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -98,7 +99,7 @@ std::optional<std::shared_ptr<Value>> floatConverter(const std::vector<std::shar
 
 std::optional<std::shared_ptr<Value>> boolConverter(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 1) {
-        throw std::runtime_error("Bool conversion takes exactly one argument");
+        throw std::runtime_error("Bool conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -131,7 +132,7 @@ std::string toString(double value){
 
 std::optional<std::shared_ptr<Value>> stringConverter(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 1) {
-        throw std::runtime_error("String conversion takes exactly one argument");
+        throw std::runtime_error("String conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -172,6 +173,8 @@ std::optional<std::shared_ptr<Value>> listConverter(const std::vector<std::share
         }
     } else if (args.size() == 1 && std::holds_alternative<std::shared_ptr<List>>(*args[0])) {
         return args[0];
+    } else if (args.size() == 0) {
+        throw std::runtime_error("List conversion takes at least 1 argument. " + std::to_string(args.size()) + " were given.");
     } else {
         for (const auto& arg : args) {
             list->push_back(arg);
@@ -183,7 +186,7 @@ std::optional<std::shared_ptr<Value>> listConverter(const std::vector<std::share
 
 BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() > 1) {
-        throw std::runtime_error("Input takes one argument.");
+        throw std::runtime_error("Input takes 0-1 arguments. " + std::to_string(args.size()) + " were given.");
     }
 
     if (args.size() == 1) {
@@ -200,10 +203,54 @@ BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args) {
 
 BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 1) {
-        throw std::runtime_error("Type takes exactly one argument.");
+        throw std::runtime_error("Type takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     return std::make_shared<Value>(getValueType(args[0]));
+}
+
+BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() < 1 || args.size() > 3) {
+        throw std::runtime_error("Range takes 1-3 arguments. " + std::to_string(args.size()) + " were given.");
+    }
+
+    for (int i = 0; i < args.size(); i++) {
+        if (!std::holds_alternative<int>(*args[i])) {
+            throw std::runtime_error("Range expected int, not " + getValueStr(args[i]));
+        }
+    }
+
+    int start, end, step;
+
+    if (args.size() == 1) {
+        end = std::get<int>(*args[0]);
+        start = 0;
+        step = 1;
+    } else if (args.size() == 2) {
+        start = std::get<int>(*args[0]);
+        end = std::get<int>(*args[1]);
+        step = 1;
+    } else if (args.size() == 3) {
+        start = std::get<int>(*args[0]);
+        end = std::get<int>(*args[1]);
+        step = std::get<int>(*args[2]);
+        if (step == 0) {
+            throw std::runtime_error("Range third argument must not be zero.");
+        }
+    }
+
+    std::shared_ptr<List> nums = std::make_shared<List>();
+    if (step < 0) {
+        for (int i = start; i > end; i += step) {
+            nums->push_back(std::make_shared<Value>(i));
+        }
+    } else {
+        for (int i = start; i < end; i += step) {
+            nums->push_back(std::make_shared<Value>(i));
+        }
+    }
+
+    return std::make_shared<Value>(nums);
 }
 
 
@@ -212,7 +259,7 @@ BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args) {
 
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 1) {
-        throw std::runtime_error("Size takes exactly 1 argument.");
+        throw std::runtime_error("Size takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     if (std::holds_alternative<std::shared_ptr<List>>(*args[0])) {
@@ -227,7 +274,7 @@ BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args) 
 
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 2) {
-        throw std::runtime_error("Append takes exactly 2 arguments.");
+        throw std::runtime_error("Append takes exactly 2 arguments. " + std::to_string(args.size()) + " were given.");
     }
 
     auto list = std::get<std::shared_ptr<List>>(*args[0]);
@@ -237,7 +284,7 @@ BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args
 
 BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args) {
     if (args.size() != 1 && args.size() != 2) {
-        throw std::runtime_error("Pop takes at most 1 argument.");
+        throw std::runtime_error("Pop takes 1-2 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     int index;
@@ -263,4 +310,28 @@ BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args) {
         list->erase(list->begin() + index);
         return value;
     }
+}
+
+BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 1) {
+        throw std::runtime_error("String lower takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    std::string string = std::get<std::string>(*args[0]);
+    std::transform(string.begin(), string.end(), string.begin(),
+                    [](unsigned char c) { return std::tolower(c); });
+    
+    return std::make_shared<Value>(string);
+}
+
+BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 1) {
+        throw std::runtime_error("String upper takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    std::string string = std::get<std::string>(*args[0]);
+    std::transform(string.begin(), string.end(), string.begin(),
+                    [](unsigned char c) { return std::toupper(c); });
+    
+    return std::make_shared<Value>(string);
 }

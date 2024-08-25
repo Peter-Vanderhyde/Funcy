@@ -18,8 +18,12 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
 BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args);
 
 
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args);
+
+BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args);
