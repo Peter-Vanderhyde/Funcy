@@ -498,6 +498,31 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         }, value);
     };
 
+    // Deep comparison function for lists
+    auto deepCompareLists = [&](const std::shared_ptr<List>& lhsList, const std::shared_ptr<List>& rhsList) -> bool {
+        if (lhsList->size() != rhsList->size()) {
+            return false;
+        }
+        for (size_t i = 0; i < lhsList->size(); ++i) {
+            auto lhsElement = lhsList->at(i);
+            auto rhsElement = rhsList->at(i);
+            auto result = std::visit([&](auto lhsVal) -> bool {
+                return std::visit([&](auto rhsVal) -> bool {
+                    auto compResult = doArithmetic(lhsVal, rhsVal, TokenType::_Compare);
+                    if (compResult && std::holds_alternative<bool>(*compResult.value())) {
+                        return std::get<bool>(*compResult.value());
+                    }
+                    return false;
+                }, *rhsElement);
+            }, *lhsElement);
+
+            if (!result) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     // Handle AND OR for all type cases
     if (op == TokenType::_And) return std::make_shared<Value>(checkTruthy(lhs) && checkTruthy(rhs));
     else if (op == TokenType::_Or) return std::make_shared<Value>(checkTruthy(lhs) || checkTruthy(rhs));
@@ -514,8 +539,8 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
             result->insert(result->end(), rhs->begin(), rhs->end());  // Append the second list
             return std::make_shared<Value>(result);
         }
-        else if (op == TokenType::_Compare) return std::make_shared<Value>(*lhs == *rhs);
-        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(*lhs != *rhs);
+        else if (op == TokenType::_Compare) return std::make_shared<Value>(deepCompareLists(lhs, rhs));
+        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareLists(lhs, rhs));
     }
     else if constexpr (std::is_same_v<T1, std::string> && std::is_same_v<T2, std::string>) {
         // BOTH STRINGS
@@ -576,7 +601,7 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
             return value;
         }
     }
-    else if constexpr (std::is_same_v<T1, ValueType> && std::is_same_v<T2, ValueType>) {
+    else if constexpr (std::is_same_v<T1, T2>) {
         if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
         if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
     }
@@ -615,6 +640,29 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             func_node->member_value = left_value.value();
             return func_node->evaluate(env, member_type);
         }
+    } else if (op == TokenType::_In) {
+        auto left_value = left->evaluate(env);
+        auto right_value = right->evaluate(env);
+        if (!left_value.has_value() || !right_value.has_value()) {
+            throw std::runtime_error("Failed arguments of 'in'.");
+        }
+
+        if (!std::holds_alternative<std::shared_ptr<List>>(*right_value.value())) {
+            throw std::runtime_error("Expected list for 'in' evaluation.");
+        }
+        auto list = std::get<std::shared_ptr<List>>(*right_value.value());
+        for (const auto& item : *list) {
+            auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
+                return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
+                    return doArithmetic(lhs, rhs, TokenType::_Compare);
+                }, *item);
+            }, *left_value.value());
+
+            if (result && std::holds_alternative<bool>(*result.value()) && std::get<bool>(*result.value())) {
+                return std::make_shared<Value>(true);
+            }
+        }
+        return std::make_shared<Value>(false);
     }
     else {
         std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
@@ -623,11 +671,6 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         if (!left_value.has_value() || !right_value.has_value()) {
             throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': one or both operands could not be computed.",
                                             token_labels[op]));
-        }
-
-        if (getValueStr(left_value.value()) == "function" || getValueStr(right_value.value()) == "function") {
-            throw std::runtime_error(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
-                                                getValueStr(left_value.value()), token_labels[op], getValueStr(right_value.value())));
         }
 
         // Perform arithmetic operation
@@ -1399,7 +1442,7 @@ std::shared_ptr<ASTNode> Parser::parseRelation() {
     if (debug) std::cout << "parse relation " << getTokenStr() << std::endl;
     auto left = parseExpression();
 
-    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=")) {
+    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=") || tokenIs("in")) {
         TokenType op = getToken()->type;
         consume();
         auto right = parseExpression();

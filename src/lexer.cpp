@@ -179,7 +179,6 @@ std::map<std::string, TokenType> keyword_tokens {
     {"break", TokenType::_Break},
     {"continue", TokenType::_Continue},
     {"for", TokenType::_For},
-    {"in", TokenType::_In},
     {"func", TokenType::_Func},
     {"return", TokenType::_Return},
     {"Integer", TokenType::_IntType},
@@ -283,6 +282,11 @@ std::vector<Token> Lexer::tokenize() {
             else if (identifier == "true" || identifier == "false") {
                 bool val{identifier == "true"};
                 Token token{TokenType::_Boolean, val, l, c};
+                tokens.push_back(token);
+            }
+            // Check if it's in which isn't a keyword, but acts like an operator
+            else if (identifier == "in") {
+                Token token{TokenType::_In, l, c};
                 tokens.push_back(token);
             }
             else {

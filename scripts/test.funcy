@@ -1,5 +1,5 @@
 # Make default args in functions/unkown number of args
 # Make in
 
-s = "HellO WorLd";
-print(s.lower(), s.upper());
+x = [1, 2, [1, [2]], 4];
+print([1, [3]] in x);
