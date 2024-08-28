@@ -867,55 +867,80 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     if (debug) std::cout << "evaluate for" << std::endl;
     env.addScope();
     env.addLoop();
-    initialization->evaluate(env);
+    auto init_node = dynamic_cast<BinaryOpNode*>(initialization.get());
+    if (init_node->op != TokenType::_In) {
+        initialization->evaluate(env);
 
-    int variable;
-    if (std::holds_alternative<int>(*env.get(*init_string))) {
-        auto i = std::get<int>(*env.get(*init_string));
-        variable = i;
-    }
-    else {
-        throw std::runtime_error("For loop requires int variable.");
-    }
-
-    while (true) {
-        auto cond_value = condition_value->evaluate(env);
-        if (!cond_value) {
-            throw std::runtime_error("Unable to evaluate for loop condition.");
-        }
-
-        if (std::holds_alternative<bool>(*cond_value.value())) {
-            auto bool_value = std::get<bool>(*cond_value.value());
-            if (!bool_value) break;
-        } else {
-            throw std::runtime_error("For loop requires boolean condition.");
-        }
-
-        int original_variable = variable;
-
-        try {
-            for (auto statement : block) {
-                auto result = statement->evaluate(env);
-                // if (result) {
-                //     printValue(result.value());
-                // }
-            }
-        }
-        catch (const BreakException) {
-            break;
-        }
-        catch (const ContinueException) {
-            continue;
-        }
-
-        variable = original_variable;
-        // set variable in env
-        env.set(*init_string.get(), std::make_shared<Value>(variable));
-        // increment them
-        increment->evaluate(env);
+        int variable;
         if (std::holds_alternative<int>(*env.get(*init_string))) {
             auto i = std::get<int>(*env.get(*init_string));
             variable = i;
+        }
+        else {
+            throw std::runtime_error("For loop requires int variable.");
+        }
+
+        while (true) {
+            auto cond_value = condition_value->evaluate(env);
+            if (!cond_value) {
+                throw std::runtime_error("Unable to evaluate for loop condition.");
+            }
+
+            if (std::holds_alternative<bool>(*cond_value.value())) {
+                auto bool_value = std::get<bool>(*cond_value.value());
+                if (!bool_value) break;
+            } else {
+                throw std::runtime_error("For loop requires boolean condition.");
+            }
+
+            int original_variable = variable;
+
+            try {
+                for (auto statement : block) {
+                    auto result = statement->evaluate(env);
+                }
+            }
+            catch (const BreakException) {
+                break;
+            }
+            catch (const ContinueException) {
+                continue;
+            }
+
+            variable = original_variable;
+            // set variable in env
+            env.set(*init_string.get(), std::make_shared<Value>(variable));
+            // increment them
+            increment->evaluate(env);
+            if (std::holds_alternative<int>(*env.get(*init_string))) {
+                auto i = std::get<int>(*env.get(*init_string));
+                variable = i;
+            }
+        }
+    } else {
+        // in was used with for loop instead of integer
+        auto list_result = init_node->right->evaluate(env);
+        if (!std::holds_alternative<std::shared_ptr<List>>(*list_result.value())) {
+            throw std::runtime_error("For loop expected list.");
+        }
+
+        auto list = std::get<std::shared_ptr<List>>(*list_result.value());
+        auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+        std::string var_string = ident_node->value;
+
+        for (std::shared_ptr<Value> item : *list) {
+            env.set(var_string, item);
+            try {
+                for (auto statement : block) {
+                    auto result = statement->evaluate(env);
+                }
+            }
+            catch (const BreakException) {
+                break;
+            }
+            catch (const ContinueException) {
+                continue;
+            }
         }
     }
 
@@ -1224,23 +1249,22 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 handleError("Syntax Error: Missing for loop expression", getToken()->line, getToken()->column);
             }
             for_initialization = parseStatement(variable_str);
-            // if (!tokenIs("in")) {
-            //     handleError("Syntax Error: For loop missing 'in' keyword", getToken()->line, getToken()->column);
-            // }
-            // consume();
-            if (!tokenIs(",")) {
-                handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
-            }
-            consume();
-            comparison_expr = parseRelation();
-            if (!tokenIs(",")) {
-                handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
-            }
-            consume();
-            auto var_test = std::make_shared<std::string>("");
-            for_increment = parseStatement(var_test);
-            if (*var_test != *variable_str) {
-                handleError("For loop requires manipulation of the initialized variable", getToken()->line, getToken()->column);
+            auto in_node = dynamic_cast<BinaryOpNode*>(for_initialization.get());
+            if (in_node->op != TokenType::_In) {
+                if (!tokenIs(",")) {
+                    handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
+                }
+                consume();
+                comparison_expr = parseRelation();
+                if (!tokenIs(",")) {
+                    handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
+                }
+                consume();
+                auto var_test = std::make_shared<std::string>("");
+                for_increment = parseStatement(var_test);
+                if (*var_test != *variable_str) {
+                    handleError("For loop requires manipulation of the initialized variable", getToken()->line, getToken()->column);
+                }
             }
         } else if (t_str == "func") {
             if (!tokenIs("ident")) {
@@ -1324,6 +1348,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             last_if_else.back() = nullptr;
             return keyword_node;
         } else if (t_str == "for") {
+            // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
             return std::make_shared<ForNode>(keyword, for_initialization, variable_str, comparison_expr, for_increment, block);
         } else if (t_str == "func") {
             return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_args, block));

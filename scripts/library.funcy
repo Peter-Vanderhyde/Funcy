@@ -1,0 +1,12 @@
+func enumerate(list) {
+    result = [];
+    for i = 0, i < list.size(), i += 1 {
+        result.append([i, list[i]]);
+    }
+    return result;
+}
+
+#func filter(test_func, list) {
+#    result = [];
+#    
+#}
