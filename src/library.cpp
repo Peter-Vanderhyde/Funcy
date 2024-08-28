@@ -1,5 +1,4 @@
 #include "library.h"
-#include "parser.h"
 #include "pch.h"
 #include "global_context.h"
 #include <iostream>
@@ -254,65 +253,49 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args) {
     return std::make_shared<Value>(nums);
 }
 
-BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args) {
+BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 2) {
-        throw std::runtime_error("Map requires 2 arguments. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("Map requires exactly 2 arguments: a function and a list.");
     }
 
-    auto func_arg = args[0];
-    auto list_arg = args[1];
-    // std::cout << "First\n";
+    auto func = args[0];
+    auto list_value = args[1];
 
-    if (!(std::holds_alternative<std::shared_ptr<ASTNode>>(*func_arg) || 
-          std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*func_arg))) {
-        throw std::runtime_error("Map argument one expected type function.");
+    if (!std::holds_alternative<std::shared_ptr<List>>(*list_value)) {
+        throw std::runtime_error("Second argument to map must be a list.");
     }
 
-    if (!std::holds_alternative<std::shared_ptr<List>>(*list_arg)) {
-        throw std::runtime_error("Map argument two expected type list.");
-    }
-
-    auto list = std::get<std::shared_ptr<List>>(*list_arg);
+    auto list = std::get<std::shared_ptr<List>>(*list_value);
     std::shared_ptr<List> result_list = std::make_shared<List>();
-    // std::cout << "Second\n";
 
-    if (std::holds_alternative<std::shared_ptr<ASTNode>>(*func_arg)) {
-        // std::cout << "Third\n";
-        auto func_node = std::dynamic_pointer_cast<FuncNode>(std::get<std::shared_ptr<ASTNode>>(*func_arg));
-        
-        if (!func_node) {
-            throw std::runtime_error("Invalid function node.");
-        }
+    for (const auto& element : *list) {
+        // Prepare the argument list for the function call
+        std::vector<std::shared_ptr<Value>> func_args = { element };
 
-        for (auto& item : *list) {
-            // std::cout << "Fourth\n";
-            List func_args = { item };
-            auto result = func_node->callFunc(func_args, *GlobalContext::instance().getEnvironment());
-            if (result.has_value()) {
+        // Check if the function is a built-in function
+        if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*func)) {
+            auto built_in_func = std::get<std::shared_ptr<BuiltInFunction>>(*func);
+            auto result = (*built_in_func)(func_args);
+            if (result) {
                 result_list->push_back(result.value());
-            } else {
-                throw std::runtime_error("Map function did not return a value.");
             }
-        }
-    } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*func_arg)) {
-        // std::cout << "Fifth\n";
-        auto func = std::get<std::shared_ptr<BuiltInFunction>>(*func_arg);
-
-        for (auto& item : *list) {
-            // std::cout << "Sixth\n";
-            List func_args = { item };
-            auto result = (*func)(func_args);
-            if (result.has_value()) {
-                result_list->push_back(result.value());
+        } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*func)) {
+            auto func_node = std::dynamic_pointer_cast<FuncNode>(std::get<std::shared_ptr<ASTNode>>(*func));
+            if (func_node) {
+                auto result = func_node->callFunc(func_args, env);
+                if (result) {
+                    result_list->push_back(result.value());
+                }
             } else {
-                throw std::runtime_error("Built-in function did not return a value.");
+                throw std::runtime_error("Map function argument must be a callable function.");
             }
+        } else {
+            throw std::runtime_error("First argument to map must be a function.");
         }
     }
 
     return std::make_shared<Value>(result_list);
 }
-
 
 
 ///  MEMBER FUNCTIONS  ///

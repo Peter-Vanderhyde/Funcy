@@ -2,8 +2,8 @@
 #include <variant>
 #include <sstream>
 #include "pch.h"
+#include "parser.h"
 
-class Parser;
 struct Value;
 
 using BuiltInFunctionReturn = std::optional<std::shared_ptr<Value>>;
@@ -19,7 +19,7 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
 BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args);
 BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 // BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args);
 // BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args);
 
