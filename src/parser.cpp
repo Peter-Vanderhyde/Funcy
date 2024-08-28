@@ -780,13 +780,26 @@ std::optional<std::shared_ptr<Value>> ScopeNode::evaluate(Environment& env) {
 
 bool ScopedNode::getComparisonValue(Environment& env) const {
     auto result = comparison->evaluate(env);
-    if (result && getValueStr(result.value()) == "boolean") {
-        if (std::holds_alternative<bool>(*result.value())) {
-            auto bool_value = std::get<bool>(*result.value());
-            return bool_value;
-        } else {
-            throw std::runtime_error("Boolean weirdness.");
-        }
+    if (result.has_value()) {
+        auto checkTruthy = [](const Value& value) -> bool {
+            return std::visit([](const auto& v) -> bool {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, bool>) {
+                    return v;
+                } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, double>) {
+                    return v != 0;
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    return !v.empty();
+                } else if constexpr (std::is_same_v<T, List>) {
+                    return !v.empty();
+                } else if constexpr (std::is_same_v<T, ValueType>) {
+                    return v != ValueType::Null;
+                }
+                return false;
+            }, value);
+        };
+
+        return checkTruthy(*result.value());
     }
     else {
         throw std::runtime_error("Syntax Error: Missing a boolean comparison for keyword to evaluate.");
@@ -1023,9 +1036,7 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Environment& 
 
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(List values, Environment& env) {
     Environment local_env = env;
-    while (local_env.inLoop()) {
-        local_env.removeLoop();
-    }
+    local_env.resetLoop();
     local_env.addScope();
     setArgs(values, env, local_env);
     for (auto statement : block) {
@@ -1033,14 +1044,8 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(List values, Environmen
             if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
                 func_statement->base_env = std::make_shared<Environment>(env);
                 auto result = func_statement->evaluate(local_env);
-                // if (result) {
-                //     printValue(result.value());
-                // }
             } else {
                 auto result = statement->evaluate(local_env);
-                // if (result) {
-                //     printValue(result.value());
-                // }
             }
         }
         catch (const ReturnException& e) {
@@ -1404,30 +1409,28 @@ std::shared_ptr<ASTNode> Parser::parseLogicalOr() {
     if (debug) std::cout << "parse or " << getTokenStr() << std::endl;
     auto left = parseLogicalAnd();
 
-    if (tokenIs("or")) {
+    while (tokenIs("or")) {
         TokenType k_word = TokenType::_Or;
         consume();
         auto right = parseLogicalAnd();
-        return std::make_shared<BinaryOpNode>(left, k_word, right);
+        left = std::make_shared<BinaryOpNode>(left, k_word, right);
     }
-    else {
-        return left;
-    }
+    
+    return left;
 }
 
 std::shared_ptr<ASTNode> Parser::parseLogicalAnd() {
     if (debug) std::cout << "parse and " << getTokenStr() << std::endl;
     auto left = parseEquality();
 
-    if (tokenIs("and")) {
+    while (tokenIs("and")) {
         TokenType k_word = TokenType::_And;
         consume();
         auto right = parseEquality();
-        return std::make_shared<BinaryOpNode>(left, k_word, right);
+        left = std::make_shared<BinaryOpNode>(left, k_word, right);
     }
-    else {
-        return left;
-    }
+    
+    return left;
 }
 
 std::shared_ptr<ASTNode> Parser::parseEquality() {
@@ -1913,6 +1916,10 @@ void Environment::removeLoop() {
 
 bool Environment::inLoop() const {
     return loop_depth > 0;
+}
+
+void Environment::resetLoop() {
+    loop_depth = 0;
 }
 
 void Environment::addFunction(const std::string& name, std::shared_ptr<Value> func) {

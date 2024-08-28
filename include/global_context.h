@@ -5,6 +5,7 @@
 
 #include <string>
 #include <vector>
+#include "parser.h"
 
 class GlobalContext {
 public:
@@ -14,9 +15,13 @@ public:
     const std::string& getFilename() const;
     void removeFilename();
 
+    void addFunction(const std::string& name, std::shared_ptr<Value> func);
+    std::shared_ptr<Environment> getEnvironment();
+
 private:
     GlobalContext() = default;
     std::vector<std::string> filename_list;
+    std::shared_ptr<Environment> environment = std::make_shared<Environment>();
 };
 
 #endif // GLOBAL_CONTEXT_H

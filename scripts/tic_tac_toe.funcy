@@ -9,34 +9,122 @@ func getInput(prompt, possible_responses) {
     return response.lower();
 }
 
+func getBoardXY(index) {
+    return [index % 3, index // 3];
+}
+
 func printBoard(board) {
-    for y = 0, y < board.size(), y += 1 {
+    #print("Entering printBoard.");
+    for y = 2, y >= 0, y -= 1 {
         print(board[y][0] + '|' + board[y][1] + '|' + board[y][2]);
-        if y != 2 {
+        if y != 0 {
             print("---+---+---");
         }
     }
+    print();
+}
+
+func checkVerticals(board, player) {
+    player = " " + player + " ";
+    for x = 0, x < 3, x += 1 {
+        if board[0][x] == player and board[1][x] == player and board[2][x] == player {
+            return true;
+        }
+    }
+    return false;
+}
+
+func checkHorizontals(board, player) {
+    player = " " + player + " ";
+    for y = 0, y < 3, y += 1 {
+        if board[y][0] == player and board[y][1] == player and board[y][2] == player {
+            return true;
+        }
+    }
+    return false;
+}
+
+func checkDiagonals(board, player) {
+    player = " " + player + " ";
+    if board[0][0] == player and board[1][1] == player and board[2][2] == player {
+        return true;
+    } elif board[2][0] == player and board[1][1] == player and board[0][2] == player {
+        return true;
+    }
+    return false;
+}
+
+func checkForWin(board, player) {
+    #print("Entering checkforwin.");
+    digits = 0;
+    for y = 0, y < 3, y += 1 {
+        for x = 0, x < 3, x += 1 {
+            if board[y][x].strip().isDigit() {
+                digits += 1;
+            }
+        }
+    }
+    if digits == 0 {
+        return "xy";
+    } else {
+        if checkVerticals(board, player) or checkHorizontals(board, player) or checkDiagonals(board, player) {
+            return player;
+        } else {
+            return Null;
+        }
+    }
+
+}
+
+func doTurn(player_turn, board) {
+    #print("Entering doTurn.");
+    players = ['x', 'o'];
+    message = "";
+    position = Null;
+
+    while true {
+        printBoard(board);
+        if message {
+            print(message);
+            message = "";
+        }
+        position = getInput("Where would " + players[player_turn] + " like to place? ", list("123456789"));
+        position = int(position) - 1;
+        board_xy = getBoardXY(position);
+        if board[board_xy[1]][board_xy[0]].strip().isDigit() {
+            break;
+        } else {
+            message = "Spot already taken.";
+        }
+    }
+
+    xy = getBoardXY(position);
+    board[xy[1]][xy[0]] = " " + players[player_turn] + " ";
+
+    return checkForWin(board, players[player_turn]);
 }
 
 
 func main() {
+    #print("Entering main.");
     board = [
-        [' 7 ', ' 8 ', ' 9 '],
+        [' 1 ', ' 2 ', ' 3 '],
         [' 4 ', ' 5 ', ' 6 '],
-        [' 1 ', ' 2 ', ' 3 ']
+        [' 7 ', ' 8 ', ' 9 ']
     ];
     player_turn = 0;
 
     winner = Null;
     while not winner {
-        printBoard(board);
-        winner = 'x';
-        #winner = doTurn(player_turn, board);
+        winner = doTurn(player_turn, board);
+        player_turn = int(!bool(player_turn)); # Switch whose turn
     }
+    printBoard(board);
     
     if winner != 'x' and winner != 'o' {
         print("It's a tie!");
-
+    } else {
+        print("Player " + winner + " is the winner!");
     }
 
     answer = getInput("Would you like to play again? (y/n)", ['y', 'n', 'yes', 'no']);

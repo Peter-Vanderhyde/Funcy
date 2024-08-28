@@ -18,3 +18,7 @@ const std::string& GlobalContext::getFilename() const {
 void GlobalContext::removeFilename() {
     filename_list.pop_back();
 }
+
+std::shared_ptr<Environment> GlobalContext::getEnvironment() {
+    return environment;
+}

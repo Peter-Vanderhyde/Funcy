@@ -1,6 +1,7 @@
 #include "library.h"
 #include "parser.h"
 #include "pch.h"
+#include "global_context.h"
 #include <iostream>
 #include <fstream>
 
@@ -253,6 +254,66 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args) {
     return std::make_shared<Value>(nums);
 }
 
+BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 2) {
+        throw std::runtime_error("Map requires 2 arguments. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto func_arg = args[0];
+    auto list_arg = args[1];
+    // std::cout << "First\n";
+
+    if (!(std::holds_alternative<std::shared_ptr<ASTNode>>(*func_arg) || 
+          std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*func_arg))) {
+        throw std::runtime_error("Map argument one expected type function.");
+    }
+
+    if (!std::holds_alternative<std::shared_ptr<List>>(*list_arg)) {
+        throw std::runtime_error("Map argument two expected type list.");
+    }
+
+    auto list = std::get<std::shared_ptr<List>>(*list_arg);
+    std::shared_ptr<List> result_list = std::make_shared<List>();
+    // std::cout << "Second\n";
+
+    if (std::holds_alternative<std::shared_ptr<ASTNode>>(*func_arg)) {
+        // std::cout << "Third\n";
+        auto func_node = std::dynamic_pointer_cast<FuncNode>(std::get<std::shared_ptr<ASTNode>>(*func_arg));
+        
+        if (!func_node) {
+            throw std::runtime_error("Invalid function node.");
+        }
+
+        for (auto& item : *list) {
+            // std::cout << "Fourth\n";
+            List func_args = { item };
+            auto result = func_node->callFunc(func_args, *GlobalContext::instance().getEnvironment());
+            if (result.has_value()) {
+                result_list->push_back(result.value());
+            } else {
+                throw std::runtime_error("Map function did not return a value.");
+            }
+        }
+    } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*func_arg)) {
+        // std::cout << "Fifth\n";
+        auto func = std::get<std::shared_ptr<BuiltInFunction>>(*func_arg);
+
+        for (auto& item : *list) {
+            // std::cout << "Sixth\n";
+            List func_args = { item };
+            auto result = (*func)(func_args);
+            if (result.has_value()) {
+                result_list->push_back(result.value());
+            } else {
+                throw std::runtime_error("Built-in function did not return a value.");
+            }
+        }
+    }
+
+    return std::make_shared<Value>(result_list);
+}
+
+
 
 ///  MEMBER FUNCTIONS  ///
 
@@ -334,4 +395,47 @@ BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& arg
                     [](unsigned char c) { return std::toupper(c); });
     
     return std::make_shared<Value>(string);
+}
+
+BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() > 2) {
+        throw std::runtime_error("String strip takes 1-2 arguments. " + std::to_string(args.size()) + " were given.");
+    }
+
+    // Trim from the start (left) of the string
+    auto ltrim = [](const std::string& s, const std::string& chars) -> std::string {
+        size_t start = s.find_first_not_of(chars);
+        return (start == std::string::npos) ? "" : s.substr(start);
+    };
+
+    // Trim from the end (right) of the string
+    auto rtrim = [](const std::string& s, const std::string& chars) -> std::string {
+        size_t end = s.find_last_not_of(chars);
+        return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+    };
+
+    std::string strip_chars = " \t\n\r\f\v";
+    if (args.size() == 2) {
+        if (std::holds_alternative<std::string>(*args[1])) {
+            strip_chars = std::get<std::string>(*args[1]);
+        } else {
+            throw std::runtime_error("String strip expected an argument of type string.");
+        }
+    }
+
+    return std::make_shared<Value>(ltrim(rtrim(std::get<std::string>(*args[0]), strip_chars), strip_chars));
+}
+
+BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args) {
+    if (args.size() != 1) {
+        throw std::runtime_error("String isDigit requires exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    std::string string = std::get<std::string>(*args[0]);
+    for (char c : string) {
+        if (!std::isdigit(c)) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    return std::make_shared<Value>(true);
 }

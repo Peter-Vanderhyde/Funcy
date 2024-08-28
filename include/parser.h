@@ -66,6 +66,7 @@ public:
     void addLoop();
     void removeLoop();
     bool inLoop() const;
+    void resetLoop();
 
     void addFunction(const std::string& name, std::shared_ptr<Value> func);
     std::shared_ptr<Value> getFunction(const std::string& name) const;
