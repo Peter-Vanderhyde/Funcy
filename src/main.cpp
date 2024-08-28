@@ -36,6 +36,7 @@ int main(int argc, char* argv[]) {
     // printer.print(statements);
 
     Environment env;
+
     env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
     env.addFunction("int", std::make_shared<Value>(std::make_shared<BuiltInFunction>(intConverter)));
     env.addFunction("float", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatConverter)));
@@ -45,11 +46,10 @@ int main(int argc, char* argv[]) {
     env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
     env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
     env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
-    env.addFunction("map", std::make_shared<Value>(std::make_shared<BuiltInFunction>(
-        [&env](const std::vector<std::shared_ptr<Value>>& args) -> BuiltInFunctionReturn {
-            return map(args, env);
-        }
-    )));
+    env.addFunction("map", std::make_shared<Value>(std::make_shared<BuiltInFunction>(map)));
+
+    env.addFunction("all", std::make_shared<Value>(std::make_shared<BuiltInFunction>(all)));
+    env.addFunction("any", std::make_shared<Value>(std::make_shared<BuiltInFunction>(any)));
 
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));

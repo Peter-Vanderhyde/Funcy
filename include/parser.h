@@ -7,6 +7,7 @@
 #include "lexer.h"
 
 class ASTNode;
+class Environment;
 
 struct Value;
 enum class ValueType {
@@ -24,7 +25,10 @@ enum class ValueType {
 extern std::unordered_map<TokenType, ValueType> token_value_map;
 
 using List = std::vector<std::shared_ptr<Value>>;
-using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(const std::vector<std::shared_ptr<Value>>&)>;
+using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
+    const std::vector<std::shared_ptr<Value>>& args, 
+    Environment& env
+)>;
 using VariantType = std::variant<int, double, bool, TokenType, std::string, std::shared_ptr<ASTNode>,
                         std::shared_ptr<List>, std::shared_ptr<BuiltInFunction>, ValueType>;
 

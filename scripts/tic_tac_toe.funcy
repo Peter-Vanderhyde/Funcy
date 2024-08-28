@@ -14,7 +14,6 @@ func getBoardXY(index) {
 }
 
 func printBoard(board) {
-    #print("Entering printBoard.");
     for y = 2, y >= 0, y -= 1 {
         print(board[y][0] + '|' + board[y][1] + '|' + board[y][2]);
         if y != 0 {
@@ -24,20 +23,19 @@ func printBoard(board) {
     print();
 }
 
-func checkVerticals(board, player) {
+func checkStraights(board, player) {
     player = " " + player + " ";
-    for x = 0, x < 3, x += 1 {
-        if board[0][x] == player and board[1][x] == player and board[2][x] == player {
-            return true;
-        }
+    cols = [];
+    rows = [];
+    func isPlayer(str) {
+        return str == player;
     }
-    return false;
-}
-
-func checkHorizontals(board, player) {
-    player = " " + player + " ";
-    for y = 0, y < 3, y += 1 {
-        if board[y][0] == player and board[y][1] == player and board[y][2] == player {
+    for first = 0, first < 3, first += 1 {
+        for second = 0, second < 3, second += 1 {
+            cols.append(board[second][first]);
+            rows.append(board[first][second]);
+        }
+        if (all(map(isPlayer, rows)) or all(map(isPlayer, cols))) {
             return true;
         }
     }
@@ -55,7 +53,6 @@ func checkDiagonals(board, player) {
 }
 
 func checkForWin(board, player) {
-    #print("Entering checkforwin.");
     digits = 0;
     for y = 0, y < 3, y += 1 {
         for x = 0, x < 3, x += 1 {
@@ -67,7 +64,7 @@ func checkForWin(board, player) {
     if digits == 0 {
         return "xy";
     } else {
-        if checkVerticals(board, player) or checkHorizontals(board, player) or checkDiagonals(board, player) {
+        if checkStraights(board, player) or checkDiagonals(board, player) {
             return player;
         } else {
             return Null;
@@ -77,7 +74,6 @@ func checkForWin(board, player) {
 }
 
 func doTurn(player_turn, board) {
-    #print("Entering doTurn.");
     players = ['x', 'o'];
     message = "";
     position = Null;
@@ -106,7 +102,6 @@ func doTurn(player_turn, board) {
 
 
 func main() {
-    #print("Entering main.");
     board = [
         [' 1 ', ' 2 ', ' 3 '],
         [' 4 ', ' 5 ', ' 6 '],
@@ -127,7 +122,7 @@ func main() {
         print("Player " + winner + " is the winner!");
     }
 
-    answer = getInput("Would you like to play again? (y/n)", ['y', 'n', 'yes', 'no']);
+    answer = getInput("Would you like to play again? (y/n) -> ", ['y', 'n', 'yes', 'no']);
     return answer == 'y' or answer == 'yes';
 }
 

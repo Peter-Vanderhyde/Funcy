@@ -10,25 +10,25 @@ using BuiltInFunctionReturn = std::optional<std::shared_ptr<Value>>;
 
 std::string readSourceCodeFromFile(const std::string& filename);
 
-BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
-// BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args);
-// BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn print(const List& args, Environment& env);
+BuiltInFunctionReturn intConverter(const List& args, Environment& env);
+BuiltInFunctionReturn floatConverter(const List& args, Environment& env);
+BuiltInFunctionReturn boolConverter(const List& args, Environment& env);
+BuiltInFunctionReturn stringConverter(const List& args, Environment& env);
+BuiltInFunctionReturn listConverter(const List& args, Environment& env);
+BuiltInFunctionReturn input(const List& args, Environment& env);
+BuiltInFunctionReturn getType(const List& args, Environment& env);
+BuiltInFunctionReturn range(const List& args, Environment& env);
+BuiltInFunctionReturn map(const List& args, Environment& env);
+BuiltInFunctionReturn all(const List& args, Environment& env);
+BuiltInFunctionReturn any(const List& args, Environment& env);
 
 
-BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn listSize(const List& args, Environment& env);
+BuiltInFunctionReturn listAppend(const List& args, Environment& env);
+BuiltInFunctionReturn listPop(const List& args, Environment& env);
 
-BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args);
-BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args);
+BuiltInFunctionReturn stringLower(const List& args, Environment& env);
+BuiltInFunctionReturn stringUpper(const List& args, Environment& env);
+BuiltInFunctionReturn stringStrip(const List& args, Environment& env);
+BuiltInFunctionReturn stringIsDigit(const List& args, Environment& env);

@@ -63,8 +63,7 @@ Float      : [0-9]+ '.' [0-9]+
 
 Scope      : '{' Foundation+ '}'
 
-Add in,
-const, import
+Add const
 
 Remove bool as a mathematical num
 Add lines and columns to all errors

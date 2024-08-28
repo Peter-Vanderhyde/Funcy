@@ -548,8 +548,8 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
         else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
     }
-    else if constexpr ((std::is_same_v<T1, int> || std::is_same_v<T1, bool> || std::is_same_v<T1, double>) &&
-                       (std::is_same_v<T2, int> || std::is_same_v<T2, bool> || std::is_same_v<T2, double>)) {
+    else if constexpr ((std::is_same_v<T1, int> || std::is_same_v<T1, double>) &&
+                       (std::is_same_v<T2, int> || std::is_same_v<T2, double>)) {
         // Explicitly handle mixed types
         double lhs_double = static_cast<double>(lhs);
         double rhs_double = static_cast<double>(rhs);
@@ -1073,7 +1073,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         }
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*mapped_value)) {
         auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
-        return (*func_value)(evaluateArgs(env));
+        return (*func_value)(evaluateArgs(env), env);
     } else {
         throw std::runtime_error("Object type " + getValueStr(mapped_value) + " is not callable");
     }
@@ -1102,7 +1102,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, s
         auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
         auto values = evaluateArgs(env);
         values.insert(values.begin(), member_value);
-        return (*func_value)(values);
+        return (*func_value)(values, env);
     } else {
         throw std::runtime_error("Object type " + getTypeStr(*member_type) + " has no member function " + ident_node->value + ".");
     }
