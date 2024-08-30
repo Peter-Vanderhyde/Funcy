@@ -1,8 +1,8 @@
 # My first full program in my new language, Funcy
-
+import "library";
 
 func getInput(prompt, possible_responses) {
-    response = "";
+    response = Null;
     while response.lower() not in possible_responses {
         response = input(prompt);
     }
@@ -24,14 +24,13 @@ func printBoard(board) {
 }
 
 func checkStraights(board, player) {
-    player = " " + player + " ";
     cols = [];
     rows = [];
     func isPlayer(str) {
-        return str == player;
+        return str.strip() == player;
     }
-    for first = 0, first < 3, first += 1 {
-        for second = 0, second < 3, second += 1 {
+    for first in range(3) {
+        for second in range(3) {
             cols.append(board[second][first]);
             rows.append(board[first][second]);
         }
@@ -54,8 +53,8 @@ func checkDiagonals(board, player) {
 
 func checkForWin(board, player) {
     digits = 0;
-    for y = 0, y < 3, y += 1 {
-        for x = 0, x < 3, x += 1 {
+    for y in range(3) {
+        for x in range(3) {
             if board[y][x].strip().isDigit() {
                 digits += 1;
             }
@@ -123,7 +122,7 @@ func main() {
     }
 
     answer = getInput("Would you like to play again? (y/n) -> ", ['y', 'n', 'yes', 'no']);
-    return answer == 'y' or answer == 'yes';
+    return answer in ['yes', 'y'];
 }
 
 print("Welcome to Tic-Tac-Toe!");

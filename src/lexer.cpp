@@ -260,6 +260,13 @@ std::vector<Token> Lexer::tokenize() {
                 continue;
             }
         }
+        else if (character == '/' && peekNextCharacter() == '*') {
+            getNextCharacter();
+            while (getNextCharacter() != '*' || peekNextCharacter() != '/') {
+                continue;
+            }
+            getNextCharacter();
+        }
 
         else if (isalpha(character) || character == '_') {
             // Handle identifiers

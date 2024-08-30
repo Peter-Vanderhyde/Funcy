@@ -65,6 +65,20 @@ Scope      : '{' Foundation+ '}'
 
 Add lines and columns to all errors
 classes and dictionaries
-for in
 Add file name to error.
 Let functions print their names too
+lambdas
+
+
+x became 10;
+until x was 15 {
+    if x was not 15 {
+        x increased 1;
+    }
+}
+
+printed(x);
+
+each i within range(x) {
+    
+}

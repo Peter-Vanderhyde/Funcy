@@ -467,3 +467,13 @@ BuiltInFunctionReturn stringIsDigit(const List& args, Environment& env) {
     }
     return std::make_shared<Value>(true);
 }
+
+BuiltInFunctionReturn stringLength(const List& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("String length requires exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    std::string string = std::get<std::string>(*args[0]);
+    int length = string.length();
+    return std::make_shared<Value>(length);
+}

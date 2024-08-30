@@ -6,7 +6,39 @@ func enumerate(list) {
     return result;
 }
 
-#func filter(test_func, list) {
-#    result = [];
-#    
-#}
+func filter(test_func, list) {
+    results = [];
+    for item in list {
+        if test_func(item) {
+            results.append(item);
+        }
+    }
+    return results;
+}
+
+func all(list) {
+    for x in list {
+        if not x {
+            return false;
+        }
+    }
+    return true;
+}
+
+func any(list) {
+    for x in list {
+        if x {
+            return true;
+        }
+    }
+    return false;
+}
+
+func len(value) {
+    if type(value) == String {
+        return value.length();
+    } elif type(value) == List {
+        return value.size();
+    }
+    return Null;
+}
