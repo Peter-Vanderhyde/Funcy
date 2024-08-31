@@ -98,23 +98,27 @@ public:
 
 
 template <typename T1, typename T2>
-std::optional<std::shared_ptr<Value>> doArithmetic(T1 lhs, T2 rhs, TokenType op);
+std::optional<std::shared_ptr<Value>> doArithmetic(T1 lhs, T2 rhs, TokenType op, int line, int column);
 
 void printValue(const std::shared_ptr<Value> value);
 
 
 class ASTNode {
 public:
+    ASTNode(int line, int column)
+        : line{line}, column{column} {}
     virtual ~ASTNode() noexcept = default;
     virtual std::optional<std::shared_ptr<Value>> evaluate(Environment& env) = 0;
 
     bool debug = false;
+    int line, column;
 };
 
 // Node for numeric literals
 class AtomNode : public ASTNode {
 public:
-    AtomNode(std::variant<int, double, bool, std::string> value) : value{value} {}
+    AtomNode(std::variant<int, double, bool, std::string> value, int line, int column)
+        : ASTNode{line, column}, value{std::move(value)} {}
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
@@ -134,7 +138,8 @@ public:
 // Node for variables and keywords
 class IdentifierNode : public ASTNode {
 public:
-    IdentifierNode(std::string value) : value{value} {}
+    IdentifierNode(std::string value, int line, int column)
+        : ASTNode{line, column}, value{value} {}
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env, std::shared_ptr<ValueType> member_type);
@@ -144,8 +149,8 @@ public:
 
 class ListNode : public ASTNode {
 public:
-    ListNode(ASTList list)
-        : list{list} {}
+    ListNode(ASTList list, int line, int column)
+        : ASTNode{line, column}, list{list} {}
     ~ListNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
@@ -155,8 +160,9 @@ public:
 
 class IndexNode : public ASTNode {
 public:
-    IndexNode(std::shared_ptr<ASTNode> container, std::shared_ptr<ASTNode> start_index, std::shared_ptr<ASTNode> end_index=nullptr)
-        : container{container}, start_index{start_index}, end_index{end_index} {}
+    IndexNode(std::shared_ptr<ASTNode> container, std::shared_ptr<ASTNode> start_index, std::shared_ptr<ASTNode> end_index,
+                int line, int column)
+        : ASTNode{line, column}, container{container}, start_index{start_index}, end_index{end_index} {}
     ~IndexNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
@@ -172,8 +178,8 @@ public:
 // Node for binary operations (e.g., +, -, *, /, //, ^)
 class BinaryOpNode : public ASTNode {
 public:
-    BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right)
-        : left{left}, op{op}, right{right} {}
+    BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right, int line, int column)
+        : ASTNode{line, column}, left{left}, op{op}, right{right} {}
     
     ~BinaryOpNode() noexcept override = default;
 
@@ -186,8 +192,8 @@ public:
 
 class UnaryOpNode : public ASTNode {
 public:
-    UnaryOpNode(TokenType op, std::shared_ptr<ASTNode> right)
-        : op{op}, right{right} {}
+    UnaryOpNode(TokenType op, std::shared_ptr<ASTNode> right, int line, int column)
+        : ASTNode{line, column}, op{op}, right{right} {}
     
     ~UnaryOpNode() noexcept override = default;
 
@@ -199,8 +205,8 @@ public:
 
 class ParenthesisOpNode : public ASTNode {
 public:
-    ParenthesisOpNode(std::shared_ptr<ASTNode> expr)
-        : expr{expr} {}
+    ParenthesisOpNode(std::shared_ptr<ASTNode> expr, int line, int column)
+        : ASTNode{line, column}, expr{expr} {}
     
     ~ParenthesisOpNode() noexcept override = default;
 
@@ -211,8 +217,8 @@ public:
 
 class ScopeNode : public ASTNode {
 public:
-    ScopeNode(std::vector<std::shared_ptr<ASTNode>> block)
-        : block{block} {}
+    ScopeNode(std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+        : ASTNode{line, column}, block{block} {}
     
     ~ScopeNode() noexcept override = default;
 
@@ -223,8 +229,9 @@ public:
 
 class ScopedNode : public ASTNode {
 public:
-    ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison, std::vector<std::shared_ptr<ASTNode>> statements_block)
-        : keyword{keyword}, if_link{if_link}, comparison{comparison}, last_comparison_result{false}, statements_block{statements_block} {}
+    ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison,
+                std::vector<std::shared_ptr<ASTNode>> statements_block, int line, int column)
+        : ASTNode{line, column}, keyword{keyword}, if_link{if_link}, comparison{comparison}, last_comparison_result{false}, statements_block{statements_block} {}
 
     ~ScopedNode() noexcept override = default;
 
@@ -240,8 +247,11 @@ public:
 
 class ForNode : public ASTNode {
 public:
-    ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string, std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment, std::vector<std::shared_ptr<ASTNode>> block)
-        : keyword{keyword}, initialization{initialization}, init_string{init_string}, condition_value{condition_value}, increment{increment}, block{block} {}
+    ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string,
+            std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment,
+            std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+        : ASTNode{line, column}, keyword{keyword}, initialization{initialization}, init_string{init_string},
+            condition_value{condition_value}, increment{increment}, block{block} {}
     
     ~ForNode() noexcept override = default;
 
@@ -257,8 +267,8 @@ public:
 
 class KeywordNode : public ASTNode {
 public:
-    KeywordNode(TokenType keyword, std::shared_ptr<ASTNode> right=nullptr)
-        : keyword{keyword}, right{right} {}
+    KeywordNode(TokenType keyword, std::shared_ptr<ASTNode> right, int line, int column)
+        : ASTNode{line, column}, keyword{keyword}, right{right} {}
     
     ~KeywordNode() noexcept override = default;
 
@@ -270,8 +280,8 @@ public:
 
 class FuncNode : public ASTNode {
 public:
-    FuncNode(std::vector<std::shared_ptr<ASTNode>> args, std::vector<std::shared_ptr<ASTNode>> block)
-        : args{args}, block{block} {}
+    FuncNode(std::vector<std::shared_ptr<ASTNode>> args, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+        : ASTNode{line, column}, args{args}, block{block} {}
     
     ~FuncNode() noexcept override = default;
 
@@ -286,8 +296,8 @@ public:
 
 class FuncCallNode : public ASTNode {
 public:
-    FuncCallNode(std::shared_ptr<ASTNode> identifier, std::vector<std::shared_ptr<ASTNode>> values)
-        : identifier{identifier}, values{values} {}
+    FuncCallNode(std::shared_ptr<ASTNode> identifier, std::vector<std::shared_ptr<ASTNode>> values, int line, int column)
+        : ASTNode{line, column}, identifier{identifier}, values{values} {}
     
     ~FuncCallNode() noexcept override = default;
 

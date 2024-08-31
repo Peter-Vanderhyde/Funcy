@@ -64,6 +64,7 @@ int main(int argc, char* argv[]) {
 
     env.addScope();
 
+
     int stmnt_num = 0;
     for (auto statement : statements) {
         try {

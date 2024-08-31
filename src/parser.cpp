@@ -18,12 +18,20 @@ std::unordered_map<TokenType, ValueType> token_value_map{
 
 
 
-void handleError(const std::string& message, int line, int column) {
+void parsingError(const std::string& message, int line, int column) {
     if (line > 0 && column > 0) {
-        throw std::runtime_error(std::format("{} at line {} column {}", message, line, column));
+        throw std::runtime_error(std::format("\033[31mSyntax Error:\033[38;5;214m {}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m", message, line, column));
     } else {
         throw std::runtime_error(message);
     }
+}
+
+void runtimeError(const std::string& message, int line, int column) {
+    throw std::runtime_error(std::format("\033[31mRuntime Error:\033[38;5;214m {}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m", message, line, column));
+}
+
+void runtimeError(const std::string& message, std::shared_ptr<ASTNode> node) {
+    runtimeError(message, node->line, node->column);
 }
 
 // << overload for the ValueType
@@ -93,7 +101,7 @@ void printValue(const std::shared_ptr<Value> value) {
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
             std::cout << "Function";
         } else {
-            throw std::runtime_error("Tried to print value that was an unknown ASTNode.");
+            runtimeError("Tried to print value that was an unknown ASTNode.", func_value);
         }
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
         std::cout << "Built-in Function";
@@ -118,7 +126,7 @@ std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
     } else if (isString()) {
         return std::make_shared<Value>(getString());
     } else {
-        handleError("Unable to evaluate value.", 0, 0);
+        parsingError("Unable to evaluate value.", 0, 0);
         return std::nullopt;
     }
 }
@@ -167,7 +175,7 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
     } else if (env.hasFunction(value)) {
         return env.getFunction(value);
     } else {
-        throw std::runtime_error(value + " is not defined.");
+        runtimeError(value + " is not defined", line, column);
     }
     return std::nullopt;
 }
@@ -177,7 +185,7 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env,
     if (env.hasMember(member_type, value)) {
         return env.getMember(member_type, value);
     } else {
-        throw std::runtime_error(value + " is not defined.");
+        runtimeError(value + " is not defined", line, column);
     }
     return std::nullopt;
 }
@@ -196,7 +204,7 @@ std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
                 evaluated_list.push_back(nullptr); // If evaluation fails, store null
             }
         } else {
-            throw std::runtime_error("List contained a nullptr pointing to an ASTNode."); // Null ASTNode pointer
+            runtimeError("List contained a nullptr pointing to an ASTNode", line, column); // Null ASTNode pointer
         }
     }
 
@@ -213,10 +221,10 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
                 auto string_val = std::make_shared<std::string>(std::get<std::string>(*eval.value()));
                 return getIndex(env, string_val);
             } else {
-                throw std::runtime_error("Atom evaluation did not return a string for indexing.");
+                runtimeError("Atom evaluation did not return a string for indexing", atom_node);
             }
         } else {
-            throw std::runtime_error("Was unable to evaluate the atom.");
+            runtimeError("Was unable to evaluate the atom", atom_node);
         }
     } else if (auto list_node = std::dynamic_pointer_cast<ListNode>(container)) {
         auto eval = list_node->evaluate(env);
@@ -225,10 +233,10 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
                 auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
                 return getIndex(env, list_val);
             } else {
-                throw std::runtime_error("List evaluation did not return a list for indexing.");
+                runtimeError("List evaluation did not return a list for indexing", list_node);
             }
         } else {
-            throw std::runtime_error("Was unable to evaluate the list.");
+            runtimeError("Was unable to evaluate the list", list_node);
         }
     } else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(container)) {
         auto eval = ident_node->evaluate(env);
@@ -240,10 +248,10 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
                 auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
                 return getIndex(env, list_val);
             } else {
-                throw std::runtime_error("Identifier evaluation did not return a list or string for indexing.");
+                runtimeError("Identifier evaluation did not return a list or string for indexing", ident_node);
             }
         } else {
-            throw std::runtime_error("Was unable to evaluate the identifier.");
+            runtimeError("Was unable to evaluate the identifier", ident_node);
         }
     } else if (auto index_node = std::dynamic_pointer_cast<IndexNode>(container)) {
         auto eval = index_node->evaluate(env);
@@ -252,10 +260,10 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
                 auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
                 return getIndex(env, list_val);
             } else {
-                throw std::runtime_error("Index evaluation did not return a list for indexing.");
+                runtimeError("Index evaluation did not return a list for indexing", index_node);
             }
         } else {
-            throw std::runtime_error("Was unable to evaluate the index.");
+            runtimeError("Was unable to evaluate the index", index_node);
         }
     } else if (auto func_node = std::dynamic_pointer_cast<FuncCallNode>(container)) {
         auto eval = func_node->evaluate(env);
@@ -267,19 +275,19 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
                 auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
                 return getIndex(env, list_val);
             } else {
-                throw std::runtime_error("Function call evaluation did not return a list or string for indexing.");
+                runtimeError("Function call evaluation did not return a list or string for indexing", func_node);
             }
         }
     } else if (container == nullptr) {
-        throw std::runtime_error("Null object is not subscriptable.");
+        runtimeError("Null object is not subscriptable", line, column);
     }
     else {
-        throw std::runtime_error("Index node container was an unexpected type.");
+        runtimeError("Index node container was an unexpected type", line, column);
     }
     return std::nullopt;
 }
 
-std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_ptr<std::string>, std::shared_ptr<List>> listr, int index) {
+std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_ptr<std::string>, std::shared_ptr<List>> listr, int index, int line, int column) {
     if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
         auto string = std::get<std::shared_ptr<std::string>>(listr);
         if (index >= 0 && index < string->length()) {
@@ -287,7 +295,7 @@ std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_p
         } else if (index >= string->length() * -1 && index < 0) {
             return string->at(string->length() - -index);
         } else {
-            throw std::runtime_error("String index out of range.");
+            runtimeError("String index out of range", line, column);
         }
     } else if (std::holds_alternative<std::shared_ptr<List>>(listr)) {
         auto list = std::get<std::shared_ptr<List>>(listr);
@@ -296,10 +304,10 @@ std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_p
         } else if (index >= list->size() * -1 && index < 0) {
             return list->at(list->size() - -index);
         } else {
-            throw std::runtime_error("List index out of range.");
+            runtimeError("List index out of range", line, column);
         }
     } else {
-        throw std::runtime_error("getAtIndex did not receive a string or list.");
+        runtimeError("getAtIndex did not receive a string or list", line, column);
     }
     return nullptr;
 }
@@ -322,7 +330,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
 
                             std::string sub_str;
                             for (int i = start_val; i < end_val; i++) {
-                                char c = std::get<char>(getAtIndex(listr, i));
+                                char c = std::get<char>(getAtIndex(listr, i, line, column));
                                 sub_str += c;
                             }
                             return std::make_shared<Value>(sub_str);
@@ -333,24 +341,24 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                             }
                             
                             for (int i = start_val; i < end_val; i++) {
-                                auto list_val = std::get<std::shared_ptr<Value>>(getAtIndex(listr, i));
+                                auto list_val = std::get<std::shared_ptr<Value>>(getAtIndex(listr, i, line, column));
                                 list->push_back(list_val);
                             }
                             return std::make_shared<Value>(list);
                         } else {
-                            throw std::runtime_error("Invalid type for getting index.");
+                            runtimeError("Invalid type for getting index", line, column);
                         }
                     } else {
-                        throw std::runtime_error("Invalid format of slice indeces. The start index is larger than the end.");
+                        runtimeError("Invalid format of slice indeces. The start index is larger than the end", line, column);
                     }
                 } else {
-                    throw std::runtime_error("The ending index value was not an int.");
+                    runtimeError("The ending index value was not an int", line, column);
                 }
             } else {
-                throw std::runtime_error("The starting index value was not an int.");
+                runtimeError("The starting index value was not an int", line, column);
             }
         } else {
-            throw std::runtime_error("Failed to evaluate start_index or end_index.");
+            runtimeError("Failed to evaluate start_index or end_index", line, column);
         }
     } else {
         auto result = start_index->evaluate(env);
@@ -358,21 +366,21 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
             if (std::holds_alternative<int>(*result.value())) {
                 int int_val = std::get<int>(*result.value());
                 if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
-                    auto get_char = getAtIndex(listr, int_val);
+                    auto get_char = getAtIndex(listr, int_val, line, column);
                     if (std::holds_alternative<char>(get_char)) {
                         auto c = std::get<char>(get_char);
                         std::string str = std::string(1, c);
                         return std::make_shared<Value>(str);
                     }
                 } else {
-                    auto value = std::get<std::shared_ptr<Value>>(getAtIndex(listr, int_val));
+                    auto value = std::get<std::shared_ptr<Value>>(getAtIndex(listr, int_val, line, column));
                     return value;
                 }
             } else {
-                throw std::runtime_error("The index was not given an int.");
+                runtimeError("The index was not given an int", start_index);
             }
         } else {
-            throw std::runtime_error("Failed to evaluate start_index.");
+            runtimeError("Failed to evaluate start_index", start_index);
             return std::nullopt;
         }
     }
@@ -417,11 +425,11 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
     if (eval) {
         env_val = eval.value();
     } else {
-        throw std::runtime_error("Index assignment unable to evaluate the container.");
+        runtimeError("Index assignment unable to evaluate the container", line, column);
         return;
     }
     if (!std::holds_alternative<std::shared_ptr<List>>(*env_val)) {
-        throw std::runtime_error(getValueStr(env_val) + " object does not support item assignment.");
+        runtimeError(getValueStr(env_val) + " object does not support item assignment", line, column);
         return;
     }
     std::shared_ptr<List> env_list = std::get<std::shared_ptr<List>>(*env_val);
@@ -437,13 +445,13 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
                 } else if (index < 0 && index >= env_list->size() * -1) {
                     env_list->at(env_list->size() - index);
                 } else {
-                    throw std::runtime_error("Index assignment out of range.");
+                    runtimeError("Index assignment out of range", line, column);
                 }
             } else {
-                throw std::runtime_error("Index assignment requires int.");
+                runtimeError("Index assignment requires int", line, column);
             }
         } else {
-            throw std::runtime_error("Failed to evaluate assignment index");
+            runtimeError("Failed to evaluate assignment index", line, column);
         }
     } else {
         // List slice index assignment
@@ -459,26 +467,26 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
                     for (int i = 0; i < slice_size; i++) {
                         if (env_list->begin() + start_val == env_list->end()) {
                             break;
-                            // throw std::runtime_error("Assignment index went out of range.");
+                            // runtimeError("Assignment index went out of range.");
                         }
                         env_list->erase(env_list->begin() + start_val);
                     }
                     setAtIndex(env_list, start_val, value);
                 } else {
-                    throw std::runtime_error("Assignment index end value is not an int.");
+                    runtimeError("Assignment index end value is not an int", line, column);
                 }
             } else {
-                throw std::runtime_error("Assignment index start value is not an int.");
+                runtimeError("Assignment index start value is not an int", line, column);
             }
         } else {
-            throw std::runtime_error("Assignment index was unable to evaluate.");
+            runtimeError("Assignment index was unable to evaluate", line, column);
         }
     }
 }
 
 
 template <typename T1, typename T2>
-std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op) {
+std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, const TokenType op, int line, int column) {
     // Helper function to give the bool value of each type
     auto checkTruthy = [](const Value& value) -> bool {
         return std::visit([](const auto& v) -> bool {
@@ -508,7 +516,7 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
             auto rhsElement = rhsList->at(i);
             auto result = std::visit([&](auto lhsVal) -> bool {
                 return std::visit([&](auto rhsVal) -> bool {
-                    auto compResult = doArithmetic(lhsVal, rhsVal, TokenType::_Compare);
+                    auto compResult = doArithmetic(lhsVal, rhsVal, TokenType::_Compare, line, column);
                     if (compResult && std::holds_alternative<bool>(*compResult.value())) {
                         return std::get<bool>(*compResult.value());
                     }
@@ -559,17 +567,17 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) value = std::make_shared<Value>(lhs_double - rhs_double);
         else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) value = std::make_shared<Value>(lhs_double * rhs_double);
         else if (op == TokenType::_Divide || op == TokenType::_DivideEquals) {
-            if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
+            if (rhs_double == 0) runtimeError("Attempted division by 0", line, column);
             return std::make_shared<Value>(lhs_double / rhs_double);
         }
         else if (op == TokenType::_FloorDiv) {
-            if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
+            if (rhs_double == 0) runtimeError("Attempted division by 0", line, column);
             value = std::make_shared<Value>(static_cast<int>(lhs_double / rhs_double));
         }
         else if (op == TokenType::_Mod) {
-            if (rhs_double == 0) throw std::runtime_error("Attempted division by 0.");
+            if (rhs_double == 0) runtimeError("Attempted division by 0", line, column);
             if constexpr (std::is_same_v<T1, double> || std::is_same_v<T2, double>) {
-                throw std::runtime_error("The modulus '%' can only be performed on ints.");
+                runtimeError("The modulus '%' can only be performed on ints", line, column);
             } else {
                 value = std::make_shared<Value>(static_cast<int>(lhs) % static_cast<int>(rhs));
             }
@@ -585,7 +593,7 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         if (std::is_same_v<T1, int> && std::is_same_v<T2, int>) {
             // Make sure that, if it starts an int and doesn't need to become double, it stays int.
             if (!value) {
-                throw std::runtime_error("Reached end of arithmetic without value.");
+                runtimeError("Reached end of arithmetic without value", line, column);
             }
             if (std::holds_alternative<double>(*value)) {
                 auto double_value = std::get<double>(*value);
@@ -616,7 +624,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         // An equals is a special case
         std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
         if (!right_value.has_value()) {
-            throw std::runtime_error("Failed to set variable. Operand could not be computed.");
+            runtimeError("Failed to set variable. Operand could not be computed", line, column);
         }
 
         // Give it the actual left string, not the value of the variable
@@ -626,13 +634,13 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             indexNode->assignIndex(env, right_value.value());
         }
         else {
-            throw std::runtime_error("The operator '=' can only be used with variables.");
+            runtimeError("The operator '=' can only be used with variables", line, column);
         }
     } else if (op == TokenType::_Dot) {
         // Handle member functions of types
         std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
         if (!left_value.has_value()) {
-            throw std::runtime_error("Failed to get member function. Identifier could not be computed.");
+            runtimeError("Failed to get member function. Identifier could not be computed", line, column);
         }
 
         std::shared_ptr<ValueType> member_type = std::make_shared<ValueType>(getValueType(left_value.value()));
@@ -644,17 +652,17 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         auto left_value = left->evaluate(env);
         auto right_value = right->evaluate(env);
         if (!left_value.has_value() || !right_value.has_value()) {
-            throw std::runtime_error("Failed arguments of 'in'.");
+            runtimeError("Failed arguments of 'in'", line, column);
         }
 
         if (!std::holds_alternative<std::shared_ptr<List>>(*right_value.value())) {
-            throw std::runtime_error("Expected list for 'in' evaluation.");
+            runtimeError("Expected list for 'in' evaluation", line, column);
         }
         auto list = std::get<std::shared_ptr<List>>(*right_value.value());
         for (const auto& item : *list) {
             auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
                 return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
-                    return doArithmetic(lhs, rhs, TokenType::_Compare);
+                    return doArithmetic(lhs, rhs, TokenType::_Compare, line, column);
                 }, *item);
             }, *left_value.value());
 
@@ -669,20 +677,20 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
         // Arithmetic operations need two values to operate on
         if (!left_value.has_value() || !right_value.has_value()) {
-            throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': one or both operands could not be computed.",
-                                            token_labels[op]));
+            runtimeError(std::format("Failed to evaluate expression with operator '{}': one or both operands could not be computed",
+                                            token_labels[op]), line, column);
         }
 
         // Perform arithmetic operation
         auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
             return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
-                return doArithmetic(lhs, rhs, op);
+                return doArithmetic(lhs, rhs, op, line, column);
             }, *right_value.value());
         }, *left_value.value());
 
         if (!result.has_value()) {
-            throw std::runtime_error(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
-                                                getValueStr(left_value.value()), token_labels[op], getValueStr(right_value.value())));
+            runtimeError(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
+                                                getValueStr(left_value.value()), token_labels[op], getValueStr(right_value.value())), line, column);
         }
 
         if (op == TokenType::_PlusEquals || op == TokenType::_MinusEquals || op == TokenType::_MultiplyEquals || op == TokenType::_DivideEquals) {
@@ -691,7 +699,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                 env.set(identifierNode->value, result.value());
             }
             else {
-                throw std::runtime_error("The operator '=' can only be used with variables.");
+                runtimeError("The operator '=' can only be used with variables", line, column);
             }
         }
         else {
@@ -706,8 +714,8 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
     if (debug) std::cout << "evaluate unary" << std::endl;
     std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
     if (!right_value.has_value()) {
-        throw std::runtime_error(std::format("Failed to evaluate expression with operator '{}': the operand could not be computed.",
-                                         token_labels[op]));
+        runtimeError(std::format("Failed to evaluate expression with operator '{}': the operand could not be computed",
+                                         token_labels[op]), line, column);
     }
 
     std::string RHS = getValueStr(right_value.value());
@@ -757,7 +765,7 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
         }
     }
 
-    throw std::runtime_error(std::format("Unsupported operand types for operation. operation was '{}' {}", token_labels[op], RHS));
+    runtimeError(std::format("Unsupported operand types for operation. Operation was '{}' {}", token_labels[op], RHS), line, column);
     return std::nullopt;
 }
 
@@ -802,7 +810,8 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
         return checkTruthy(*result.value());
     }
     else {
-        throw std::runtime_error("Syntax Error: Missing a boolean comparison for keyword to evaluate.");
+        runtimeError("Missing a boolean comparison for keyword to evaluate", line, column);
+        return false;
     }
 }
 
@@ -877,20 +886,20 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             variable = i;
         }
         else {
-            throw std::runtime_error("For loop requires int variable.");
+            runtimeError("For loop requires int variable", line, column);
         }
 
         while (true) {
             auto cond_value = condition_value->evaluate(env);
             if (!cond_value) {
-                throw std::runtime_error("Unable to evaluate for loop condition.");
+                runtimeError("Unable to evaluate for loop condition", line, column);
             }
 
             if (std::holds_alternative<bool>(*cond_value.value())) {
                 auto bool_value = std::get<bool>(*cond_value.value());
                 if (!bool_value) break;
             } else {
-                throw std::runtime_error("For loop requires boolean condition.");
+                runtimeError("For loop requires boolean condition", line, column);
             }
 
             int original_variable = variable;
@@ -921,7 +930,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         // in was used with for loop instead of integer
         auto list_result = init_node->right->evaluate(env);
         if (!std::holds_alternative<std::shared_ptr<List>>(*list_result.value())) {
-            throw std::runtime_error("For loop expected list.");
+            runtimeError("For loop expected list", line, column);
         }
 
         auto list = std::get<std::shared_ptr<List>>(*list_result.value());
@@ -956,14 +965,14 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
             throw BreakException();
         }
         else {
-            throw std::runtime_error("Break used outside of loop.");
+            runtimeError("Break used outside of loop", line, column);
         }
     } else if (keyword == TokenType::_Continue) {
         if (env.inLoop()) {
             throw ContinueException();
         }
         else {
-            throw std::runtime_error("Continue used outside of loop.");
+            runtimeError("Continue used outside of loop", line, column);
         }
     }
     else if (keyword == TokenType::_Return) {
@@ -978,17 +987,17 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         std::string new_path = path.substr(0, path.find_last_of('/'));
         auto right_value = right->evaluate(env);
         if (!right_value.has_value() || !std::holds_alternative<std::string>(*right_value.value())) {
-            throw std::runtime_error("Import expected filename string.");
+            runtimeError("Import expected filename string", line, column);
         }
         new_path = new_path + "/" + std::get<std::string>(*right_value.value()) + ".funcy";
         if (new_path == path) {
-            throw std::runtime_error("A file cannot import itself.");
+            runtimeError("A file cannot import itself", line, column);
         }
 
         std::string source_code = readSourceCodeFromFile(new_path);
 
         if (source_code.empty()) {
-            throw std::runtime_error("File " + new_path + " is empty or could not be read.");
+            runtimeError("File " + new_path + " is empty or could not be read", line, column);
         }
 
         GlobalContext::instance().setFilename(new_path);
@@ -1013,13 +1022,13 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
                 std::optional<std::shared_ptr<Value>> result = statement->evaluate(env);
             }
             catch (const ReturnException) {
-                throw std::runtime_error("Return was used outside of function.");
+                runtimeError("Return was used outside of function", line, column);
             }
             catch (const BreakException) {
-                throw std::runtime_error("Break was used outside of loop.");
+                runtimeError("Break was used outside of loop", line, column);
             }
             catch (const ContinueException) {
-                throw std::runtime_error("Continue was used outside of loop.");
+                runtimeError("Continue was used outside of loop", line, column);
             }
         }
 
@@ -1044,7 +1053,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
 
 void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Environment& base_env, Environment& local_env) {
     if (values.size() != args.size()) {
-        throw std::runtime_error(std::format("Incorrect number of args were passed in. {} instead of {}", values.size(), args.size()));
+        runtimeError(std::format("Incorrect number of args were passed in. {} instead of {}", values.size(), args.size()), line, column);
     }
 
     for (int i = 0; i < values.size(); i++) {
@@ -1052,7 +1061,7 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Environment& 
             std::string arg_string = ident_node->value;
             local_env.set(arg_string, values.at(i));
         } else {
-            throw std::runtime_error("Unable to convert identifier for function argument.");
+            runtimeError("Unable to convert identifier for function argument", line, column);
         }
     }
 
@@ -1094,13 +1103,13 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
                 return func->callFunc(evaluateArgs(env), env);
             }
         } else {
-            throw std::runtime_error("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->value + ".");
+            runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->value, line, column);
         }
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*mapped_value)) {
         auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
         return (*func_value)(evaluateArgs(env), env);
     } else {
-        throw std::runtime_error("Object type " + getValueStr(mapped_value) + " is not callable");
+        runtimeError("Object type " + getValueStr(mapped_value) + " is not callable", line, column);
     }
     return std::nullopt;
 }
@@ -1121,7 +1130,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, s
                 return func->callFunc(values, env);
             }
         } else {
-            throw std::runtime_error("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->value + ".");
+            runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->value, line, column);
         }
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*mapped_value)) {
         auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
@@ -1129,7 +1138,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, s
         values.insert(values.begin(), member_value);
         return (*func_value)(values, env);
     } else {
-        throw std::runtime_error("Object type " + getTypeStr(*member_type) + " has no member function " + ident_node->value + ".");
+        runtimeError("Object type " + getTypeStr(*member_type) + " has no member function " + ident_node->value, line, column);
     }
     return std::nullopt;
 }
@@ -1139,7 +1148,7 @@ List FuncCallNode::evaluateArgs(Environment& env) {
     for (auto value_node : values) {
         auto result = value_node->evaluate(env);
         if (!result) {
-            throw std::runtime_error("Unable to evalute function argument");
+            runtimeError("Unable to evalute function argument", line, column);
         }
         evaluated_values.push_back(result.value());
     }
@@ -1172,7 +1181,7 @@ void Parser::removeIfElseScope() {
 const Token* Parser::consume() {
     const Token* t{getToken()};
     if (t->type == TokenType::_EndOfFile) {
-        handleError("File ended unexpectedly!", t->line, t->column);
+        parsingError("File ended unexpectedly!", t->line, t->column);
     }
 
     token_index += 1;
@@ -1209,7 +1218,7 @@ std::shared_ptr<ASTNode> Parser::parseFoundation() {
         bool plain_scope = tokenIs("{");
         auto statement = parseStatement(nullptr);
         if (!plain_scope && !tokenIs(";")) {
-            handleError("Expected ';' but got " + getTokenStr(), getToken()->line, getToken()->column);
+            parsingError("Expected ';' but got " + getTokenStr(), getToken()->line, getToken()->column);
         } else if (!plain_scope) {
             consume();
             return statement;
@@ -1224,12 +1233,12 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
     if (debug) std::cout << "parse control flow " << getTokenStr() << std::endl;
     if (peek() && peek().value()->type == TokenType::_Equals) {
         // Make sure they're not trying to use a keyword as a variable
-        handleError(getTokenStr() + " is a keyword and is not allowed to be redefined", getToken()->line, getToken()->column);
+        parsingError(getTokenStr() + " is a keyword and is not allowed to be redefined", getToken()->line, getToken()->column);
     }
 
     std::string t_str = getTokenStr();
     if (scoped_keyword_tokens.contains(getTokenStr())) {
-        TokenType keyword = getToken()->type;
+        const Token* keyword = getToken();
         consume();
         std::shared_ptr<ASTNode> comparison_expr = nullptr;
         std::shared_ptr<ASTNode> for_initialization;
@@ -1240,75 +1249,75 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         auto func_str = std::make_shared<std::string>("");
         if (t_str == "if" || t_str == "elif" || t_str == "while") {
             if (tokenIs("{")) {
-                handleError("Syntax Error: Missing boolean expression ", getToken()->line, getToken()->column);
+                parsingError("Missing boolean expression ", getToken()->line, getToken()->column);
             }
 
             comparison_expr = parseLogicalOr();
         } else if (t_str == "for") {
             if (tokenIs("{") || !tokenIs("ident")) {
-                handleError("Syntax Error: Missing for loop expression", getToken()->line, getToken()->column);
+                parsingError("Missing for loop expression", getToken()->line, getToken()->column);
             }
             for_initialization = parseStatement(variable_str);
             auto in_node = dynamic_cast<BinaryOpNode*>(for_initialization.get());
             if (in_node->op != TokenType::_In) {
                 if (!tokenIs(",")) {
-                    handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
+                    parsingError("Invalid for loop syntax", getToken()->line, getToken()->column);
                 }
                 consume();
                 comparison_expr = parseRelation();
                 if (!tokenIs(",")) {
-                    handleError("Syntax Error: Invalid for loop syntax", getToken()->line, getToken()->column);
+                    parsingError("Invalid for loop syntax", getToken()->line, getToken()->column);
                 }
                 consume();
                 auto var_test = std::make_shared<std::string>("");
                 for_increment = parseStatement(var_test);
                 if (*var_test != *variable_str) {
-                    handleError("For loop requires manipulation of the initialized variable", getToken()->line, getToken()->column);
+                    parsingError("For loop requires manipulation of the initialized variable", getToken()->line, getToken()->column);
                 }
             }
         } else if (t_str == "func") {
             if (!tokenIs("ident")) {
-                handleError("Expected an identifier but got " + getTokenStr(), getToken()->line, getToken()->column);
+                parsingError("Expected an identifier but got " + getTokenStr(), getToken()->line, getToken()->column);
             }
             func_name = parseIdentifier(func_str);
             if (!tokenIs("(")) {
-                handleError("Expected an '(' but got " + getTokenStr(), getToken()->line, getToken()->column);
+                parsingError("Expected an '(' but got " + getTokenStr(), getToken()->line, getToken()->column);
             }
             consume();
             auto arg_name = std::make_shared<std::string>("");
             std::vector<std::string> arg_strings;
             while (!tokenIs(")") && !tokenIs("eof") && !tokenIs("{")) {
                 if (!tokenIs("ident")) {
-                    handleError("Expected argument but got " + getTokenStr(), getToken()->line, getToken()->column);
+                    parsingError("Expected argument but got " + getTokenStr(), getToken()->line, getToken()->column);
                 }
                 func_args.push_back(parseIdentifier(arg_name));
                 if (std::find(arg_strings.begin(), arg_strings.end(), *arg_name) == arg_strings.end()) {
                     arg_strings.push_back(*arg_name);
                     *arg_name = "";
                 } else {
-                    handleError("Duplicate argument names found in function creation", getToken()->line, getToken()->column);
+                    parsingError("Duplicate argument names found in function creation", getToken()->line, getToken()->column);
                 }
 
                 if (tokenIs("ident")) {
-                    handleError("Expected ',' but got argument", getToken()->line, getToken()->column);
+                    parsingError("Expected ',' but got argument", getToken()->line, getToken()->column);
                 } else if (tokenIs(",")) {
                     consume();
                     if (!tokenIs("ident")) {
-                        handleError("Expected argument but got " + getTokenStr(), getToken()->line, getToken()->column);
+                        parsingError("Expected argument but got " + getTokenStr(), getToken()->line, getToken()->column);
                     }
                 }
             }
             if (tokenIs("eof")) {
-                handleError("Missing ')'", getToken()->line, getToken()->column);
+                parsingError("Missing ')'", getToken()->line, getToken()->column);
             } else if (tokenIs("{")) {
-                handleError("Missing ')' before '{'", getToken()->line, getToken()->column);
+                parsingError("Missing ')' before '{'", getToken()->line, getToken()->column);
             } else {
                 consume();
             }
         }
 
         if (!tokenIs("{")) {
-            handleError("Syntax Error: Expected '{' but got " + getTokenStr(), getToken()->line, getToken()->column);
+            parsingError("Expected '{' but got " + getTokenStr(), getToken()->line, getToken()->column);
         }
         consume();
 
@@ -1321,39 +1330,39 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         }
 
         if (tokenIs("eof")) {
-            throw std::runtime_error("Syntax Error: Expected '}'.");
+            parsingError("Expected '}'", getToken()->line, getToken()->column);
         }
         consume();
 
         removeIfElseScope();
 
         if (t_str == "if") {
-            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, nullptr, comparison_expr, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword->type, nullptr, comparison_expr, block, keyword->line, keyword->column);
             last_if_else.back() = keyword_node;
             return keyword_node;
         } else if (t_str == "elif") {
             if (last_if_else.back() == nullptr) {
-                handleError("Missing 'if' before 'elif'", getToken()->line, getToken()->column);
+                parsingError("Missing 'if' before 'elif'", getToken()->line, getToken()->column);
             }
 
-            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison_expr, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword->type, last_if_else.back(), comparison_expr, block, keyword->line, keyword->column);
             last_if_else.back() = keyword_node;
             return keyword_node;
         } else if (t_str == "else") {
             if (last_if_else.back() == nullptr) {
-                handleError("Missing 'if' before 'else'", getToken()->line, getToken()->column);
+                parsingError("Missing 'if' before 'else'", getToken()->line, getToken()->column);
             }
 
-            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword, last_if_else.back(), comparison_expr, block);
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword->type, last_if_else.back(), comparison_expr, block, keyword->line, keyword->column);
             last_if_else.back() = nullptr;
             return keyword_node;
         } else if (t_str == "for") {
             // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
-            return std::make_shared<ForNode>(keyword, for_initialization, variable_str, comparison_expr, for_increment, block);
+            return std::make_shared<ForNode>(keyword->type, for_initialization, variable_str, comparison_expr, for_increment, block, keyword->line, keyword->column);
         } else if (t_str == "func") {
-            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_args, block));
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_args, block, keyword->line, keyword->column), keyword->line, keyword->column);
         } else {
-            return std::make_shared<ScopedNode>(keyword, nullptr, comparison_expr, block);
+            return std::make_shared<ScopedNode>(keyword->type, nullptr, comparison_expr, block, keyword->line, keyword->column);
         }
     }
     else {
@@ -1363,7 +1372,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             return node;
         }
         else {
-            handleError("Expected ; but got " + getTokenStr(), getToken()->line, getToken()->column);
+            parsingError("Expected ; but got " + getTokenStr(), getToken()->line, getToken()->column);
             return nullptr;
         }
     }
@@ -1377,19 +1386,20 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
         return parseLogicalOr();
     }
     else {
+        const Token* token = getToken();
         std::shared_ptr<KeywordNode> node;
         if (tokenIs("return") && !nextTokenIs(";")) {
             consume();
             auto right = parseLogicalOr();
-            node = std::make_shared<KeywordNode>(TokenType::_Return, right);
+            node = std::make_shared<KeywordNode>(TokenType::_Return, right, token->line, token->column);
         }
         else if (tokenIs("import")) {
             consume();
             auto right = parseAtom();
-            node = std::make_shared<KeywordNode>(TokenType::_Import, right);
+            node = std::make_shared<KeywordNode>(TokenType::_Import, right, token->line, token->column);
         }
         else {
-            node = std::make_shared<KeywordNode>(getToken()->type);
+            node = std::make_shared<KeywordNode>(getToken()->type, nullptr, token->line, token->column);
             consume();
         }
         return node;
@@ -1403,10 +1413,10 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
     if (tokenIs("ident") && peek() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
         auto left = parseIdentifier(varString);
 
-        TokenType op = getToken()->type;
+        const Token* op = getToken();
         consume();
         auto right = parseLogicalOr();
-        return std::make_shared<BinaryOpNode>(left, op, right);
+        return std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
     } else if (tokenIs("ident") && peek() && nextTokenIs("[")) {
         int i = 1;
         while (!nextTokenIs(";", i)) {
@@ -1419,10 +1429,10 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
             return parseLogicalOr();
         } else {
             auto left = parseIndexing();
-            TokenType op = getToken()->type;
+            const Token* op = getToken();
             consume();
             auto right = parseLogicalOr();
-            return std::make_shared<BinaryOpNode>(left, op, right);
+            return std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
         }
     }
     else {
@@ -1435,10 +1445,10 @@ std::shared_ptr<ASTNode> Parser::parseLogicalOr() {
     auto left = parseLogicalAnd();
 
     while (tokenIs("or")) {
-        TokenType k_word = TokenType::_Or;
+        const Token* k_word = getToken();
         consume();
         auto right = parseLogicalAnd();
-        left = std::make_shared<BinaryOpNode>(left, k_word, right);
+        left = std::make_shared<BinaryOpNode>(left, k_word->type, right, k_word->line, k_word->column);
     }
     
     return left;
@@ -1449,10 +1459,10 @@ std::shared_ptr<ASTNode> Parser::parseLogicalAnd() {
     auto left = parseEquality();
 
     while (tokenIs("and")) {
-        TokenType k_word = TokenType::_And;
+        const Token* k_word = getToken();
         consume();
         auto right = parseEquality();
-        left = std::make_shared<BinaryOpNode>(left, k_word, right);
+        left = std::make_shared<BinaryOpNode>(left, k_word->type, right, k_word->line, k_word->column);
     }
     
     return left;
@@ -1463,10 +1473,10 @@ std::shared_ptr<ASTNode> Parser::parseEquality() {
     auto left = parseRelation();
 
     while (tokenIs("==") || tokenIs("!=")) {
-        TokenType op = getToken()->type;
+        const Token* op = getToken();
         consume();
         auto right = parseRelation();
-        left = std::make_shared<BinaryOpNode>(left, op, right);
+        left = std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
     }
 
     return left;
@@ -1478,17 +1488,18 @@ std::shared_ptr<ASTNode> Parser::parseRelation() {
 
     while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=") || tokenIs("in") || (tokenIs("not") && nextTokenIs("in"))) {
         if (tokenIs("not")) {
+            const Token* token = getToken();
             consume();
-            TokenType op = getToken()->type;
+            const Token* op = getToken();
             consume();
             auto right = parseExpression();
-            left = std::make_shared<BinaryOpNode>(left, op, right);
-            left = std::make_shared<UnaryOpNode>(TokenType::_Not, left);
+            left = std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
+            left = std::make_shared<UnaryOpNode>(TokenType::_Not, left, token->line, token->column);
         } else {
-            TokenType op = getToken()->type;
+            const Token* op = getToken();
             consume();
             auto right = parseExpression();
-            left = std::make_shared<BinaryOpNode>(left, op, right);
+            left = std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
         }
     }
 
@@ -1500,10 +1511,10 @@ std::shared_ptr<ASTNode> Parser::parseExpression() {
     auto left = parseTerm();
 
     while (tokenIs("+") || tokenIs("-")) {
-        TokenType op = getToken()->type;
+        const Token* op = getToken();
         consume();
         auto right = parseTerm();
-        left = std::make_shared<BinaryOpNode>(left, op, right);
+        left = std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
     }
 
     return left;
@@ -1514,10 +1525,10 @@ std::shared_ptr<ASTNode> Parser::parseTerm() {
     auto left = parseFactor();
 
     while (tokenIs("*") || tokenIs("/") || tokenIs("//") || tokenIs("%")) {
-        TokenType op = getToken()->type;
+        const Token* op = getToken();
         consume();
         auto right = parseFactor();
-        left = std::make_shared<BinaryOpNode>(left, op, right);
+        left = std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
     }
 
     return left;
@@ -1526,10 +1537,10 @@ std::shared_ptr<ASTNode> Parser::parseTerm() {
 std::shared_ptr<ASTNode> Parser::parseFactor() {
     if (debug) std::cout << "parse factor " << getTokenStr() << std::endl;
     if (tokenIs("+") || tokenIs("-")) {
-        TokenType op = getToken()->type;
+        const Token* op = getToken();
         consume();
         auto right = parsePower();
-        return std::make_shared<UnaryOpNode>(op, right);
+        return std::make_shared<UnaryOpNode>(op->type, right, op->line, op->column);
     }
     else {
         return parsePower();
@@ -1541,10 +1552,10 @@ std::shared_ptr<ASTNode> Parser::parsePower() {
     auto left = parseLogicalNot();
 
     if (tokenIs("^") || tokenIs("**")) {
-        TokenType op = getToken()->type;
+        const Token* op = getToken();
         consume();
         auto right = parseFactor();
-        return std::make_shared<BinaryOpNode>(left, op, right);
+        return std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
     }
     else {
         return left;
@@ -1554,10 +1565,10 @@ std::shared_ptr<ASTNode> Parser::parsePower() {
 std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
     if (debug) std::cout << "parse not " << getTokenStr() << std::endl;
     if (tokenIs("not") || tokenIs("!")) {
-        TokenType k_word = TokenType::_Not;
+        const Token* k_word = getToken();
         consume();
         auto right = parsePrimary();
-        return std::make_shared<UnaryOpNode>(k_word, right);
+        return std::make_shared<UnaryOpNode>(k_word->type, right, k_word->line, k_word->column);
     }
     else {
         return parsePrimary();
@@ -1567,25 +1578,27 @@ std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
 std::shared_ptr<ASTNode> Parser::parsePrimary() {
     if (debug) std::cout << "parse primary " << getTokenStr() << std::endl;
     if (tokenIs("(")) {
+        const Token* token = getToken();
         consume();
         auto parse_or = parseLogicalOr();
         if (!tokenIs(")")) {
-            handleError("Expected ')' but got " + getTokenStr(), getToken()->line, getToken()->column);
+            parsingError("Expected ')' but got " + getTokenStr(), getToken()->line, getToken()->column);
         }
         consume();
-        return std::make_shared<ParenthesisOpNode>(parse_or);
+        return std::make_shared<ParenthesisOpNode>(parse_or, token->line, token->column);
     }
     else if (tokenIs("{")) {
+        const Token* token = getToken();
         consume();
         std::vector<std::shared_ptr<ASTNode>> block;
         while (!tokenIs("eof") && !tokenIs("}")) {
             block.push_back(parseFoundation());
         }
         if (!tokenIs("}")) {
-            handleError("Expected '}'" + getTokenStr(), getToken()->line, getToken()->column);
+            parsingError("Expected '}'" + getTokenStr(), getToken()->line, getToken()->column);
         }
         consume();
-        return std::make_shared<ScopeNode>(block);
+        return std::make_shared<ScopeNode>(block, token->line, token->column);
     }
     else {
         return parseMemberAccess();
@@ -1597,6 +1610,7 @@ std::shared_ptr<ASTNode> Parser::parseMemberAccess() {
 
     while (true) {
         if (tokenIs(".")) {
+            const Token* token = getToken();
             consume();
             if (tokenIs("ident")) {
                 std::shared_ptr<ASTNode> right;
@@ -1605,7 +1619,7 @@ std::shared_ptr<ASTNode> Parser::parseMemberAccess() {
                 } else {
                     right = parseIdentifier();
                 }
-                node = std::make_shared<BinaryOpNode>(node, TokenType::_Dot, right);
+                node = std::make_shared<BinaryOpNode>(node, TokenType::_Dot, right, token->line, token->column);
             }
         } else if (tokenIs("[")) {
             node = parseIndexing(node);
@@ -1625,22 +1639,23 @@ std::shared_ptr<ASTNode> Parser::parseIndexing(std::shared_ptr<ASTNode> left) {
         left = parseCollection();
     }
     while (tokenIs("[")) {
+        const Token* token = getToken();
         consume();
         auto start = parseExpression(); // Assuming it ends up as an int
         if (tokenIs("]")) {
             consume();
-            left = std::make_shared<IndexNode>(left, start);
+            left = std::make_shared<IndexNode>(left, start, nullptr, token->line, token->column);
         } else if (!tokenIs(":")) {
-            handleError("Expected either ']' or ':'", getToken()->line, getToken()->column);
+            parsingError("Expected either ']' or ':'", getToken()->line, getToken()->column);
         } else {
             // Is :
             consume();
             auto end = parseExpression();
             if (!tokenIs("]")) {
-                handleError("Expected ']'", getToken()->line, getToken()->column);
+                parsingError("Expected ']'", getToken()->line, getToken()->column);
             }
             consume();
-            left = std::make_shared<IndexNode>(left, start, end);
+            left = std::make_shared<IndexNode>(left, start, end, token->line, token->column);
         }
     }
 
@@ -1652,6 +1667,7 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
     if (!tokenIs("[")) {
         return parseAtom();
     }
+    const Token* token = getToken();
     consume();
     ASTList list;
     while (!tokenIs("]") && !tokenIs("eof") && !tokenIs(";")) {
@@ -1660,14 +1676,14 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
         if (tokenIs(",") && !nextTokenIs("]")) {
             consume();
         } else if (tokenIs(",")) {
-            handleError("Expected more values", getToken()->line, getToken()->column);
+            parsingError("Expected more values", getToken()->line, getToken()->column);
         }
     }
     if (tokenIs("eof") || tokenIs(";")) {
-        handleError("Expected ']'", getToken()->line, getToken()->column);
+        parsingError("Expected ']'", getToken()->line, getToken()->column);
     }
     consume();
-    return std::make_shared<ListNode>(list);
+    return std::make_shared<ListNode>(list, token->line, token->column);
 }
 
 std::shared_ptr<ASTNode> Parser::parseAtom() {
@@ -1677,22 +1693,22 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
         if (std::holds_alternative<int>(token->value)) {
             auto int_value = std::get<int>(token->value);
             consume();
-            return std::make_shared<AtomNode>(int_value);
+            return std::make_shared<AtomNode>(int_value, token->line, token->column);
         }
         else if (std::holds_alternative<double>(token->value)) {
             auto float_value = std::get<double>(token->value);
             consume();
-            return std::make_shared<AtomNode>(float_value);
+            return std::make_shared<AtomNode>(float_value, token->line, token->column);
         }
         else if (std::holds_alternative<bool>(token->value)) {
             auto bool_value = std::get<bool>(token->value);
             consume();
-            return std::make_shared<AtomNode>(bool_value);
+            return std::make_shared<AtomNode>(bool_value, token->line, token->column);
         }
         else if (std::holds_alternative<std::string>(token->value)) {
             auto string_value = std::get<std::string>(token->value);
             consume();
-            return std::make_shared<AtomNode>(string_value);
+            return std::make_shared<AtomNode>(string_value, token->line, token->column);
         }
     }
     else if (tokenIs("ident") && peek() && peek().value()->type == TokenType::_OpenParen) {
@@ -1705,7 +1721,7 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
         return parseKeyword();
     }
     else {
-        handleError(std::format("Expected atom but got {}", getTokenStr()), getToken()->line, getToken()->column);
+        parsingError(std::format("Expected atom but got {}", getTokenStr()), getToken()->line, getToken()->column);
     }
     return nullptr;
 }
@@ -1714,31 +1730,31 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifi
     if (debug) std::cout << "parse func call " << getTokenStr() << std::endl;
     if (!identifier) {
         if (!tokenIs("ident")) {
-            handleError("Expected function name but got " + getTokenStr(), getToken()->line, getToken()->column);
+            parsingError("Expected function name but got " + getTokenStr(), getToken()->line, getToken()->column);
         }
         identifier = parseIdentifier(nullptr);
     }
     if (!tokenIs("(")) {
-        handleError("Missing '(' at function call", getToken()->line, getToken()->column);
+        parsingError("Missing '(' at function call", getToken()->line, getToken()->column);
     }
     consume();
     std::vector<std::shared_ptr<ASTNode>> arguments;
     while (!tokenIs(")") && !tokenIs("eof") && !tokenIs(";")) {
         arguments.push_back(parseLogicalOr());
         if (!tokenIs(")") && !tokenIs(",")) {
-            handleError("Expected ','", getToken()->line, getToken()->column);
+            parsingError("Expected ','", getToken()->line, getToken()->column);
         } else if (tokenIs(",")) {
             consume();
             if (tokenIs(")")) {
-                handleError("Expected another argument", getToken()->line, getToken()->column);
+                parsingError("Expected another argument", getToken()->line, getToken()->column);
             }
         }
     }
     if (tokenIs("eof") || tokenIs(";")) {
-        handleError("Expected ')'", getToken()->line, getToken()->column);
+        parsingError("Expected ')'", getToken()->line, getToken()->column);
     }
     consume();
-    return std::make_shared<FuncCallNode>(identifier, arguments);
+    return std::make_shared<FuncCallNode>(identifier, arguments, identifier->line, identifier->column);
 }
 
 std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString) {
@@ -1751,14 +1767,14 @@ std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> va
             if (varString != nullptr) {
                 *varString = ident_value;
             }
-            return std::make_shared<IdentifierNode>(ident_value);
+            return std::make_shared<IdentifierNode>(ident_value, token->line, token->column);
         }
         else {
-            handleError("Attempted to create an identifier with an invalid type", token->line, token->column);
+            parsingError("Attempted to create an identifier with an invalid type", token->line, token->column);
         }
     }
     else {
-        handleError(std::format("Expected identifier but got {}", getTokenStr()), getToken()->line, getToken()->column);
+        parsingError(std::format("Expected identifier but got {}", getTokenStr()), getToken()->line, getToken()->column);
     }
     return nullptr;
 }
