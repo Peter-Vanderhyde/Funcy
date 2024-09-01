@@ -5,4 +5,4 @@ Make and or behave properly and convert if to bool at end
 
 import "library";
 
-print([1, 2, 3][inte("2")]);
+print([1, 2, 3][2]);

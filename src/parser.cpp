@@ -3,6 +3,7 @@
 #include "global_context.h"
 #include "library.h"
 #include <iostream>
+#include <fstream>
 
 
 std::unordered_map<TokenType, ValueType> token_value_map{
@@ -16,18 +17,48 @@ std::unordered_map<TokenType, ValueType> token_value_map{
     {TokenType::_NullType, ValueType::Null}
 };
 
+std::string getLine(const std::string& filename, int line) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Could not open file: " + filename);
+    }
 
+    std::string currentLine;
+    int currentLineNum = 1;
+
+    while (std::getline(file, currentLine)) {
+        if (currentLineNum == line) {
+            return currentLine;
+        }
+        currentLineNum++;
+    }
+
+    if (currentLineNum < line) {
+        throw std::runtime_error("Line number out of range in file: " + filename);
+    }
+    return "";
+}
+
+void handleError(const std::string& message, int line, int column, std::string prefix) {
+    std::string filename = GlobalContext::instance().getFilename();
+    std::string error = std::format("\033[31m{}:\033[0m File \033[32m{}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m:\n", prefix, filename, line, column);
+    error += std::format("\t{}\n", getLine(filename, line));
+    std::string spaces = "\t";
+    for (int i = 0; i < column - 1; i++) {
+        spaces += " ";
+    }
+    spaces += "\033[31m^\033[0m\n";
+    error += spaces;
+    error += std::format("\033[38;5;214m{}.\033[0m", message);
+    throw std::runtime_error(error);
+}
 
 void parsingError(const std::string& message, int line, int column) {
-    if (line > 0 && column > 0) {
-        throw std::runtime_error(std::format("\033[31mSyntax Error:\033[38;5;214m {}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m", message, line, column));
-    } else {
-        throw std::runtime_error(message);
-    }
+    handleError(message, line, column, "Syntax Error");
 }
 
 void runtimeError(const std::string& message, int line, int column) {
-    throw std::runtime_error(std::format("\033[31mRuntime Error:\033[38;5;214m {}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m", message, line, column));
+    handleError(message, line, column, "Runtime Error");
 }
 
 void runtimeError(const std::string& message, std::shared_ptr<ASTNode> node) {
@@ -126,7 +157,7 @@ std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
     } else if (isString()) {
         return std::make_shared<Value>(getString());
     } else {
-        parsingError("Unable to evaluate value.", 0, 0);
+        parsingError("Unable to evaluate value.", line, column);
         return std::nullopt;
     }
 }
