@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
         catch (const ContinueException) {
             throw std::runtime_error("Continue was used outside of loop.");
         }
-        catch (const std::runtime_error& e) {
+        catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;
             return 0;
         }

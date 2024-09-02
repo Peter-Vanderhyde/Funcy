@@ -1,8 +1,9 @@
 /*
 Make default args in functions/unkown number of args
-Make and or behave properly and convert if to bool at end
+Add built-in dict.keys/values/items
 */
+func add(x) {
+    return 1 + x;
+}
 
-import "library";
-
-print([1, 2, 3][2]);
+print(add);

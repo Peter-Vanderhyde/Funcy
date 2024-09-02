@@ -4,18 +4,26 @@
 #include <memory>
 #include <math.h>
 #include <functional>
+#include <map>
 #include "lexer.h"
 
 class ASTNode;
 class Environment;
 
 struct Value;
+
+// ValueCompare struct declaration
+struct ValueCompare {
+    bool operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const;
+};
+
 enum class ValueType {
     Integer,
     Float,
     Boolean,
     String,
     List,
+    Dictionary,
     Function,
     BuiltInFunction,
     Null,
@@ -25,20 +33,61 @@ enum class ValueType {
 extern std::unordered_map<TokenType, ValueType> token_value_map;
 
 using List = std::vector<std::shared_ptr<Value>>;
+using Dictionary = std::map<std::shared_ptr<Value>, std::shared_ptr<Value>, ValueCompare>;
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
     const std::vector<std::shared_ptr<Value>>& args, 
     Environment& env
 )>;
 using VariantType = std::variant<int, double, bool, TokenType, std::string, std::shared_ptr<ASTNode>,
-                        std::shared_ptr<List>, std::shared_ptr<BuiltInFunction>, ValueType>;
+                        std::shared_ptr<List>, std::shared_ptr<Dictionary>, std::shared_ptr<BuiltInFunction>, ValueType>;
 
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
+using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>>;
 
 std::ostream& operator<<(std::ostream& os, const List& list);
 
 struct Value : public VariantType {
     using VariantType::VariantType;
 };
+
+// Custom hash and equality functions for using Value in dictionaries
+namespace std {
+    template <>
+    struct hash<std::shared_ptr<Value>> {
+        std::size_t operator()(const std::shared_ptr<Value>& valuePtr) const {
+            if (!valuePtr) return 0;
+
+            // Access the underlying VariantType directly
+            const VariantType& variant = static_cast<const VariantType&>(*valuePtr);
+            return std::visit([](auto&& value) -> std::size_t {
+                using T = std::decay_t<decltype(value)>;
+                return std::hash<T>{}(value);
+            }, variant);
+        }
+    };
+}
+
+
+struct ValueEqual {
+    bool operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const {
+        if (lhs == rhs) return true;  // Both pointers are the same
+        if (!lhs || !rhs) return false;  // One is null and the other isn't
+
+        // Access the underlying VariantType directly
+        const VariantType& lhs_variant = static_cast<const VariantType&>(*lhs);
+        const VariantType& rhs_variant = static_cast<const VariantType&>(*rhs);
+
+        return std::visit([](auto&& lhsVal, auto&& rhsVal) -> bool {
+            using T1 = std::decay_t<decltype(lhsVal)>;
+            using T2 = std::decay_t<decltype(rhsVal)>;
+            if constexpr (std::is_same_v<T1, T2>) {
+                return lhsVal == rhsVal;
+            }
+            return false;
+        }, lhs_variant, rhs_variant);
+    }
+};
+
 
 class Scope {
 public:
@@ -158,6 +207,17 @@ public:
     ASTList list;
 };
 
+class DictionaryNode : public ASTNode {
+public:
+    DictionaryNode(ASTDictionary dictionary, int line, int column)
+        : ASTNode{line, column}, dictionary{dictionary} {}
+    ~DictionaryNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    ASTDictionary dictionary;
+};
+
 class IndexNode : public ASTNode {
 public:
     IndexNode(std::shared_ptr<ASTNode> container, std::shared_ptr<ASTNode> start_index, std::shared_ptr<ASTNode> end_index,
@@ -167,7 +227,9 @@ public:
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     std::optional<std::shared_ptr<Value>> getIndex(Environment& env,
-                                                    std::variant<std::shared_ptr<std::string>, std::shared_ptr<List>> listr);
+                                                    std::variant<std::shared_ptr<std::string>,
+                                                                std::shared_ptr<List>,
+                                                                std::shared_ptr<Dictionary>> distr);
     void assignIndex(Environment& env, std::shared_ptr<Value> value);
 
     std::shared_ptr<ASTNode> container;
@@ -280,7 +342,7 @@ public:
 
 class FuncNode : public ASTNode {
 public:
-    FuncNode(std::vector<std::shared_ptr<ASTNode>> args, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+    FuncNode(std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
         : ASTNode{line, column}, args{args}, block{block} {}
     
     ~FuncNode() noexcept override = default;
@@ -289,6 +351,7 @@ public:
     void setArgs(List values, Environment& base_env, Environment& local_env);
     std::optional<std::shared_ptr<Value>> callFunc(List values, Environment& env);
     
+    std::shared_ptr<std::string> func_name;
     std::vector<std::shared_ptr<ASTNode>> args;
     Environment local_env;
     std::vector<std::shared_ptr<ASTNode>> block;

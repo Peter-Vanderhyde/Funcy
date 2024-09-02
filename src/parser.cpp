@@ -5,6 +5,26 @@
 #include <iostream>
 #include <fstream>
 
+// Implement the ValueCompare function
+bool ValueCompare::operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const {
+    if (!lhs || !rhs) {
+        return lhs < rhs;
+    }
+
+    const auto& lhs_variant = static_cast<const VariantType&>(*lhs);
+    const auto& rhs_variant = static_cast<const VariantType&>(*rhs);
+
+    return std::visit([&](auto&& lhsVal, auto&& rhsVal) -> bool {
+        using T1 = std::decay_t<decltype(lhsVal)>;
+        using T2 = std::decay_t<decltype(rhsVal)>;
+
+        if constexpr (std::is_same_v<T1, T2>) {
+            return lhsVal < rhsVal;
+        } else {
+            return lhs_variant.index() < rhs_variant.index();
+        }
+    }, lhs_variant, rhs_variant);
+}
 
 std::unordered_map<TokenType, ValueType> token_value_map{
     {TokenType::_IntType, ValueType::Integer},
@@ -42,12 +62,12 @@ std::string getLine(const std::string& filename, int line) {
 void handleError(const std::string& message, int line, int column, std::string prefix) {
     std::string filename = GlobalContext::instance().getFilename();
     std::string error = std::format("\033[31m{}:\033[0m File \033[32m{}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m:\n", prefix, filename, line, column);
-    error += std::format("\t{}\n", getLine(filename, line));
-    std::string spaces = "\t";
+    error += std::format("        {}\n", getLine(filename, line));
+    std::string spaces = "        ";
     for (int i = 0; i < column - 1; i++) {
         spaces += " ";
     }
-    spaces += "\033[31m^\033[0m\n";
+    spaces += "\033[38;5;214m^\033[0m\n";
     error += spaces;
     error += std::format("\033[38;5;214m{}.\033[0m", message);
     throw std::runtime_error(error);
@@ -123,14 +143,33 @@ void printValue(const std::shared_ptr<Value> value) {
         std::cout << std::boolalpha << bool_value;
     } else if (std::holds_alternative<std::string>(*value)) {
         auto string_value = std::get<std::string>(*value);
-        std::cout << string_value;
+        std::cout << "'" << string_value << "'";
     } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
         auto list_value = std::get<std::shared_ptr<List>>(*value);
         std::cout << *list_value;
+    } else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*value)) {
+        auto dict_value = std::get<std::shared_ptr<Dictionary>>(*value);
+        std::cout << "{";
+        bool first = true;
+        for (const auto pair : *dict_value) {
+            if (!first) {
+                std::cout << ", ";
+            } else {
+                first = false;
+            }
+            printValue(pair.first);
+            std::cout << ":";
+            printValue(pair.second);
+        }
+        std::cout << "}";
     } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*value)) {
         auto func_value = std::get<std::shared_ptr<ASTNode>>(*value);
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
-            std::cout << "Function";
+            if (func->func_name) {
+                std::cout << "Function:" << *func->func_name;
+            } else {
+                std::cout << "Function";
+            }
         } else {
             runtimeError("Tried to print value that was an unknown ASTNode.", func_value);
         }
@@ -232,7 +271,7 @@ std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
             if (result) {
                 evaluated_list.push_back(result.value());
             } else {
-                evaluated_list.push_back(nullptr); // If evaluation fails, store null
+                runtimeError("List element was unable to be evaluated", line, column);
             }
         } else {
             runtimeError("List contained a nullptr pointing to an ASTNode", line, column); // Null ASTNode pointer
@@ -240,6 +279,23 @@ std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
     }
 
     return std::make_shared<Value>(std::make_shared<List>(evaluated_list));
+}
+
+std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env) {
+    if (debug) std::cout << "evaluate dict" << std::endl;
+    std::shared_ptr<Dictionary> evaluated_dict = std::make_shared<Dictionary>();
+
+    for (const auto& pair : dictionary) {
+        auto key = pair.first->evaluate(env);
+        auto value = pair.second->evaluate(env);
+        if (key && value) {
+            evaluated_dict->insert({key.value(), value.value()});
+        } else {
+            runtimeError("Dictionary key or value was unable to be evaluated", line, column);
+        }
+    }
+
+    return std::make_shared<Value>(evaluated_dict);
 }
 
 std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
@@ -269,6 +325,18 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
         } else {
             runtimeError("Was unable to evaluate the list", list_node);
         }
+    } else if (auto dict_node = std::dynamic_pointer_cast<DictionaryNode>(container)) {
+        auto eval = dict_node->evaluate(env);
+        if (eval) {
+            if (std::holds_alternative<std::shared_ptr<Dictionary>>(*eval.value())) {
+                auto dict_val = std::get<std::shared_ptr<Dictionary>>(*eval.value());
+                return getIndex(env, dict_val);
+            } else {
+                runtimeError("Dictionary evaluation did not return a dictionary", dict_node);
+            }
+        } else {
+            runtimeError("Was unable to evaluate the dictionary", dict_node);
+        }
     } else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(container)) {
         auto eval = ident_node->evaluate(env);
         if (eval) {
@@ -278,8 +346,11 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
             } else if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
                 auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
                 return getIndex(env, list_val);
+            } else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*eval.value())) {
+                auto dict_val = std::get<std::shared_ptr<Dictionary>>(*eval.value());
+                return getIndex(env, dict_val);
             } else {
-                runtimeError("Identifier evaluation did not return a list or string for indexing", ident_node);
+                runtimeError("Identifier evaluation did not return a list, dictionary or string for indexing", ident_node);
             }
         } else {
             runtimeError("Was unable to evaluate the identifier", ident_node);
@@ -318,7 +389,10 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
     return std::nullopt;
 }
 
-std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_ptr<std::string>, std::shared_ptr<List>> listr, int index, int line, int column) {
+std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_ptr<std::string>,
+                                                                    std::shared_ptr<List>,
+                                                                    std::shared_ptr<Dictionary>> listr,
+                                                        int index, int line, int column) {
     if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
         auto string = std::get<std::shared_ptr<std::string>>(listr);
         if (index >= 0 && index < string->length()) {
@@ -344,8 +418,14 @@ std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_p
 }
 
 std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
-                                                    std::variant<std::shared_ptr<std::string>, std::shared_ptr<List>> listr) {
+                                                    std::variant<std::shared_ptr<std::string>,
+                                                                std::shared_ptr<List>,
+                                                                std::shared_ptr<Dictionary>> distr) {
     if (end_index) {
+        if (std::holds_alternative<std::shared_ptr<Dictionary>>(distr)) {
+            runtimeError("Dictionary is not subscriptable", line, column);
+            return std::nullopt;
+        }
         auto start_result = start_index->evaluate(env);
         auto end_result = end_index->evaluate(env);
         if (start_result && end_result) {
@@ -354,25 +434,25 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                 if (std::holds_alternative<int>(*end_result.value())) {
                     int end_val = std::get<int>(*end_result.value());
                     if (start_val <= end_val) {
-                        if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
+                        if (std::holds_alternative<std::shared_ptr<std::string>>(distr)) {
                             if (start_val < 0 && end_val >= 0) {
                                 return std::make_shared<Value>("");
                             }
 
                             std::string sub_str;
                             for (int i = start_val; i < end_val; i++) {
-                                char c = std::get<char>(getAtIndex(listr, i, line, column));
+                                char c = std::get<char>(getAtIndex(std::get<std::shared_ptr<std::string>>(distr), i, line, column));
                                 sub_str += c;
                             }
                             return std::make_shared<Value>(sub_str);
-                        } else if (std::holds_alternative<std::shared_ptr<List>>(listr)){
+                        } else if (std::holds_alternative<std::shared_ptr<List>>(distr)){
                             std::shared_ptr<List> list = std::make_shared<List>();
                             if (start_val < 0 && end_val >= 0) {
                                 return std::make_shared<Value>(list);
                             }
                             
                             for (int i = start_val; i < end_val; i++) {
-                                auto list_val = std::get<std::shared_ptr<Value>>(getAtIndex(listr, i, line, column));
+                                auto list_val = std::get<std::shared_ptr<Value>>(getAtIndex(std::get<std::shared_ptr<std::string>>(distr), i, line, column));
                                 list->push_back(list_val);
                             }
                             return std::make_shared<Value>(list);
@@ -392,60 +472,88 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
             runtimeError("Failed to evaluate start_index or end_index", line, column);
         }
     } else {
-        auto result = start_index->evaluate(env);
-        if (result) {
-            if (std::holds_alternative<int>(*result.value())) {
-                int int_val = std::get<int>(*result.value());
-                if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
-                    auto get_char = getAtIndex(listr, int_val, line, column);
-                    if (std::holds_alternative<char>(get_char)) {
-                        auto c = std::get<char>(get_char);
-                        std::string str = std::string(1, c);
-                        return std::make_shared<Value>(str);
-                    }
+        if (std::holds_alternative<std::shared_ptr<Dictionary>>(distr)) {
+            // It's a dictionary, not string or list
+            auto dict = std::get<std::shared_ptr<Dictionary>>(distr);
+            auto key = start_index->evaluate(env);
+            if (key) {
+                auto it = dict->find(key.value());
+                if (it != dict->end()) {
+                    return it->second;
                 } else {
-                    auto value = std::get<std::shared_ptr<Value>>(getAtIndex(listr, int_val, line, column));
-                    return value;
+                    runtimeError("Unable to find key " + getValueStr(key.value()) + " in dictionary", line, column);
                 }
             } else {
-                runtimeError("The index was not given an int", start_index);
+                runtimeError("Failed to evaluate key", line, column);
             }
         } else {
-            runtimeError("Failed to evaluate start_index", start_index);
-            return std::nullopt;
+            auto result = start_index->evaluate(env);
+            if (result) {
+                if (std::holds_alternative<int>(*result.value())) {
+                    int int_val = std::get<int>(*result.value());
+                    if (std::holds_alternative<std::shared_ptr<std::string>>(distr)) {
+                        auto get_char = getAtIndex(distr, int_val, line, column);
+                        if (std::holds_alternative<char>(get_char)) {
+                            auto c = std::get<char>(get_char);
+                            std::string str = std::string(1, c);
+                            return std::make_shared<Value>(str);
+                        }
+                    } else {
+                        auto value = std::get<std::shared_ptr<Value>>(getAtIndex(distr, int_val, line, column));
+                        return value;
+                    }
+                } else {
+                    runtimeError("The index was not given an int", start_index);
+                }
+            } else {
+                runtimeError("Failed to evaluate start_index", start_index);
+                return std::nullopt;
+            }
         }
     }
     return std::nullopt;
 }
 
-void setAtIndex(std::shared_ptr<List> env_list, int list_index, std::shared_ptr<Value> value) {
-    if (list_index >= 0 && list_index <= env_list->size()) {
-        if (std::holds_alternative<std::string>(*value)) {
-            // Assigning a string
-            auto str_val = std::get<std::string>(*value);
-            std::string s = "";
-            int i = 0;
-            for (auto c : str_val) {
-                s += c;
-                auto char_str = std::make_shared<Value>(s);
-                if (list_index + i == env_list->size()) {
-                    env_list->push_back(char_str);
-                } else {
-                    env_list->insert(env_list->begin() + list_index + i, char_str);
+void setAtIndex(std::variant<std::shared_ptr<List>, std::shared_ptr<Dictionary>> env_dist, std::shared_ptr<Value> index_key, std::shared_ptr<Value> value) {
+    if (std::holds_alternative<std::shared_ptr<List>>(env_dist)) {
+        auto env_list = std::get<std::shared_ptr<List>>(env_dist);
+        int list_index = std::get<int>(*index_key);
+        if (list_index >= 0 && list_index <= env_list->size()) {
+            if (std::holds_alternative<std::string>(*value)) {
+                // Assigning a string
+                auto str_val = std::get<std::string>(*value);
+                std::string s = "";
+                int i = 0;
+                for (auto c : str_val) {
+                    s += c;
+                    auto char_str = std::make_shared<Value>(s);
+                    if (list_index + i == env_list->size()) {
+                        env_list->push_back(char_str);
+                    } else {
+                        env_list->insert(env_list->begin() + list_index + i, char_str);
+                    }
+                    s = "";
+                    i++;
                 }
-                s = "";
-                i++;
-            }
-        } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
-            auto list_val = std::get<std::shared_ptr<List>>(*value);
-            // Assigning a list
-            for (int i = list_val->size() - 1; i >= 0; i--) {
-                if (list_index == env_list->size()) {
-                    env_list->push_back(list_val->at(i));
-                } else {
-                    env_list->insert(env_list->begin() + list_index, list_val->at(i));
+            } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
+                auto list_val = std::get<std::shared_ptr<List>>(*value);
+                // Assigning a list
+                for (int i = list_val->size() - 1; i >= 0; i--) {
+                    if (list_index == env_list->size()) {
+                        env_list->push_back(list_val->at(i));
+                    } else {
+                        env_list->insert(env_list->begin() + list_index, list_val->at(i));
+                    }
                 }
             }
+        }
+    } else {
+        auto env_dict = std::get<std::shared_ptr<Dictionary>>(env_dist);
+        auto it = env_dict->find(index_key);
+        if (it != env_dict->end()) {
+            it->second = value;
+        } else {
+            env_dict->insert({index_key, value});
         }
     }
 }
@@ -459,59 +567,75 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
         runtimeError("Index assignment unable to evaluate the container", line, column);
         return;
     }
-    if (!std::holds_alternative<std::shared_ptr<List>>(*env_val)) {
+    if (std::holds_alternative<std::shared_ptr<List>>(*env_val)) {
+        std::shared_ptr<List> env_list = std::get<std::shared_ptr<List>>(*env_val);
+
+        if (end_index == nullptr) {
+            // A single index assignment
+            auto index_eval = start_index->evaluate(env);
+            if (index_eval) {
+                if (std::holds_alternative<int>(*index_eval.value())) {
+                    int index = std::get<int>(*index_eval.value());
+                    if (index >= 0 && index < env_list->size()) {
+                        env_list->at(index) = value;
+                    } else if (index < 0 && index >= env_list->size() * -1) {
+                        env_list->at(env_list->size() - index);
+                    } else {
+                        runtimeError("Index assignment out of range", line, column);
+                    }
+                } else {
+                    runtimeError("Index assignment requires int", line, column);
+                }
+            } else {
+                runtimeError("Failed to evaluate assignment index", line, column);
+            }
+        } else {
+            // List slice index assignment
+            auto start_eval = start_index->evaluate(env);
+            auto end_eval = end_index->evaluate(env);
+            if (start_eval && end_eval) {
+                if (std::holds_alternative<int>(*start_eval.value())) {
+                    int start_val = std::get<int>(*start_eval.value());
+                    if (std::holds_alternative<int>(*end_eval.value())) {
+                        int end_val = std::get<int>(*end_eval.value());
+                        int slice_size = std::abs(end_val - start_val);
+                        // Cut out the slice section of the original list
+                        for (int i = 0; i < slice_size; i++) {
+                            if (env_list->begin() + start_val == env_list->end()) {
+                                break;
+                                // runtimeError("Assignment index went out of range.");
+                            }
+                            env_list->erase(env_list->begin() + start_val);
+                        }
+                        setAtIndex(env_list, start_eval.value(), value);
+                    } else {
+                        runtimeError("Assignment index end value is not an int", line, column);
+                    }
+                } else {
+                    runtimeError("Assignment index start value is not an int", line, column);
+                }
+            } else {
+                runtimeError("Assignment index was unable to evaluate", line, column);
+            }
+        }
+    }
+    else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*env_val)) {
+        std::shared_ptr<Dictionary> env_dict = std::get<std::shared_ptr<Dictionary>>(*env_val);
+
+        if (end_index == nullptr) {
+            auto key_eval = start_index->evaluate(env);
+            if (key_eval) {
+                setAtIndex(env_dict, key_eval.value(), value);
+            } else {
+                runtimeError("Failed to evaluate assignment key", line, column);
+            }
+        } else {
+            runtimeError("Dictionary is not subscriptable", line, column);
+        }
+    }
+    else {
         runtimeError(getValueStr(env_val) + " object does not support item assignment", line, column);
         return;
-    }
-    std::shared_ptr<List> env_list = std::get<std::shared_ptr<List>>(*env_val);
-
-    if (end_index == nullptr) {
-        // A single index assignment
-        auto index_eval = start_index->evaluate(env);
-        if (index_eval) {
-            if (std::holds_alternative<int>(*index_eval.value())) {
-                int index = std::get<int>(*index_eval.value());
-                if (index >= 0 && index < env_list->size()) {
-                    env_list->at(index) = value;
-                } else if (index < 0 && index >= env_list->size() * -1) {
-                    env_list->at(env_list->size() - index);
-                } else {
-                    runtimeError("Index assignment out of range", line, column);
-                }
-            } else {
-                runtimeError("Index assignment requires int", line, column);
-            }
-        } else {
-            runtimeError("Failed to evaluate assignment index", line, column);
-        }
-    } else {
-        // List slice index assignment
-        auto start_eval = start_index->evaluate(env);
-        auto end_eval = end_index->evaluate(env);
-        if (start_eval && end_eval) {
-            if (std::holds_alternative<int>(*start_eval.value())) {
-                int start_val = std::get<int>(*start_eval.value());
-                if (std::holds_alternative<int>(*end_eval.value())) {
-                    int end_val = std::get<int>(*end_eval.value());
-                    int slice_size = std::abs(end_val - start_val);
-                    // Cut out the slice section of the original list
-                    for (int i = 0; i < slice_size; i++) {
-                        if (env_list->begin() + start_val == env_list->end()) {
-                            break;
-                            // runtimeError("Assignment index went out of range.");
-                        }
-                        env_list->erase(env_list->begin() + start_val);
-                    }
-                    setAtIndex(env_list, start_val, value);
-                } else {
-                    runtimeError("Assignment index end value is not an int", line, column);
-                }
-            } else {
-                runtimeError("Assignment index start value is not an int", line, column);
-            }
-        } else {
-            runtimeError("Assignment index was unable to evaluate", line, column);
-        }
     }
 }
 
@@ -528,8 +652,10 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
                 return v != 0;
             } else if constexpr (std::is_same_v<T, std::string>) {
                 return !v.empty();
-            } else if constexpr (std::is_same_v<T, List>) {
-                return !v.empty();
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<List>>) {
+                return !v->empty();
+            } else if constexpr (std::is_same_v<T, std::shared_ptr<Dictionary>>) {
+                return !v->empty();
             } else if constexpr (std::is_same_v<T, ValueType>) {
                 return v != ValueType::Null;
             }
@@ -538,22 +664,22 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
     };
 
     // Deep comparison function for lists
-    auto deepCompareLists = [&](const std::shared_ptr<List>& lhsList, const std::shared_ptr<List>& rhsList) -> bool {
-        if (lhsList->size() != rhsList->size()) {
+    auto deepCompareLists = [&](const std::shared_ptr<List>& lhs_list, const std::shared_ptr<List>& rhs_list) -> bool {
+        if (lhs_list->size() != rhs_list->size()) {
             return false;
         }
-        for (size_t i = 0; i < lhsList->size(); ++i) {
-            auto lhsElement = lhsList->at(i);
-            auto rhsElement = rhsList->at(i);
-            auto result = std::visit([&](auto lhsVal) -> bool {
-                return std::visit([&](auto rhsVal) -> bool {
-                    auto compResult = doArithmetic(lhsVal, rhsVal, TokenType::_Compare, line, column);
-                    if (compResult && std::holds_alternative<bool>(*compResult.value())) {
-                        return std::get<bool>(*compResult.value());
+        for (size_t i = 0; i < lhs_list->size(); ++i) {
+            auto lhs_element = lhs_list->at(i);
+            auto rhs_element = rhs_list->at(i);
+            auto result = std::visit([&](auto lhs_val) -> bool {
+                return std::visit([&](auto rhs_val) -> bool {
+                    auto comp_result = doArithmetic(lhs_val, rhs_val, TokenType::_Compare, line, column);
+                    if (comp_result && std::holds_alternative<bool>(*comp_result.value())) {
+                        return std::get<bool>(*comp_result.value());
                     }
                     return false;
-                }, *rhsElement);
-            }, *lhsElement);
+                }, *rhs_element);
+            }, *lhs_element);
 
             if (!result) {
                 return false;
@@ -562,9 +688,62 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         return true;
     };
 
+    auto deepCompareDictionaries = [&](const std::shared_ptr<Dictionary>& lhs_dict,
+                                    const std::shared_ptr<Dictionary>& rhs_dict) -> bool {
+        if (lhs_dict->size() != rhs_dict->size()) {
+            return false;
+        }
+
+        for (const auto& lhs_pair : *lhs_dict) {
+            auto lhs_key = lhs_pair.first;
+            auto lhs_value = lhs_pair.second;
+
+            auto rhs_iter = rhs_dict->find(lhs_key);
+            if (rhs_iter == rhs_dict->end()) {
+                // Key from lhs_dict not found in rhs_dict
+                return false;
+            }
+
+            auto rhs_value = rhs_iter->second;
+
+            // Compare values
+            auto result = std::visit([&](auto lhs_val) -> bool {
+                return std::visit([&](auto rhs_val) -> bool {
+                    auto comp_result = doArithmetic(lhs_val, rhs_val, TokenType::_Compare, line, column);
+                    if (comp_result && std::holds_alternative<bool>(*comp_result.value())) {
+                        return std::get<bool>(*comp_result.value());
+                    }
+                    return false;
+                }, *rhs_value);
+            }, *lhs_value);
+
+            if (!result) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
     // Handle AND OR for all type cases
-    if (op == TokenType::_And) return std::make_shared<Value>(checkTruthy(lhs) && checkTruthy(rhs));
-    else if (op == TokenType::_Or) return std::make_shared<Value>(checkTruthy(lhs) || checkTruthy(rhs));
+    if (op == TokenType::_And) {
+        if (checkTruthy(lhs)) {
+            if (checkTruthy(rhs)) {
+                return std::make_shared<Value>(rhs);
+            }
+        } else {
+            return std::make_shared<Value>(false);
+        }
+    }
+    else if (op == TokenType::_Or) {
+        if (checkTruthy(lhs)) {
+            return std::make_shared<Value>(lhs);
+        } else if (checkTruthy(rhs)) {
+            return std::make_shared<Value>(rhs);
+        } else {
+            return std::make_shared<Value>(false);
+        }
+    }
     else if ((op == TokenType::_Compare || op == TokenType::_NotEqual)) {
         if ((std::is_same_v<T1, ValueType> || std::is_same_v<T2, ValueType>) && !std::is_same_v<T1, T2>) {
             return std::make_shared<Value>(false);
@@ -580,6 +759,11 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         }
         else if (op == TokenType::_Compare) return std::make_shared<Value>(deepCompareLists(lhs, rhs));
         else if (op == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareLists(lhs, rhs));
+    }
+    else if constexpr (std::is_same_v<T1, std::shared_ptr<Dictionary>> && std::is_same_v<T2, std::shared_ptr<Dictionary>>) {
+        // BOTH ARE DICTIONARIES
+        if (op == TokenType::_Compare) return std::make_shared<Value>(deepCompareDictionaries(lhs, rhs));
+        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareDictionaries(lhs, rhs));
     }
     else if constexpr (std::is_same_v<T1, std::string> && std::is_same_v<T2, std::string>) {
         // BOTH STRINGS
@@ -686,22 +870,49 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             runtimeError("Failed arguments of 'in'", line, column);
         }
 
-        if (!std::holds_alternative<std::shared_ptr<List>>(*right_value.value())) {
-            runtimeError("Expected list for 'in' evaluation", line, column);
-        }
-        auto list = std::get<std::shared_ptr<List>>(*right_value.value());
-        for (const auto& item : *list) {
-            auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
-                return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
-                    return doArithmetic(lhs, rhs, TokenType::_Compare, line, column);
-                }, *item);
-            }, *left_value.value());
+        if (std::holds_alternative<std::shared_ptr<List>>(*right_value.value())) {
+            auto list = std::get<std::shared_ptr<List>>(*right_value.value());
+            for (const auto& item : *list) {
+                auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
+                    return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
+                        return doArithmetic(lhs, rhs, TokenType::_Compare, line, column);
+                    }, *item);
+                }, *left_value.value());
 
-            if (result && std::holds_alternative<bool>(*result.value()) && std::get<bool>(*result.value())) {
-                return std::make_shared<Value>(true);
+                if (result && std::holds_alternative<bool>(*result.value()) && std::get<bool>(*result.value())) {
+                    return std::make_shared<Value>(true);
+                }
+            }
+            return std::make_shared<Value>(false);
+        }
+        else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*right_value.value())) {
+            auto dict = std::get<std::shared_ptr<Dictionary>>(*right_value.value());
+            for (const auto& pair : *dict) {
+                auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
+                    return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
+                        return doArithmetic(lhs, rhs, TokenType::_Compare, line, column);
+                    }, *pair.first);
+                }, *left_value.value());
+
+                if (result && std::holds_alternative<bool>(*result.value()) && std::get<bool>(*result.value())) {
+                    return std::make_shared<Value>(true);
+                }
+            }
+            return std::make_shared<Value>(false);
+        }
+        else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*right_value.value())) {
+            auto dict = std::get<std::shared_ptr<Dictionary>>(*right_value.value());
+            for (const auto& pair : *dict) {
+                auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
+                    return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
+                        return doArithmetic(lhs, rhs, TokenType::_Compare, line, column);
+                    }, *pair.first);
+                }, *left_value.value());
             }
         }
-        return std::make_shared<Value>(false);
+        else {
+            runtimeError("Expected list or dictionary for 'in' evaluation", line, column);
+        }
     }
     else {
         std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
@@ -829,8 +1040,10 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
                     return v != 0;
                 } else if constexpr (std::is_same_v<T, std::string>) {
                     return !v.empty();
-                } else if constexpr (std::is_same_v<T, List>) {
-                    return !v.empty();
+                } else if constexpr (std::is_same_v<T, std::shared_ptr<List>>) {
+                    return !v->empty();
+                } else if constexpr (std::is_same_v<T, std::shared_ptr<Dictionary>>) {
+                    return !v->empty();
                 } else if constexpr (std::is_same_v<T, ValueType>) {
                     return v != ValueType::Null;
                 }
@@ -874,9 +1087,6 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                 try {
                     for (int i = 0; i < statements_block.size(); i++) {
                         auto result = statements_block[i]->evaluate(env);
-                        // if (result) {
-                        //     printValue(result.value());
-                        // }
                     }
                 }
                 catch (const BreakException) {
@@ -891,9 +1101,6 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         else {
             for (int i = 0; i < statements_block.size(); i++) {
                 std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
-                // if (result) {
-                //     printValue(result.value());
-                // }
             }
         }
 
@@ -959,28 +1166,52 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         }
     } else {
         // in was used with for loop instead of integer
-        auto list_result = init_node->right->evaluate(env);
-        if (!std::holds_alternative<std::shared_ptr<List>>(*list_result.value())) {
-            runtimeError("For loop expected list", line, column);
-        }
+        auto container_result = init_node->right->evaluate(env);
+        if (std::holds_alternative<std::shared_ptr<List>>(*container_result.value())) {
+            auto list = std::get<std::shared_ptr<List>>(*container_result.value());
+            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            std::string var_string = ident_node->value;
 
-        auto list = std::get<std::shared_ptr<List>>(*list_result.value());
-        auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
-        std::string var_string = ident_node->value;
-
-        for (std::shared_ptr<Value> item : *list) {
-            env.set(var_string, item);
-            try {
-                for (auto statement : block) {
-                    auto result = statement->evaluate(env);
+            for (std::shared_ptr<Value> item : *list) {
+                env.set(var_string, item);
+                try {
+                    for (auto statement : block) {
+                        auto result = statement->evaluate(env);
+                    }
+                }
+                catch (const BreakException) {
+                    break;
+                }
+                catch (const ContinueException) {
+                    continue;
                 }
             }
-            catch (const BreakException) {
-                break;
+        }
+        else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*container_result.value())) {
+            auto dict = std::get<std::shared_ptr<Dictionary>>(*container_result.value());
+            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            std::string var_string = ident_node->value;
+
+            for (const auto& pair : *dict) {
+                std::shared_ptr<List> arg_list = std::make_shared<List>();
+                arg_list->push_back(pair.first);
+                arg_list->push_back(pair.second);
+                env.set(var_string, std::make_shared<Value>(arg_list));
+                try {
+                    for (auto statement : block) {
+                        auto result = statement->evaluate(env);
+                    }
+                }
+                catch (const BreakException) {
+                    break;
+                }
+                catch (const ContinueException) {
+                    continue;
+                }
             }
-            catch (const ContinueException) {
-                continue;
-            }
+        }
+        else {
+            runtimeError("For loop expected iterable container", line, column);
         }
     }
 
@@ -1391,7 +1622,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
             return std::make_shared<ForNode>(keyword->type, for_initialization, variable_str, comparison_expr, for_increment, block, keyword->line, keyword->column);
         } else if (t_str == "func") {
-            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_args, block, keyword->line, keyword->column), keyword->line, keyword->column);
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_str, func_args, block, keyword->line, keyword->column), keyword->line, keyword->column);
         } else {
             return std::make_shared<ScopedNode>(keyword->type, nullptr, comparison_expr, block, keyword->line, keyword->column);
         }
@@ -1618,19 +1849,19 @@ std::shared_ptr<ASTNode> Parser::parsePrimary() {
         consume();
         return std::make_shared<ParenthesisOpNode>(parse_or, token->line, token->column);
     }
-    else if (tokenIs("{")) {
-        const Token* token = getToken();
-        consume();
-        std::vector<std::shared_ptr<ASTNode>> block;
-        while (!tokenIs("eof") && !tokenIs("}")) {
-            block.push_back(parseFoundation());
-        }
-        if (!tokenIs("}")) {
-            parsingError("Expected '}'" + getTokenStr(), getToken()->line, getToken()->column);
-        }
-        consume();
-        return std::make_shared<ScopeNode>(block, token->line, token->column);
-    }
+    // else if (tokenIs("{")) {
+    //     const Token* token = getToken();
+    //     consume();
+    //     std::vector<std::shared_ptr<ASTNode>> block;
+    //     while (!tokenIs("eof") && !tokenIs("}")) {
+    //         block.push_back(parseFoundation());
+    //     }
+    //     if (!tokenIs("}")) {
+    //         parsingError("Expected '}'" + getTokenStr(), getToken()->line, getToken()->column);
+    //     }
+    //     consume();
+    //     return std::make_shared<ScopeNode>(block, token->line, token->column);
+    // }
     else {
         return parseMemberAccess();
     }
@@ -1695,26 +1926,52 @@ std::shared_ptr<ASTNode> Parser::parseIndexing(std::shared_ptr<ASTNode> left) {
 
 std::shared_ptr<ASTNode> Parser::parseCollection() {
     if (debug) std::cout << "parse collection " << getTokenStr() << std::endl;
-    if (!tokenIs("[")) {
+    if (tokenIs("[")) {
+        const Token* token = getToken();
+        consume();
+        ASTList list;
+        while (!tokenIs("]") && !tokenIs("eof") && !tokenIs(";")) {
+            auto element = parseLogicalOr();
+            list.push_back(element);
+            if (tokenIs(",") && !nextTokenIs("]")) {
+                consume();
+            } else if (tokenIs(",")) {
+                parsingError("Expected more values", getToken()->line, getToken()->column);
+            }
+        }
+        if (tokenIs("eof") || tokenIs(";")) {
+            parsingError("Expected ']'", getToken()->line, getToken()->column);
+        }
+        consume();
+        return std::make_shared<ListNode>(list, token->line, token->column);
+    }
+    else if (tokenIs("{")) {
+        const Token* token = getToken();
+        consume();
+        ASTDictionary dict;
+        while (!tokenIs("}") && !tokenIs("eof") && !tokenIs(";")) {
+            auto key = parseLogicalOr();
+            if (!tokenIs(":")) {
+                parsingError("Expected ':'", getToken()->line, getToken()->column);
+            }
+            consume();
+            auto value = parseLogicalOr();
+            dict.push_back(std::make_pair(key, value));
+            if (tokenIs(",") && !nextTokenIs("}")) {
+                consume();
+            } else if (tokenIs(",")) {
+                parsingError("Expected more values", getToken()->line, getToken()->column);
+            }
+        }
+        if (tokenIs("eof") || tokenIs(";")) {
+            parsingError("Expected '}'", getToken()->line, getToken()->column);
+        }
+        consume();
+        return std::make_shared<DictionaryNode>(dict, token->line, token->column);
+    }
+    else {
         return parseAtom();
     }
-    const Token* token = getToken();
-    consume();
-    ASTList list;
-    while (!tokenIs("]") && !tokenIs("eof") && !tokenIs(";")) {
-        auto element = parseLogicalOr();
-        list.push_back(element);
-        if (tokenIs(",") && !nextTokenIs("]")) {
-            consume();
-        } else if (tokenIs(",")) {
-            parsingError("Expected more values", getToken()->line, getToken()->column);
-        }
-    }
-    if (tokenIs("eof") || tokenIs(";")) {
-        parsingError("Expected ']'", getToken()->line, getToken()->column);
-    }
-    consume();
-    return std::make_shared<ListNode>(list, token->line, token->column);
 }
 
 std::shared_ptr<ASTNode> Parser::parseAtom() {
@@ -1828,6 +2085,8 @@ std::string getValueStr(std::shared_ptr<Value> value) {
         return "function";
     } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
         return "list";
+    } else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*value)) {
+        return "dictionary";
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
         return "built-in function";
     } else if (std::holds_alternative<ValueType>(*value)) {
@@ -1851,6 +2110,8 @@ ValueType getValueType(std::shared_ptr<Value> value) {
         return ValueType::Function;
     } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
         return ValueType::List;
+    } else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*value)) {
+        return ValueType::Dictionary;
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
         return ValueType::BuiltInFunction;
     } else if (std::holds_alternative<ValueType>(*value)) {
@@ -1872,6 +2133,8 @@ std::string getTypeStr(ValueType value) {
         return "Type:String";
     } else if (value == ValueType::List) {
         return "Type:List";
+    } else if (value == ValueType::Dictionary) {
+        return "Type:Dictionary";
     } else if (value == ValueType::Function) {
         return "Type:Function";
     } else if (value == ValueType::BuiltInFunction) {

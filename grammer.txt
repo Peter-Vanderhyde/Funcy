@@ -37,7 +37,7 @@ MemberAccess : Primary [ '.' (Identifier | FunctionCall) ]*
 
 Indexing   : Collection [ GetIndex ]?
 
-Collection : Atom | List
+Collection : Atom | List | Dictionary
 
 Atom       : Identifier | Number | Boolean | String | Keyword
 
@@ -57,28 +57,17 @@ SetIndex   : Identifier ( '[' <Number>Expression ']' )+
 
 List       : '[' [LogicalOr [',' LogicalOr]* ]? ']'
 
+Dictionary : '{' [Atom ':' Atom [',' Atom ':' Atom]*]? '}'
+
 Integer    : [0-9]+
 
 Float      : [0-9]+ '.' [0-9]+
 
 Scope      : '{' Foundation+ '}'
 
-Add lines and columns to all errors
-classes and dictionaries
-Add file name to error.
+classes
 Let functions print their names too
 lambdas
 
 
-x became 10;
-until x was 15 {
-    if x was not 15 {
-        x increased 1;
-    }
-}
-
-printed(x);
-
-each i within range(x) {
-    
-}
+Narration language

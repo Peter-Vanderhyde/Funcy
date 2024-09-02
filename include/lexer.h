@@ -61,6 +61,7 @@ enum class TokenType{
     _BoolType,
     _StrType,
     _ListType,
+    _DictType,
     _FuncType,
     _BuiltInType,
     _NullType,

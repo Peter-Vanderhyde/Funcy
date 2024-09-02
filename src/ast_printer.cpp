@@ -73,5 +73,17 @@ void ASTPrinter::printNode(const ASTNode& node, int depth) const {
         }
         std::cout << indent(depth + 1) << "Object:\n";
         printNode(*index_node->container, depth + 2);
+    } else if (const auto* dict_node = dynamic_cast<const DictionaryNode*>(&node)) {
+        std::cout << indent(depth + 1) << "Dictionary: size=" << dict_node->dictionary.size() << '\n';
+        std::cout << indent(depth + 1) << "{\n";
+        for (const auto& pair : dict_node->dictionary) {
+            printNode(*pair.first, depth + 3);
+        }
+        std::cout << indent(depth + 1) << "}\n";
+    } else if (const auto* keyword_node = dynamic_cast<const KeywordNode*>(&node)) {
+        if (keyword_node->right) {
+            std::cout << indent(depth + 1) << "Value:\n";
+            printNode(*keyword_node->right, depth + 1);
+        }
     }
 }
