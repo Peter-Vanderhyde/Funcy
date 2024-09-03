@@ -835,15 +835,18 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             }
             return std::make_shared<Value>(false);
         }
-        else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*right_value.value())) {
-            auto dict = std::get<std::shared_ptr<Dictionary>>(*right_value.value());
-            for (const auto& pair : *dict) {
-                auto result = std::visit([&](auto lhs) -> std::optional<std::shared_ptr<Value>> {
-                    return std::visit([&](auto rhs) -> std::optional<std::shared_ptr<Value>> {
-                        return doArithmetic(lhs, rhs, TokenType::_Compare, line, column);
-                    }, *pair.first);
-                }, *left_value.value());
+        else if (std::holds_alternative<std::string>(*right_value.value())) {
+            auto string = std::get<std::string>(*right_value.value());
+            auto left_val = *left_value.value();
+            if (!std::holds_alternative<std::string>(left_val)) {
+                return std::make_shared<Value>(false);
             }
+            std::string left = std::get<std::string>(left_val);
+            auto index = string.find(left);
+            if (index != std::string::npos) {
+                return std::make_shared<Value>(true);
+            }
+            return std::make_shared<Value>(false);
         }
         else {
             runtimeError("Expected list or dictionary for 'in' evaluation", line, column);
@@ -1132,6 +1135,26 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 arg_list->push_back(pair.first);
                 arg_list->push_back(pair.second);
                 env.set(var_string, std::make_shared<Value>(arg_list));
+                try {
+                    for (auto statement : block) {
+                        auto result = statement->evaluate(env);
+                    }
+                }
+                catch (const BreakException) {
+                    break;
+                }
+                catch (const ContinueException) {
+                    continue;
+                }
+            }
+        }
+        else if (std::holds_alternative<std::string>(*container_result.value())) {
+            auto string = std::get<std::string>(*container_result.value());
+            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            std::string var_string = ident_node->value;
+
+            for (char c : string) {
+                env.set(var_string, std::make_shared<Value>(std::string(1, c)));
                 try {
                     for (auto statement : block) {
                         auto result = statement->evaluate(env);

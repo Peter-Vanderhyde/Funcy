@@ -4,6 +4,6 @@ Add built-in dict.keys/values/items
 Add open
 */
 
-print(([1, 2, 3, 4])[1]);
-y = {1:"one",2:"two"};
-print(y.pop(y.keys()[1]));
+if "el" in "hello" {
+    print("yes");
+}
