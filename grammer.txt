@@ -29,11 +29,9 @@ Factor     : [ ('+' | '-') ]? Power
 
 Power      : LogicalNot [ ('^' | '**') Factor ]?
 
-LogicalNot : ['not' | '!']* Primary
+LogicalNot : ['not' | '!']* MemberAccess
 
-Primary    : MemberAccess | Indexing | FunctionCall | ( '(' LogicalOr ')' ) | Scope
-
-MemberAccess : Primary [ '.' (Identifier | FunctionCall) ]*
+MemberAccess : Indexing [ ('.' (Identifier | FunctionCall)) | Indexing | FunctionCall ]*
 
 Indexing   : Collection [ GetIndex ]?
 

@@ -300,91 +300,26 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
 
 std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
     if (debug) std::cout << "evaluate index" << std::endl;
-    if (auto atom_node = std::dynamic_pointer_cast<AtomNode>(container)) {
-        // Make sure it's a string
-        auto eval = atom_node->evaluate(env);
-        if (eval) {
-            if (std::holds_alternative<std::string>(*eval.value())) {
-                auto string_val = std::make_shared<std::string>(std::get<std::string>(*eval.value()));
-                return getIndex(env, string_val);
-            } else {
-                runtimeError("Atom evaluation did not return a string for indexing", atom_node);
-            }
-        } else {
-            runtimeError("Was unable to evaluate the atom", atom_node);
-        }
-    } else if (auto list_node = std::dynamic_pointer_cast<ListNode>(container)) {
-        auto eval = list_node->evaluate(env);
-        if (eval) {
-            if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
-                auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
-                return getIndex(env, list_val);
-            } else {
-                runtimeError("List evaluation did not return a list for indexing", list_node);
-            }
-        } else {
-            runtimeError("Was unable to evaluate the list", list_node);
-        }
-    } else if (auto dict_node = std::dynamic_pointer_cast<DictionaryNode>(container)) {
-        auto eval = dict_node->evaluate(env);
-        if (eval) {
-            if (std::holds_alternative<std::shared_ptr<Dictionary>>(*eval.value())) {
-                auto dict_val = std::get<std::shared_ptr<Dictionary>>(*eval.value());
-                return getIndex(env, dict_val);
-            } else {
-                runtimeError("Dictionary evaluation did not return a dictionary", dict_node);
-            }
-        } else {
-            runtimeError("Was unable to evaluate the dictionary", dict_node);
-        }
-    } else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(container)) {
-        auto eval = ident_node->evaluate(env);
-        if (eval) {
-            if (std::holds_alternative<std::string>(*eval.value())) {
-                auto str_val = std::get<std::string>(*eval.value());
-                return getIndex(env, std::make_shared<std::string>(str_val));
-            } else if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
-                auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
-                return getIndex(env, list_val);
-            } else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*eval.value())) {
-                auto dict_val = std::get<std::shared_ptr<Dictionary>>(*eval.value());
-                return getIndex(env, dict_val);
-            } else {
-                runtimeError("Identifier evaluation did not return a list, dictionary or string for indexing", ident_node);
-            }
-        } else {
-            runtimeError("Was unable to evaluate the identifier", ident_node);
-        }
-    } else if (auto index_node = std::dynamic_pointer_cast<IndexNode>(container)) {
-        auto eval = index_node->evaluate(env);
-        if (eval) {
-            if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
-                auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
-                return getIndex(env, list_val);
-            } else {
-                runtimeError("Index evaluation did not return a list for indexing", index_node);
-            }
-        } else {
-            runtimeError("Was unable to evaluate the index", index_node);
-        }
-    } else if (auto func_node = std::dynamic_pointer_cast<FuncCallNode>(container)) {
-        auto eval = func_node->evaluate(env);
-        if (eval) {
-            if (std::holds_alternative<std::string>(*eval.value())) {
-                auto str_val = std::get<std::string>(*eval.value());
-                return getIndex(env, std::make_shared<std::string>(str_val));
-            } else if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
-                auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
-                return getIndex(env, list_val);
-            } else {
-                runtimeError("Function call evaluation did not return a list or string for indexing", func_node);
-            }
-        }
-    } else if (container == nullptr) {
+    if (container == nullptr) {
         runtimeError("Null object is not subscriptable", line, column);
     }
-    else {
-        runtimeError("Index node container was an unexpected type", line, column);
+
+    auto eval = container->evaluate(env);
+    if (eval) {
+        if (std::holds_alternative<std::string>(*eval.value())) {
+            auto string_val = std::make_shared<std::string>(std::get<std::string>(*eval.value()));
+            return getIndex(env, string_val);
+        }
+        else if (std::holds_alternative<std::shared_ptr<List>>(*eval.value())) {
+            auto list_val = std::get<std::shared_ptr<List>>(*eval.value());
+            return getIndex(env, list_val);
+        } else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*eval.value())) {
+            auto dict_val = std::get<std::shared_ptr<Dictionary>>(*eval.value());
+            return getIndex(env, dict_val);
+        }
+        else {
+            runtimeError("Index node container was an unexpected type", line, column);
+        }
     }
     return std::nullopt;
 }
@@ -1829,45 +1764,16 @@ std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
     if (tokenIs("not") || tokenIs("!")) {
         const Token* k_word = getToken();
         consume();
-        auto right = parsePrimary();
+        auto right = parseMemberAccess();
         return std::make_shared<UnaryOpNode>(k_word->type, right, k_word->line, k_word->column);
     }
-    else {
-        return parsePrimary();
-    }
-}
-
-std::shared_ptr<ASTNode> Parser::parsePrimary() {
-    if (debug) std::cout << "parse primary " << getTokenStr() << std::endl;
-    if (tokenIs("(")) {
-        const Token* token = getToken();
-        consume();
-        auto parse_or = parseLogicalOr();
-        if (!tokenIs(")")) {
-            parsingError("Expected ')' but got " + getTokenStr(), getToken()->line, getToken()->column);
-        }
-        consume();
-        return std::make_shared<ParenthesisOpNode>(parse_or, token->line, token->column);
-    }
-    // else if (tokenIs("{")) {
-    //     const Token* token = getToken();
-    //     consume();
-    //     std::vector<std::shared_ptr<ASTNode>> block;
-    //     while (!tokenIs("eof") && !tokenIs("}")) {
-    //         block.push_back(parseFoundation());
-    //     }
-    //     if (!tokenIs("}")) {
-    //         parsingError("Expected '}'" + getTokenStr(), getToken()->line, getToken()->column);
-    //     }
-    //     consume();
-    //     return std::make_shared<ScopeNode>(block, token->line, token->column);
-    // }
     else {
         return parseMemberAccess();
     }
 }
 
 std::shared_ptr<ASTNode> Parser::parseMemberAccess() {
+    if (debug) std::cout << "parse member" << std::endl;
     std::shared_ptr<ASTNode> node = parseIndexing();
 
     while (true) {
@@ -1968,6 +1874,16 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
         }
         consume();
         return std::make_shared<DictionaryNode>(dict, token->line, token->column);
+    }
+    else if (tokenIs("(")) {
+        const Token* token = getToken();
+        consume();
+        auto parse_or = parseLogicalOr();
+        if (!tokenIs(")")) {
+            parsingError("Expected ')' but got " + getTokenStr(), getToken()->line, getToken()->column);
+        }
+        consume();
+        return std::make_shared<ParenthesisOpNode>(parse_or, token->line, token->column);
     }
     else {
         return parseAtom();

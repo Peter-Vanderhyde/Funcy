@@ -28,8 +28,17 @@ BuiltInFunctionReturn listSize(const List& args, Environment& env);
 BuiltInFunctionReturn listAppend(const List& args, Environment& env);
 BuiltInFunctionReturn listPop(const List& args, Environment& env);
 
+BuiltInFunctionReturn dictGet(const List& args, Environment& env);
+BuiltInFunctionReturn dictItems(const List& args, Environment& env);
+BuiltInFunctionReturn dictKeys(const List& args, Environment& env);
+BuiltInFunctionReturn dictValues(const List& args, Environment& env);
+BuiltInFunctionReturn dictPop(const List& args, Environment& env);
+BuiltInFunctionReturn dictUpdate(const List& args, Environment& env);
+BuiltInFunctionReturn dictSize(const List& args, Environment& env);
+
 BuiltInFunctionReturn stringLower(const List& args, Environment& env);
 BuiltInFunctionReturn stringUpper(const List& args, Environment& env);
 BuiltInFunctionReturn stringStrip(const List& args, Environment& env);
+BuiltInFunctionReturn stringSplit(const List& args, Environment& env);
 BuiltInFunctionReturn stringIsDigit(const List& args, Environment& env);
 BuiltInFunctionReturn stringLength(const List& args, Environment& env);

@@ -33,7 +33,7 @@ BuiltInFunctionReturn print(const List& args, Environment& env) {
 
 BuiltInFunctionReturn intConverter(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("Int conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("int() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -66,7 +66,7 @@ BuiltInFunctionReturn intConverter(const List& args, Environment& env) {
 
 BuiltInFunctionReturn floatConverter(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("Float conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("float() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -99,7 +99,7 @@ BuiltInFunctionReturn floatConverter(const List& args, Environment& env) {
 
 BuiltInFunctionReturn boolConverter(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("Bool conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("bool() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -132,7 +132,7 @@ std::string toString(double value){
 
 BuiltInFunctionReturn stringConverter(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("String conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("string() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     auto arg = args[0];
@@ -174,7 +174,7 @@ BuiltInFunctionReturn listConverter(const List& args, Environment& env) {
     } else if (args.size() == 1 && std::holds_alternative<std::shared_ptr<List>>(*args[0])) {
         return args[0];
     } else if (args.size() == 0) {
-        throw std::runtime_error("List conversion takes at least 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("list() conversion takes at least 1 argument. " + std::to_string(args.size()) + " were given.");
     } else {
         for (const auto& arg : args) {
             list->push_back(arg);
@@ -186,7 +186,7 @@ BuiltInFunctionReturn listConverter(const List& args, Environment& env) {
 
 BuiltInFunctionReturn input(const List& args, Environment& env) {
     if (args.size() > 1) {
-        throw std::runtime_error("Input takes 0-1 arguments. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("input() takes 0-1 arguments. " + std::to_string(args.size()) + " were given.");
     }
 
     if (args.size() == 1) {
@@ -197,13 +197,13 @@ BuiltInFunctionReturn input(const List& args, Environment& env) {
         std::getline(std::cin, in);
         return std::make_shared<Value>(in);
     } else {
-        throw std::runtime_error("Input expected a string argument.");
+        throw std::runtime_error("input() expected a string argument.");
     }
 }
 
 BuiltInFunctionReturn getType(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("Type takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("type() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     return std::make_shared<Value>(getValueType(args[0]));
@@ -211,12 +211,12 @@ BuiltInFunctionReturn getType(const List& args, Environment& env) {
 
 BuiltInFunctionReturn range(const List& args, Environment& env) {
     if (args.size() < 1 || args.size() > 3) {
-        throw std::runtime_error("Range takes 1-3 arguments. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("range() takes 1-3 arguments. " + std::to_string(args.size()) + " were given.");
     }
 
     for (int i = 0; i < args.size(); i++) {
         if (!std::holds_alternative<int>(*args[i])) {
-            throw std::runtime_error("Range expected int, not " + getValueStr(args[i]));
+            throw std::runtime_error("range() expected int, not " + getValueStr(args[i]));
         }
     }
 
@@ -235,7 +235,7 @@ BuiltInFunctionReturn range(const List& args, Environment& env) {
         end = std::get<int>(*args[1]);
         step = std::get<int>(*args[2]);
         if (step == 0) {
-            throw std::runtime_error("Range third argument must not be zero.");
+            throw std::runtime_error("range() third argument must not be zero.");
         }
     }
 
@@ -255,14 +255,14 @@ BuiltInFunctionReturn range(const List& args, Environment& env) {
 
 BuiltInFunctionReturn map(const List& args, Environment& env) {
     if (args.size() != 2) {
-        throw std::runtime_error("Map requires exactly 2 arguments: a function and a list.");
+        throw std::runtime_error("map() requires exactly 2 arguments: a function and a list.");
     }
 
     auto func = args[0];
     auto list_value = args[1];
 
     if (!std::holds_alternative<std::shared_ptr<List>>(*list_value)) {
-        throw std::runtime_error("Second argument to map must be a list.");
+        throw std::runtime_error("Second argument to map() must be a list.");
     }
 
     auto list = std::get<std::shared_ptr<List>>(*list_value);
@@ -288,10 +288,10 @@ BuiltInFunctionReturn map(const List& args, Environment& env) {
                     result_list->push_back(result.value());
                 }
             } else {
-                throw std::runtime_error("Map function argument must be a callable function.");
+                throw std::runtime_error("map() function argument must be a callable function.");
             }
         } else {
-            throw std::runtime_error("First argument to map must be a function.");
+            throw std::runtime_error("First argument to map() must be a function.");
         }
     }
 
@@ -300,11 +300,11 @@ BuiltInFunctionReturn map(const List& args, Environment& env) {
 
 BuiltInFunctionReturn all(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("All takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("all() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     if (!std::holds_alternative<std::shared_ptr<List>>(*args[0])) {
-        throw std::runtime_error("All expected argument 1 to be a list.");
+        throw std::runtime_error("all() expected argument 1 to be a list.");
     }
 
     auto list = std::get<std::shared_ptr<List>>(*args[0]);
@@ -322,11 +322,11 @@ BuiltInFunctionReturn all(const List& args, Environment& env) {
 
 BuiltInFunctionReturn any(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("Any takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("any() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     if (!std::holds_alternative<std::shared_ptr<List>>(*args[0])) {
-        throw std::runtime_error("Any expected argument 1 to be a list.");
+        throw std::runtime_error("any() expected argument 1 to be a list.");
     }
 
     auto list = std::get<std::shared_ptr<List>>(*args[0]);
@@ -348,7 +348,7 @@ BuiltInFunctionReturn any(const List& args, Environment& env) {
 
 BuiltInFunctionReturn listSize(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("Size takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     if (std::holds_alternative<std::shared_ptr<List>>(*args[0])) {
@@ -356,14 +356,14 @@ BuiltInFunctionReturn listSize(const List& args, Environment& env) {
         int size = list->size();
         return std::make_shared<Value>(size);
     } else {
-        throw std::runtime_error("Size expected a list but got a " + getValueStr(args[0]));
+        throw std::runtime_error("size() expected a list but got a " + getValueStr(args[0]));
     }
     return std::nullopt;
 }
 
 BuiltInFunctionReturn listAppend(const List& args, Environment& env) {
     if (args.size() != 2) {
-        throw std::runtime_error("Append takes exactly 2 arguments. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("append() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given.");
     }
 
     auto list = std::get<std::shared_ptr<List>>(*args[0]);
@@ -373,7 +373,7 @@ BuiltInFunctionReturn listAppend(const List& args, Environment& env) {
 
 BuiltInFunctionReturn listPop(const List& args, Environment& env) {
     if (args.size() != 1 && args.size() != 2) {
-        throw std::runtime_error("Pop takes 1-2 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("pop() takes 1-2 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     int index;
@@ -381,7 +381,7 @@ BuiltInFunctionReturn listPop(const List& args, Environment& env) {
         index = -1;
     } else {
         if (!std::holds_alternative<int>(*args[1])) {
-            throw std::runtime_error("Pop expected int.");
+            throw std::runtime_error("pop() expected int.");
         }
         index = std::get<int>(*args[1]);
     }
@@ -389,7 +389,7 @@ BuiltInFunctionReturn listPop(const List& args, Environment& env) {
     int size = list->size();
 
     if (index >= size || index < size * -1) {
-        throw std::runtime_error("List pop index out of range.");
+        throw std::runtime_error("pop() index out of range.");
     } else if (index < 0) {
         auto value = list->at(list->size() - -index);
         list->erase(list->end() - -index);
@@ -401,9 +401,128 @@ BuiltInFunctionReturn listPop(const List& args, Environment& env) {
     }
 }
 
+BuiltInFunctionReturn dictGet(const List& args, Environment& env) {
+    if (args.size() < 2 || args.size() > 3) {
+        throw std::runtime_error("get() takes 2-3 arguments. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto dict = std::get<std::shared_ptr<Dictionary>>(*args[0]);
+    auto key = args[1];
+    std::shared_ptr<Value> default_return;
+    if (args.size() == 3) {
+        default_return = args[2];
+    }
+
+    auto it = dict->find(key);
+    if (it != dict->end()) {
+        return it->second;
+    } else {
+        if (default_return) {
+            return default_return;
+        } else {
+            return std::make_shared<Value>(ValueType::Null);
+        }
+    }
+}
+
+BuiltInFunctionReturn dictItems(const List& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("items() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto dict = std::get<std::shared_ptr<Dictionary>>(*args[0]);
+    auto result = std::make_shared<List>();
+
+    for (const auto& pair : *dict) {
+        auto key_value_pair = std::make_shared<List>();
+        key_value_pair->push_back(pair.first);
+        key_value_pair->push_back(pair.second);
+        result->push_back(std::make_shared<Value>(key_value_pair));
+    }
+
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn dictKeys(const List& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("keys() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto dict = std::get<std::shared_ptr<Dictionary>>(*args[0]);
+    auto result = std::make_shared<List>();
+
+    for (const auto& pair : *dict) {
+        result->push_back(pair.first);
+    }
+
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn dictValues(const List& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("values() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto dict = std::get<std::shared_ptr<Dictionary>>(*args[0]);
+    auto result = std::make_shared<List>();
+
+    for (const auto& pair : *dict) {
+        result->push_back(pair.second);
+    }
+
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn dictPop(const List& args, Environment& env) {
+    if (args.size() < 2 || args.size() > 3) {
+        throw std::runtime_error("pop() takes 2-3 arguments. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto dict = std::get<std::shared_ptr<Dictionary>>(*args[0]);
+    auto key = args[1];
+
+    auto it = dict->find(key);
+    if (it != dict->end()) {
+        auto value = it->second;
+        dict->erase(it);
+        return value;
+    } else {
+        if (args.size() == 3) {
+            return args[2];
+        } else {
+            throw std::runtime_error("Key not found in dictionary.");
+        }
+    }
+}
+
+BuiltInFunctionReturn dictUpdate(const List& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("update() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto dict = std::get<std::shared_ptr<Dictionary>>(*args[0]);
+    auto other_dict = std::get<std::shared_ptr<Dictionary>>(*args[1]);
+
+    for (const auto& pair : *other_dict) {
+        (*dict)[pair.first] = pair.second;
+    }
+
+    return std::make_shared<Value>(ValueType::Null); // Return None or Null equivalent
+}
+
+BuiltInFunctionReturn dictSize(const List& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto dict = std::get<std::shared_ptr<Dictionary>>(*args[0]);
+    int size = dict->size();
+    return std::make_shared<Value>(size);
+}
+
 BuiltInFunctionReturn stringLower(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("String lower takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("lower() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     std::string string = std::get<std::string>(*args[0]);
@@ -415,7 +534,7 @@ BuiltInFunctionReturn stringLower(const List& args, Environment& env) {
 
 BuiltInFunctionReturn stringUpper(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("String upper takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("upper() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     std::string string = std::get<std::string>(*args[0]);
@@ -427,7 +546,7 @@ BuiltInFunctionReturn stringUpper(const List& args, Environment& env) {
 
 BuiltInFunctionReturn stringStrip(const List& args, Environment& env) {
     if (args.size() > 2) {
-        throw std::runtime_error("String strip takes 1-2 arguments. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("strip() takes 1-2 arguments. " + std::to_string(args.size()) + " were given.");
     }
 
     // Trim from the start (left) of the string
@@ -447,16 +566,49 @@ BuiltInFunctionReturn stringStrip(const List& args, Environment& env) {
         if (std::holds_alternative<std::string>(*args[1])) {
             strip_chars = std::get<std::string>(*args[1]);
         } else {
-            throw std::runtime_error("String strip expected an argument of type string.");
+            throw std::runtime_error("strip() expected an argument of type string.");
         }
     }
 
     return std::make_shared<Value>(ltrim(rtrim(std::get<std::string>(*args[0]), strip_chars), strip_chars));
 }
 
+BuiltInFunctionReturn stringSplit(const List& args, Environment& env) {
+    if (args.size() > 2) {
+        throw std::runtime_error("split() takes 1-2 arguments. " + std::to_string(args.size()) + " were given.");
+    }
+
+    // Get the string to split
+    if (!std::holds_alternative<std::string>(*args[0])) {
+        throw std::runtime_error("split() expected a string as the first argument.");
+    }
+    std::string str = std::get<std::string>(*args[0]);
+
+    std::string delimiter = " "; // Default delimiter is space
+    if (args.size() == 2) {
+        if (std::holds_alternative<std::string>(*args[1])) {
+            delimiter = std::get<std::string>(*args[1]);
+        } else {
+            throw std::runtime_error("split() expected a string as the delimiter.");
+        }
+    }
+
+    List result;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = str.find(delimiter)) != std::string::npos) {
+        token = str.substr(0, pos);
+        result.push_back(std::make_shared<Value>(token));
+        str.erase(0, pos + delimiter.length());
+    }
+    result.push_back(std::make_shared<Value>(str)); // Add the last token
+
+    return std::make_shared<Value>(std::make_shared<List>(result));
+}
+
 BuiltInFunctionReturn stringIsDigit(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("String isDigit requires exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("isDigit() requires exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     std::string string = std::get<std::string>(*args[0]);
@@ -470,7 +622,7 @@ BuiltInFunctionReturn stringIsDigit(const List& args, Environment& env) {
 
 BuiltInFunctionReturn stringLength(const List& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("String length requires exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+        throw std::runtime_error("length() requires exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
 
     std::string string = std::get<std::string>(*args[0]);
