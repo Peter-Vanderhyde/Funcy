@@ -61,15 +61,18 @@ std::string getLine(const std::string& filename, int line) {
 
 void handleError(const std::string& message, int line, int column, std::string prefix) {
     std::string filename = GlobalContext::instance().getFilename();
-    std::string error = std::format("\033[31m{}:\033[0m File \033[32m{}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m:\n", prefix, filename, line, column);
+    Style style{};
+    std::string error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",
+                                    style.red, prefix, style.reset, style.green, filename, style.reset,
+                                    style.purple, style.underline, line, column, style.reset);
     error += std::format("        {}\n", getLine(filename, line));
     std::string spaces = "        ";
     for (int i = 0; i < column - 1; i++) {
         spaces += " ";
     }
-    spaces += "\033[38;5;214m^\033[0m\n";
+    spaces += style.orange + "^\n";
     error += spaces;
-    error += std::format("\033[38;5;214m{}.\033[0m", message);
+    error += std::format("{}.{}", message, style.reset);
     throw std::runtime_error(error);
 }
 
@@ -127,23 +130,24 @@ std::ostream& operator<<(std::ostream& os, const List& list) {
 }
 
 
-void printValue(const std::shared_ptr<Value> value) {
+void printValue(const std::shared_ptr<Value> value, Environment& env) {
+    Style style{};
     if (std::holds_alternative<int>(*value)) {
         auto int_value = std::get<int>(*value);
-        std::cout << int_value;
+        std::cout << style.light_blue << int_value << style.reset;
     } else if (std::holds_alternative<double>(*value)) {
         auto double_value = std::get<double>(*value);
         if (double_value == static_cast<int>(double_value)) {
-            std::cout << double_value << ".0";
+            std::cout << style.light_blue << double_value << ".0" << style.reset;
         } else {
-            std::cout << double_value;
+            std::cout << style.light_blue << double_value << style.reset;
         }
     } else if (std::holds_alternative<bool>(*value)) {
         auto bool_value = std::get<bool>(*value);
-        std::cout << std::boolalpha << bool_value;
+        std::cout << style.purple << std::boolalpha << bool_value << style.reset;
     } else if (std::holds_alternative<std::string>(*value)) {
         auto string_value = std::get<std::string>(*value);
-        std::cout << "'" << string_value << "'";
+        std::cout << style.green << "'" << string_value << "'" << style.reset;
     } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
         auto list_value = std::get<std::shared_ptr<List>>(*value);
         std::cout << *list_value;
@@ -157,27 +161,33 @@ void printValue(const std::shared_ptr<Value> value) {
             } else {
                 first = false;
             }
-            printValue(pair.first);
+            printValue(pair.first, env);
             std::cout << ":";
-            printValue(pair.second);
+            printValue(pair.second, env);
         }
         std::cout << "}";
     } else if (std::holds_alternative<std::shared_ptr<ASTNode>>(*value)) {
         auto func_value = std::get<std::shared_ptr<ASTNode>>(*value);
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
             if (func->func_name) {
-                std::cout << "Function:" << *func->func_name;
+                std::cout << "Function->" << *func->func_name;
             } else {
-                std::cout << "Function";
+                throw std::runtime_error("Unable to find function name.");
             }
         } else {
             runtimeError("Tried to print value that was an unknown ASTNode.", func_value);
         }
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*value)) {
-        std::cout << "Built-in Function";
+        std::cout << "Built-in Function->" << env.getName(value);
     } else if (std::holds_alternative<ValueType>(*value)) {
         auto v_type = std::get<ValueType>(*value);
-        std::cout << getTypeStr(v_type);
+        std::string type_str = getTypeStr(v_type);
+        if (type_str == "Type:Null") {
+            std::cout << "Null";
+        }
+        else {
+            std::cout << type_str;
+        }
     }
     else {
         throw std::runtime_error("Received invalid value type to print.");
@@ -665,6 +675,8 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         if (checkTruthy(lhs)) {
             if (checkTruthy(rhs)) {
                 return std::make_shared<Value>(rhs);
+            } else {
+                return std::make_shared<Value>(false);
             }
         } else {
             return std::make_shared<Value>(false);
@@ -793,10 +805,20 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             runtimeError("Failed to get member function. Identifier could not be computed", line, column);
         }
 
+        // Get the type of the member
         std::shared_ptr<ValueType> member_type = std::make_shared<ValueType>(getValueType(left_value.value()));
-        if (auto func_node = dynamic_cast<FuncCallNode*>(&*right)) {
+        if (auto func_node = std::dynamic_pointer_cast<FuncCallNode>(right)) {
+            // It's a member function
+            // Save the result of the member to pass into the function
             func_node->member_value = left_value.value();
+            // Pass member type so evaluate knows to search for functions of that type
             return func_node->evaluate(env, member_type);
+        }
+        else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
+            return ident_node->evaluate(env, member_type);
+        }
+        else {
+            runtimeError("Invalid syntax", line, column);
         }
     } else if (op == TokenType::_In) {
         auto left_value = left->evaluate(env);
@@ -908,7 +930,7 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
         else if (op == TokenType::_Plus) {
             return right_value;
         }
-        else if (op == TokenType::_Not) {
+        else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
             int rhs = std::get<int>(*right_value.value());
             return std::make_shared<Value>(rhs == 0);
         }
@@ -921,25 +943,25 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
         else if (op == TokenType::_Plus) {
             return right_value;
         }
-        else if (op == TokenType::_Not) {
+        else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
             double rhs = std::get<double>(*right_value.value());
             return std::make_shared<Value>(rhs == 0.0);
         }
     }
     else if (RHS == "boolean") {
-        if (op == TokenType::_Not) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
             bool rhs = std::get<bool>(*right_value.value());
             return std::make_shared<Value>(!rhs);
         }
     }
     else if (RHS == "type") {
         ValueType rhs = std::get<ValueType>(*right_value.value());
-        if (rhs == ValueType::Null && op == TokenType::_Not) {
+        if (rhs == ValueType::Null && (op == TokenType::_Not || op == TokenType::_Exclamation)) {
             return std::make_shared<Value>(true);
         }
     }
     else if (RHS == "string") {
-        if (op == TokenType::_Not) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
             std::string rhs = std::get<std::string>(*right_value.value());
             return std::make_shared<Value>(rhs == "");
         }
@@ -1367,8 +1389,8 @@ List FuncCallNode::evaluateArgs(Environment& env) {
     List evaluated_values;
     for (auto value_node : values) {
         auto result = value_node->evaluate(env);
-        if (!result) {
-            runtimeError("Unable to evalute function argument", line, column);
+        if (!result.has_value()) {
+            runtimeError("Unable to evaluate function argument", line, column);
         }
         evaluated_values.push_back(result.value());
     }
@@ -2198,6 +2220,7 @@ void Environment::resetLoop() {
 
 void Environment::addFunction(const std::string& name, std::shared_ptr<Value> func) {
     built_in_functions[name] = func;
+    built_in_names[func] = name;
 }
 
 std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
@@ -2209,6 +2232,15 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
     throw std::runtime_error("Unrecognized built-in function: " + name);
 }
 
+std::string Environment::getName(const std::shared_ptr<Value> func) const {
+    auto name = built_in_names.find(func);
+    if (name != built_in_names.end()) {
+        return name->second;
+    }
+
+    throw std::runtime_error("Unrecognized built-in name.");
+}
+
 bool Environment::hasFunction(const std::string& name) const {
     auto func = built_in_functions.find(name);
     return func != built_in_functions.end();
@@ -2216,18 +2248,26 @@ bool Environment::hasFunction(const std::string& name) const {
 
 void Environment::addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func) {
     member_functions[type][name] = func;
+    built_in_names[func] = getTypeStr(type) + "." + name;
 }
 
 std::shared_ptr<Value> Environment::getMember(std::shared_ptr<ValueType> type, const std::string& name) const {
-    auto func = member_functions.at(*type).find(name);
-    if (func != member_functions.at(*type).end()) {
-        return func->second;
+    auto members = member_functions.find(*type);
+    if (members != member_functions.end()) {
+        auto func = members->second.find(name);
+        if (func != members->second.end()) {
+            return func->second;
+        }
     }
 
     throw std::runtime_error("Unrecognized member function: " + name);
 }
 
 bool Environment::hasMember(std::shared_ptr<ValueType> type, const std::string& name) const {
-    auto func = member_functions.at(*type).find(name);
-    return func != member_functions.at(*type).end();
+    auto members = member_functions.find(*type);
+    if (members != member_functions.end()) {
+        auto func = members->second.find(name);
+        return func != members->second.end();
+    }
+    return false;
 }

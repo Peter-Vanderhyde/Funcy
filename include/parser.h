@@ -9,9 +9,7 @@
 
 class ASTNode;
 class Environment;
-
 struct Value;
-
 // ValueCompare struct declaration
 struct ValueCompare {
     bool operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const;
@@ -40,7 +38,6 @@ using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
 )>;
 using VariantType = std::variant<int, double, bool, TokenType, std::string, std::shared_ptr<ASTNode>,
                         std::shared_ptr<List>, std::shared_ptr<Dictionary>, std::shared_ptr<BuiltInFunction>, ValueType>;
-
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>>;
 
@@ -49,24 +46,6 @@ std::ostream& operator<<(std::ostream& os, const List& list);
 struct Value : public VariantType {
     using VariantType::VariantType;
 };
-
-// Custom hash and equality functions for using Value in dictionaries
-namespace std {
-    template <>
-    struct hash<std::shared_ptr<Value>> {
-        std::size_t operator()(const std::shared_ptr<Value>& valuePtr) const {
-            if (!valuePtr) return 0;
-
-            // Access the underlying VariantType directly
-            const VariantType& variant = static_cast<const VariantType&>(*valuePtr);
-            return std::visit([](auto&& value) -> std::size_t {
-                using T = std::decay_t<decltype(value)>;
-                return std::hash<T>{}(value);
-            }, variant);
-        }
-    };
-}
-
 
 struct ValueEqual {
     bool operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const {
@@ -88,6 +67,16 @@ struct ValueEqual {
     }
 };
 
+struct Style {
+    std::string red = "\033[31m";
+    std::string green = "\033[32m";
+    std::string orange = "\033[38;5;214m";
+    std::string blue = "\033[34m";
+    std::string light_blue = "\033[38;5;81m";
+    std::string purple = "\033[38;5;129m";
+    std::string reset = "\033[0m";
+    std::string underline = "\033[4m";
+};
 
 class Scope {
 public:
@@ -123,6 +112,7 @@ public:
 
     void addFunction(const std::string& name, std::shared_ptr<Value> func);
     std::shared_ptr<Value> getFunction(const std::string& name) const;
+    std::string getName(const std::shared_ptr<Value> func) const;
     bool hasFunction(const std::string& name) const;
 
     void addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func);
@@ -132,6 +122,7 @@ private:
     std::vector<Scope> scopes;
     int loop_depth;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
+    std::unordered_map<std::shared_ptr<Value>, std::string> built_in_names;
     std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> member_functions;
 };
 
@@ -149,7 +140,7 @@ public:
 template <typename T1, typename T2>
 std::optional<std::shared_ptr<Value>> doArithmetic(T1 lhs, T2 rhs, TokenType op, int line, int column);
 
-void printValue(const std::shared_ptr<Value> value);
+void printValue(const std::shared_ptr<Value> value, Environment& env);
 
 
 class ASTNode {
@@ -343,7 +334,7 @@ public:
 class FuncNode : public ASTNode {
 public:
     FuncNode(std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
-        : ASTNode{line, column}, args{args}, block{block} {}
+        : ASTNode{line, column}, func_name{func_name}, args{args}, block{block} {}
     
     ~FuncNode() noexcept override = default;
 

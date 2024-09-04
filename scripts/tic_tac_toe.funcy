@@ -2,7 +2,7 @@
 import "library";
 
 func getInput(prompt, possible_responses) {
-    response = Null;
+    response = input(prompt);
     while response.lower() not in possible_responses {
         response = input(prompt);
     }
@@ -37,6 +37,8 @@ func checkStraights(board, player) {
         if (all(map(isPlayer, rows)) or all(map(isPlayer, cols))) {
             return true;
         }
+        cols = [];
+        rows = [];
     }
     return false;
 }

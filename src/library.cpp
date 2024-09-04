@@ -24,7 +24,7 @@ std::string readSourceCodeFromFile(const std::string& filename) {
 
 BuiltInFunctionReturn print(const List& args, Environment& env) {
     for (const auto& arg : args) {
-        printValue(arg);
+        printValue(arg, env);
         std::cout << " ";
     }
     std::cout << std::endl;
@@ -190,7 +190,13 @@ BuiltInFunctionReturn input(const List& args, Environment& env) {
     }
 
     if (args.size() == 1) {
-        printValue(args[0]);
+        if (!std::holds_alternative<std::string>(*args[0])) {
+            printValue(args[0], env);
+        }
+        else {
+            std::string s = std::get<std::string>(*args[0]);
+            std::cout << s;
+        }
     }
     if (std::holds_alternative<std::string>(*args[0])) {
         std::string in;
@@ -368,7 +374,7 @@ BuiltInFunctionReturn listAppend(const List& args, Environment& env) {
 
     auto list = std::get<std::shared_ptr<List>>(*args[0]);
     list->push_back(args[1]);
-    return std::nullopt;
+    return std::make_shared<Value>(ValueType::Null);
 }
 
 BuiltInFunctionReturn listPop(const List& args, Environment& env) {
