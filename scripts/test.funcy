@@ -2,6 +2,8 @@
 Make default args in functions/unkown number of args
 Maybe have all nodes save their name for debugging
 Add open
+classes
+lambdas
 */
 
 print(!false);
