@@ -5,8 +5,4 @@ classes
 lambdas
 */
 
-str = "Hello";
-print(str * 4);
-print(3 * str);
-str *= 2;
-print(str);
+print("Hello there you".replace(" ", "\n"));

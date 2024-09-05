@@ -649,3 +649,33 @@ BuiltInFunctionReturn stringLength(const List& args, Environment& env) {
     int length = string.length();
     return std::make_shared<Value>(length);
 }
+
+BuiltInFunctionReturn stringReplace(const List& args, Environment& env) {
+    if (args.size() != 3) {
+        throw std::runtime_error("replace() takes exactly 3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    // Get the string to modify
+    std::string str = std::get<std::string>(*args[0]);
+
+    // Get the substring to replace
+    if (!std::holds_alternative<std::string>(*args[1])) {
+        throw std::runtime_error("replace() expected a string as the second argument (substring to replace)");
+    }
+    std::string to_replace = std::get<std::string>(*args[1]);
+
+    // Get the replacement substring
+    if (!std::holds_alternative<std::string>(*args[2])) {
+        throw std::runtime_error("replace() expected a string as the third argument (replacement substring)");
+    }
+    std::string replacement = std::get<std::string>(*args[2]);
+
+    // Perform the replacement
+    size_t pos = 0;
+    while ((pos = str.find(to_replace, pos)) != std::string::npos) {
+        str.replace(pos, to_replace.length(), replacement);
+        pos += replacement.length(); // Move past the last replacement
+    }
+
+    return std::make_shared<Value>(str); // Return the modified string
+}

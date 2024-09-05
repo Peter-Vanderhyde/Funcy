@@ -71,6 +71,7 @@ int main(int argc, char* argv[]) {
     env.addMember(ValueType::String, "split", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringSplit)));
     env.addMember(ValueType::String, "isDigit", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsDigit)));
     env.addMember(ValueType::String, "length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLength)));
+    env.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
 
     env.addScope();
 

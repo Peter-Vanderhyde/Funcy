@@ -43,3 +43,4 @@ BuiltInFunctionReturn stringStrip(const List& args, Environment& env);
 BuiltInFunctionReturn stringSplit(const List& args, Environment& env);
 BuiltInFunctionReturn stringIsDigit(const List& args, Environment& env);
 BuiltInFunctionReturn stringLength(const List& args, Environment& env);
+BuiltInFunctionReturn stringReplace(const List& args, Environment& env);
