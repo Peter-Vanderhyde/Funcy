@@ -64,4 +64,33 @@ Float      : [0-9]+ '.' [0-9]+
 Scope      : '{' Foundation+ '}'
 
 
-Narration language
+Narration language:
+
+Types:
+string - has quotations
+ints - just a number
+floats - just a float
+bool - just the word true/false
+list - bag/book
+dictionary - maybe a shop keeper or something
+
+discard all articles
+
+Define variable:
+met/saw/found/heard
+The name is defined with capital letters, single quotes, or the final word in a sentence
+(possibly later reserve met for classes)
+(require defining variables first)
+
+Print:
+said/told/announced (maybe announced so it's easier to use the other words?)
+
+Define functions:
+had ability/spell
+
+
+There was once a young man named Exoh who lived in the land of Tic-Tac-Toe.
+One day, while working in his square garden, a stranger came down the road with a map.
+When Exoh noticed the stranger, he said "Welcome to Tic-Tac-Toe!".
+The stranger, did not reply, but silently handed Exoh a list of players.
+Exoh saw the Players list contained

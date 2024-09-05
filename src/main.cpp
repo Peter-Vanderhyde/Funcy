@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
 
     env.addFunction("all", std::make_shared<Value>(std::make_shared<BuiltInFunction>(all)));
     env.addFunction("any", std::make_shared<Value>(std::make_shared<BuiltInFunction>(any)));
+    env.addFunction("read", std::make_shared<Value>(std::make_shared<BuiltInFunction>(read)));
 
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));

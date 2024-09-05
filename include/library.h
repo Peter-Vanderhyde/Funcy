@@ -22,6 +22,7 @@ BuiltInFunctionReturn range(const List& args, Environment& env);
 BuiltInFunctionReturn map(const List& args, Environment& env);
 BuiltInFunctionReturn all(const List& args, Environment& env);
 BuiltInFunctionReturn any(const List& args, Environment& env);
+BuiltInFunctionReturn read(const List& args, Environment& env);
 
 
 BuiltInFunctionReturn listSize(const List& args, Environment& env);

@@ -1,9 +1,12 @@
 /*
 Make default args in functions/unkown number of args
-Maybe have all nodes save their name for debugging
-Add open
+Maybe have all nodes save their name for debugging?
 classes
 lambdas
 */
 
-print(!false);
+str = "Hello";
+print(str * 4);
+print(3 * str);
+str *= 2;
+print(str);

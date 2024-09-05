@@ -150,7 +150,17 @@ void printValue(const std::shared_ptr<Value> value, Environment& env) {
         std::cout << style.green << "'" << string_value << "'" << style.reset;
     } else if (std::holds_alternative<std::shared_ptr<List>>(*value)) {
         auto list_value = std::get<std::shared_ptr<List>>(*value);
-        std::cout << *list_value;
+        std::cout << "[";
+        bool first = true;
+        for (const auto item : *list_value) {
+            if (!first) {
+                std::cout << ", ";
+            } else {
+                first = false;
+            }
+            printValue(item, env);
+        }
+        std::cout << "]";
     } else if (std::holds_alternative<std::shared_ptr<Dictionary>>(*value)) {
         auto dict_value = std::get<std::shared_ptr<Dictionary>>(*value);
         std::cout << "{";
@@ -717,6 +727,22 @@ std::optional<std::shared_ptr<Value>> doArithmetic(const T1 lhs, const T2 rhs, c
         if (op == TokenType::_Plus || op == TokenType::_PlusEquals) return std::make_shared<Value>(lhs + rhs);
         else if (op == TokenType::_Compare) return std::make_shared<Value>(lhs == rhs);
         else if (op == TokenType::_NotEqual) return std::make_shared<Value>(lhs != rhs);
+    }
+    else if constexpr ((std::is_same_v<T1, std::string> && std::is_same_v<T2, int>) || (std::is_same_v<T1, int> && std::is_same_v<T2, std::string>)) {
+        // A STRING AND INT
+        if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) {
+            std::string new_str = "";
+            if constexpr (std::is_same_v<T1, std::string>) {
+                for (int i = 0; i < rhs; i++) {
+                    new_str += lhs;
+                }
+            } else {
+                for (int i = 0; i < lhs; i++) {
+                    new_str += rhs;
+                }
+            }
+            return std::make_shared<Value>(new_str);
+        }
     }
     else if constexpr ((std::is_same_v<T1, int> || std::is_same_v<T1, double>) &&
                        (std::is_same_v<T2, int> || std::is_same_v<T2, double>)) {
@@ -1349,7 +1375,13 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         }
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*mapped_value)) {
         auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
-        return (*func_value)(evaluateArgs(env), env);
+        try {
+            auto returned = (*func_value)(evaluateArgs(env), env);
+            return returned;
+        }
+        catch (const std::exception e) {
+            runtimeError(e.what(), line, column);
+        }
     } else {
         runtimeError("Object type " + getValueStr(mapped_value) + " is not callable", line, column);
     }
@@ -1378,7 +1410,12 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, s
         auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
         auto values = evaluateArgs(env);
         values.insert(values.begin(), member_value);
-        return (*func_value)(values, env);
+        try {
+            return (*func_value)(values, env);
+        }
+        catch (const std::exception e) {
+            runtimeError(e.what(), line, column);
+        }
     } else {
         runtimeError("Object type " + getTypeStr(*member_type) + " has no member function " + ident_node->value, line, column);
     }

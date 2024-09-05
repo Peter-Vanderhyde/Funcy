@@ -318,12 +318,31 @@ std::vector<Token> Lexer::tokenize() {
                 literal = "";
                 while (current_position <= source_code.length()) {
                     if (next == '\\') {
-                        getNextCharacter();
-                        if (current_position > source_code.length()) break;
+                        getNextCharacter(); // Consume the backslash
+                        if (current_position >= source_code.length()) break; // Avoid out of bounds
+                        char escape_char = getNextCharacter(); // Get the escaped character
+
+                        // Handle escape sequences
+                        switch (escape_char) {
+                            case 'n': literal += '\n'; break;    // Newline
+                            case 't': literal += '\t'; break;    // Tab
+                            case 'r': literal += '\r'; break;    // Carriage return
+                            case 'b': literal += '\b'; break;    // Backspace
+                            case 'f': literal += '\f'; break;    // Formfeed
+                            case '\\': literal += '\\'; break;   // Backslash
+                            case '\"': literal += '\"'; break;   // Double quote
+                            case '\'': literal += '\''; break;   // Single quote
+                            case '0': literal += '\0'; break;    // Null character
+                            default:
+                                // Invalid escape sequence
+                                handleError("Unknown escape sequence \\" + std::string(1, escape_char), l, c);
+                                break;
+                        }
                     } else if (next == starting_char) {
                         break;
+                    } else {
+                        literal += getNextCharacter();
                     }
-                    literal += getNextCharacter();
                     next = peekNextCharacter();
                 }
 
