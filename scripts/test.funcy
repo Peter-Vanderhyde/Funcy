@@ -5,4 +5,9 @@ classes
 lambdas
 */
 
-print("Hello there you".replace(" ", "\n"));
+func get_values() {
+    return ["Peter", 23];
+}
+
+[name, age] = get_values();
+print("Name: " + name + ", " + age);

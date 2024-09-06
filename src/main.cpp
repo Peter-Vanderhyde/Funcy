@@ -30,7 +30,14 @@ int main(int argc, char* argv[]) {
     // }
 
     Parser parser{tokens};
-    std::vector<std::shared_ptr<ASTNode>> statements = parser.parse();
+    std::vector<std::shared_ptr<ASTNode>> statements;
+    try {
+        statements = parser.parse();
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return 0;
+    }
     
     // ASTPrinter printer;
     // printer.print(statements);

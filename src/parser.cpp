@@ -816,10 +816,30 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         }
 
         // Give it the actual left string, not the value of the variable
-        if (auto identifierNode = dynamic_cast<IdentifierNode*>(left.get())) {
-            env.set(identifierNode->value, right_value.value());
-        } else if (auto indexNode = dynamic_cast<IndexNode*>(left.get())) {
-            indexNode->assignIndex(env, right_value.value());
+        if (auto identifier_node = dynamic_cast<IdentifierNode*>(left.get())) {
+            env.set(identifier_node->value, right_value.value());
+        } else if (auto index_node = dynamic_cast<IndexNode*>(left.get())) {
+            index_node->assignIndex(env, right_value.value());
+        } else if (auto list_node = std::dynamic_pointer_cast<ListNode>(left)) {
+            if (!std::holds_alternative<std::shared_ptr<List>>(*right_value.value())) {
+                runtimeError("Expected list. Cannot unpack " + getValueStr(right_value.value()), line, column);
+            }
+
+            auto right_list = std::get<std::shared_ptr<List>>(*right_value.value());
+            if (right_list->size() > list_node->list.size()) {
+                runtimeError("Too many values to unpack", line, column);
+            } else if (right_list->size() < list_node->list.size()) {
+                runtimeError("Too few values to unpack", line, column);
+            }
+
+            for (int i = 0; i < right_list->size(); i++) {
+                if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(i))) {
+                    env.set(identifier_node->value, right_list->at(i));
+                }
+                else {
+                    runtimeError("Cannot assign value to literal", line, column);
+                }
+            }
         }
         else {
             runtimeError("The operator '=' can only be used with variables", line, column);
@@ -1375,9 +1395,9 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         }
     } else if (std::holds_alternative<std::shared_ptr<BuiltInFunction>>(*mapped_value)) {
         auto func_value = std::get<std::shared_ptr<BuiltInFunction>>(*mapped_value);
+        List values = evaluateArgs(env);
         try {
-            auto returned = (*func_value)(evaluateArgs(env), env);
-            return returned;
+            return (*func_value)(values, env);
         }
         catch (const std::exception e) {
             runtimeError(e.what(), line, column);
@@ -1715,7 +1735,20 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
         }
     }
     else {
-        return parseLogicalOr();
+        auto left = parseLogicalOr();
+        if (auto left_list = std::dynamic_pointer_cast<ListNode>(left)) {
+            if (tokenIs("=")) {
+                const Token* op = getToken();
+                consume();
+                auto right = parseLogicalOr();
+                return std::make_shared<BinaryOpNode>(left, op->type, right, op->line, op->column);
+            } else {
+                return left;
+            }
+        }
+        else {
+            return left;
+        }
     }
 }
 
