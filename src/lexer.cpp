@@ -64,7 +64,7 @@ char Lexer::peekNextCharacter(int ahead) {
 }
 
 void Lexer::lexerError(std::string message, int line, int column) {
-    throw std::runtime_error(std::format("\033[31mLexer Error:\033[38;5;214m {}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m", message, line, column));
+    throw std::runtime_error(std::format("\033[31mSyntax Error:\033[38;5;214m {}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m", message, line, column));
 }
 
 std::vector<Token> Lexer::tokenize() {
