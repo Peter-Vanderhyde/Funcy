@@ -1,48 +1,8 @@
 #include "lexer.h"
 #include <iostream>
 #include <format>
-#include <unordered_map>
-
-
-std::unordered_map<TokenType, std::string> token_labels{
-    {TokenType::_Integer, "T:Integer"},
-    {TokenType::_Float, "T:Float"},
-    {TokenType::_Plus, "T:Plus"},
-    {TokenType::_Minus, "T:Minus"},
-    {TokenType::_Multiply, "T:Multiply"},
-    {TokenType::_DoubleMultiply, "T:DoubleMultiply"},
-    {TokenType::_Divide, "T:Divide"},
-    {TokenType::_DoubleDivide, "T:DoubleDivide"},
-    {TokenType::_OpenParen, "T:OpenParenthesis"},
-    {TokenType::_CloseParen, "T:CloseParenthesis"},
-    {TokenType::_Semi, "T:Semicolon"},
-    {TokenType::_EOF, "T:EndOfFile"}
-    //{TokenType::, "T:"}
-};
-
-std::string getTokenTypeLabel(TokenType type) {
-    if (token_labels.find(type) != token_labels.end()) {
-        return token_labels[type];
-    }
-    else {
-        return "T:UNKNOWN";
-    }
-}
-
-std::unordered_map<char, TokenType> char_tokens {
-    {';', TokenType::_Semi},
-    {'+', TokenType::_Plus},
-    {'-', TokenType::_Minus},
-    {'*', TokenType::_Multiply},
-    {'/', TokenType::_Divide}
-};
-
-
-Token::Token(TokenType type, TokenValue value, int line, int column)
-    : type{type}, value{value}, line{line}, column{column} {}
-
-Token::Token(TokenType type, int line, int column)
-    : type{type}, value{0}, line{line}, column{column} {}
+#include "token.h"
+#include "library.h"
 
 
 Lexer::Lexer(const std::string& source_code)
@@ -63,8 +23,8 @@ char Lexer::peekNextCharacter(int ahead) {
     return source_code[current_position + ahead];
 }
 
-void Lexer::lexerError(std::string message, int line, int column) {
-    throw std::runtime_error(std::format("\033[31mSyntax Error:\033[38;5;214m {}\033[0m at \033[4m\033[38;5;129mline {} column {}\033[0m", message, line, column));
+void Lexer::lexerError(std::string message, int line, int column) const {
+    handleError(message, line, column, "Syntax Error");
 }
 
 std::vector<Token> Lexer::tokenize() {
@@ -99,27 +59,30 @@ std::vector<Token> Lexer::tokenize() {
             bool found_decimal = false;
             std::string literal;
             literal += character;
+
             while (current_position < source_code.length()) {
-                character = peekNextCharacter();
-                if (isdigit(character) || character == '.') {
-                    if (character == '.') {
-                        if (found_decimal) { // TODO Check if second found decimal is for built in float member functions
-                            lexerError("Second decimal point found", line, column + 1);
-                        }
-                        else {
-                            found_decimal = true;
-                        }
-                    }
-                    grabNextCharacter();
-                    literal += character;
+                char check = peekNextCharacter();
+                
+                if (isdigit(check)) {
+                    literal += grabNextCharacter();
+                }
+                else if (check == '.' && !found_decimal) { // First decimal point
+                    found_decimal = true;
+                    literal += grabNextCharacter();
+                }
+                else if (check == '.' && found_decimal) { // Second decimal point
+                    lexerError("Invalid number format: multiple decimal points", line, column + 1);
+                    break;
                 }
                 else {
                     break;
                 }
             }
-            if (found_decimal) { // It's a float
+
+            // Push token based on whether a decimal point was found
+            if (found_decimal) {
                 tokens.push_back(Token(TokenType::_Float, std::stod(literal), l, c));
-            } else { // It's an integer
+            } else {
                 tokens.push_back(Token(TokenType::_Integer, std::stoi(literal), l, c));
             }
         }
@@ -142,5 +105,6 @@ std::vector<Token> Lexer::tokenize() {
         }
     }
 
+    tokens.push_back(Token{TokenType::_EOF, line, column});
     return tokens;
 }
