@@ -21,7 +21,7 @@ ASTNode::ASTNode(int line, int column)
 AtomNode::AtomNode(std::variant<int, double, bool, std::string> value, int line, int column)
     : ASTNode{line, column}, value(std::move(value)) {}
 
-std::optional<std::shared_ptr<Value>> AtomNode::evaluate() {
+std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Atom" << std::endl;
     if (isInt()) {
         return std::make_shared<Value>(getInt());
@@ -70,9 +70,9 @@ std::string AtomNode::getString() {
 UnaryOpNode::UnaryOpNode(TokenType op, std::shared_ptr<ASTNode> right, int line, int column)
     : ASTNode{line, column}, op{op}, right{right} {}
 
-std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate() {
+std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Unary" << std::endl;
-    std::optional<std::shared_ptr<Value>> right_value = right->evaluate();
+    std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
     if (!right_value.has_value()) {
         runtimeError(std::format("Failed to evaluate unary operand with operator '{}'", getTokenTypeLabel(op)), line, column);
     }
@@ -124,90 +124,105 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate() {
 BinaryOpNode::BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right, int line, int column)
     : ASTNode{line, column}, left{left}, op{op}, right{right} {}
 
-std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate() {
-    std::optional<std::shared_ptr<Value>> left_opt = left->evaluate();
-    std::optional<std::shared_ptr<Value>> right_opt = right->evaluate();
-
-    if (!left_opt.has_value() || !right_opt.has_value()) {
-        runtimeError(std::format("Unable to evaluate binary operand for operator '{}'", getTokenTypeLabel(op)), line, column);
-    }
-    std::shared_ptr<Value> left_value = left_opt.value();
-    std::shared_ptr<Value> right_value = right_opt.value();
-
-    std::string left_str = getValueStr(left_value);
-    std::string right_str = getValueStr(right_value);
-
-    if ((left_str == "integer" || left_str == "float") &&
-                (right_str == "integer" || right_str == "float") &&
-                (left_str == "float" || right_str == "float")) {
-        double new_left, new_right;
-        if (left_str == "integer") {
-            new_left = static_cast<double>(std::get<int>(*left_value));
+std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
+    if (op == TokenType::_Equals) {
+        std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
+        if (!right_opt) {
+            runtimeError("Unable to evaluate right side of equals", line, column);
+        }
+        
+        auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(left);
+        if (ident_node) {
+            env.add(ident_node->name, right_opt.value());
+            return std::nullopt;
         } else {
-            new_left = std::get<double>(*left_value);
+            runtimeError("Invalid value assignment", line, column);
         }
-        if (right_str == "integer") {
-            new_right = static_cast<double>(std::get<int>(*right_value));
-        } else {
-            new_right = std::get<double>(*right_value);
-        }
+    } else {
+        std::optional<std::shared_ptr<Value>> left_opt = left->evaluate(env);
+        std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
 
-        if (op == TokenType::_Plus) {
-            return std::make_shared<Value>(new_left + new_right);
+        if (!left_opt.has_value() || !right_opt.has_value()) {
+            runtimeError(std::format("Unable to evaluate binary operand for operator '{}'", getTokenTypeLabel(op)), line, column);
         }
-        else if (op == TokenType::_Minus) {
-            return std::make_shared<Value>(new_left - new_right);
-        }
-        else if (op == TokenType::_Multiply) {
-            return std::make_shared<Value>(new_left * new_right);
-        }
-        else if (op == TokenType::_Divide) {
-            if (new_right == 0.0) {
-                handleError("Float division by zero", line, column, "Zero Division Error");
+        std::shared_ptr<Value> left_value = left_opt.value();
+        std::shared_ptr<Value> right_value = right_opt.value();
+
+        std::string left_str = getValueStr(left_value);
+        std::string right_str = getValueStr(right_value);
+
+        if ((left_str == "integer" || left_str == "float") &&
+                    (right_str == "integer" || right_str == "float") &&
+                    (left_str == "float" || right_str == "float")) {
+            double new_left, new_right;
+            if (left_str == "integer") {
+                new_left = static_cast<double>(std::get<int>(*left_value));
+            } else {
+                new_left = std::get<double>(*left_value);
             }
-            return std::make_shared<Value>(new_left / new_right);
-        }
-        else if (op == TokenType::_DoubleDivide) {
-            if (new_right == 0.0) {
-                handleError("Float division by zero", line, column, "Zero Division Error");
+            if (right_str == "integer") {
+                new_right = static_cast<double>(std::get<int>(*right_value));
+            } else {
+                new_right = std::get<double>(*right_value);
             }
-            int result = static_cast<int>(new_left / new_right);
-            return std::make_shared<Value>(result);
-        }
-        else if (op == TokenType::_Caret) {
-            return std::make_shared<Value>(pow(new_left, new_right));
-        }
-        else if (op == TokenType::_DoubleMultiply) {
-            return std::make_shared<Value>(pow(new_left, new_right));
-        }
-    }
-    else if (left_str == "integer" && right_str == "integer") {
-        int left = std::get<int>(*left_value);
-        int right = std::get<int>(*right_value);
-        if (op == TokenType::_Plus) {
-            return std::make_shared<Value>(left + right);
-        }
-        else if (op == TokenType::_Minus) {
-            return std::make_shared<Value>(left - right);
-        }
-        else if (op == TokenType::_Multiply) {
-            return std::make_shared<Value>(left * right);
-        }
-        else if (op == TokenType::_Divide) {
-            if (right == 0) {
-                handleError("Integer division by zero", line, column, "Zero Division Error");
+
+            if (op == TokenType::_Plus) {
+                return std::make_shared<Value>(new_left + new_right);
             }
-            double result = static_cast<double>(left) / static_cast<double>(right);
-            return std::make_shared<Value>(result);
-        }
-        else if (op == TokenType::_DoubleDivide) {
-            if (right == 0) {
-                handleError("Integer division by zero", line, column, "Zero Division Error");
+            else if (op == TokenType::_Minus) {
+                return std::make_shared<Value>(new_left - new_right);
             }
-            return std::make_shared<Value>(left / right);
+            else if (op == TokenType::_Multiply) {
+                return std::make_shared<Value>(new_left * new_right);
+            }
+            else if (op == TokenType::_Divide) {
+                if (new_right == 0.0) {
+                    handleError("Float division by zero", line, column, "Zero Division Error");
+                }
+                return std::make_shared<Value>(new_left / new_right);
+            }
+            else if (op == TokenType::_DoubleDivide) {
+                if (new_right == 0.0) {
+                    handleError("Float division by zero", line, column, "Zero Division Error");
+                }
+                int result = static_cast<int>(new_left / new_right);
+                return std::make_shared<Value>(result);
+            }
+            else if (op == TokenType::_Caret) {
+                return std::make_shared<Value>(pow(new_left, new_right));
+            }
+            else if (op == TokenType::_DoubleMultiply) {
+                return std::make_shared<Value>(pow(new_left, new_right));
+            }
         }
-        else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) {
-            return std::make_shared<Value>(static_cast<int>(pow(left, right)));
+        else if (left_str == "integer" && right_str == "integer") {
+            int left = std::get<int>(*left_value);
+            int right = std::get<int>(*right_value);
+            if (op == TokenType::_Plus) {
+                return std::make_shared<Value>(left + right);
+            }
+            else if (op == TokenType::_Minus) {
+                return std::make_shared<Value>(left - right);
+            }
+            else if (op == TokenType::_Multiply) {
+                return std::make_shared<Value>(left * right);
+            }
+            else if (op == TokenType::_Divide) {
+                if (right == 0) {
+                    handleError("Integer division by zero", line, column, "Zero Division Error");
+                }
+                double result = static_cast<double>(left) / static_cast<double>(right);
+                return std::make_shared<Value>(result);
+            }
+            else if (op == TokenType::_DoubleDivide) {
+                if (right == 0) {
+                    handleError("Integer division by zero", line, column, "Zero Division Error");
+                }
+                return std::make_shared<Value>(left / right);
+            }
+            else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) {
+                return std::make_shared<Value>(static_cast<int>(pow(left, right)));
+            }
         }
     }
 
@@ -218,10 +233,23 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate() {
 ParenthesisOpNode::ParenthesisOpNode(std::shared_ptr<ASTNode> expr, int line, int column)
         : ASTNode{line, column}, expr{expr} {}
 
-std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate() {
+std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Parenthesis" << std::endl;
-    std::optional<std::shared_ptr<Value>> expr_value = expr->evaluate();
+    std::optional<std::shared_ptr<Value>> expr_value = expr->evaluate(env);
     return expr_value;
+}
+
+
+IdentifierNode::IdentifierNode(std::string name, int line, int column)
+    : ASTNode{line, column}, name{name} {}
+
+std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env) {
+    if (debug) std::cout << "Evaluate Identifier" << std::endl;
+    if (env.contains(name)) {
+        return env.get(name);
+    } else {
+        runtimeError(std::format("Name '{}' is not defined", name), line, column);
+    }
 }
 
 

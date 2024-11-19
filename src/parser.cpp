@@ -12,12 +12,12 @@ void Parser::parsingError(std::string message, int line, int column) const {
     handleError(message, line, column, "Syntax Error");
 }
 
-const Token& Parser::peekToken(int ahead) const {
+std::optional<const Token*> Parser::peekToken(int ahead) const {
     if (current_index + ahead > tokens.size()) {
         const Token& token = getToken();
         parsingError("Attempted to peek out of range", token.line, token.column);
     } else {
-        return tokens[current_index + ahead];
+        return &tokens[current_index + ahead];
     }
 }
 
@@ -43,7 +43,7 @@ bool Parser::tokenIs(std::string str) const {
 }
 
 bool Parser::nextTokenIs(std::string str, int ahead) const {
-    return str == getTokenTypeLabel(peekToken(ahead).type);
+    return str == getTokenTypeLabel(peekToken(ahead).value()->type);
 }
 
 
@@ -59,13 +59,26 @@ std::vector<std::shared_ptr<ASTNode>> Parser::parse() {
 
 std::shared_ptr<ASTNode> Parser::parseFoundation() {
     if (debug) std::cout << "Parse Foundation " << getTokenStr() << std::endl;
-    auto statement = parseExpression();
+    auto statement = parseStatement();
     if (!tokenIs(";")) {
         handleError("Expected ';' but got " + getTokenStr(), getToken().line, getToken().column, "Syntax Error");
     } else {
         consumeToken();
     }
     return statement;
+}
+
+std::shared_ptr<ASTNode> Parser::parseStatement() {
+    if (debug) std::cout << "Parse Statement " << getTokenStr() << std::endl;
+    if (tokenIs("identifier") && peekToken() && nextTokenIs("=")) {
+        auto left = parseIdentifier();
+        const Token& op = consumeToken();
+        auto right = parseExpression();
+        return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+    } else {
+        auto left = parseExpression();
+        return left;
+    }
 }
 
 std::shared_ptr<ASTNode> Parser::parseExpression() {
@@ -157,9 +170,27 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
             auto string_value = std::get<std::string>(token.value);
             return std::make_shared<AtomNode>(string_value, token.line, token.column);
         }
+    } else if (tokenIs("identifier")) {
+        return parseIdentifier();
     }
     else {
         parsingError(std::format("Expected atom but got {}", getTokenStr()), getToken().line, getToken().column);
     }
+    return nullptr;
+}
+
+std::shared_ptr<ASTNode> Parser::parseIdentifier() {
+    if (debug) std::cout << "Parse Identifier " << getTokenStr() << std::endl;
+    if (tokenIs("identifier")) {
+        const Token& token = consumeToken();
+        if (std::holds_alternative<std::string>(token.value)) {
+            return std::make_shared<IdentifierNode>(std::get<std::string>(token.value), token.line, token.column);
+        } else {
+            parsingError("Identifier was not a string??", token.line, token.column);
+        }
+    } else {
+        parsingError(std::format("Expected identifier but got {}", getTokenStr()), getToken().line, getToken().column);
+    }
+
     return nullptr;
 }

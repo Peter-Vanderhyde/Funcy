@@ -1,2 +1,4 @@
-2 * (3 + 1) / 1;
-263.253 // 62.6;
+one = 1;
+two = 2;
+result = one / two;
+result;

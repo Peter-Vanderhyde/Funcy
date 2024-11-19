@@ -10,6 +10,7 @@ enum class TokenType{
     _Float,
     _Boolean,
     _String,
+    _Identifier,
     _Plus,
     _Minus,
     _Multiply,
@@ -21,7 +22,8 @@ enum class TokenType{
     _OpenParen,
     _CloseParen,
     _Caret,
-    _Dot
+    _Dot,
+    _Equals
 };
 
 std::string getTokenTypeLabel(TokenType type);

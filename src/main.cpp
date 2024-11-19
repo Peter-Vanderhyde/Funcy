@@ -49,9 +49,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    Environment env;
+
     for (auto statement : statements) {
         try {
-            auto result = statement->evaluate();
+            auto result = statement->evaluate(env);
             if (result.has_value()) {
                 printValue(*result.value());
                 std::cout << std::endl;

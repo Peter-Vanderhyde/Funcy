@@ -7,6 +7,7 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Float, "float"},
     {TokenType::_Boolean, "boolean"},
     {TokenType::_String, "string"},
+    {TokenType::_Identifier, "identifier"},
     {TokenType::_Plus, "+"},
     {TokenType::_Minus, "-"},
     {TokenType::_Multiply, "*"},
@@ -18,6 +19,7 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Semi, ";"},
     {TokenType::_Caret, "^"},
     {TokenType::_Dot, "."},
+    {TokenType::_Equals, "="},
     {TokenType::_EOF, "endOfFile"}
     //{TokenType::, "T:"}
 };
@@ -39,7 +41,8 @@ std::unordered_map<char, TokenType> char_tokens {
     {'/', TokenType::_Divide},
     {'^', TokenType::_Caret},
     {'(', TokenType::_OpenParen},
-    {')', TokenType::_CloseParen}
+    {')', TokenType::_CloseParen},
+    {'=', TokenType::_Equals}
 };
 
 

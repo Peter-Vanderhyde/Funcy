@@ -4,9 +4,9 @@
 #include <memory>
 #include "token.h"
 #include <optional>
+#include "environment.h"
 
 
-using Value = std::variant<int, double, bool, std::string>;
 
 [[noreturn]] void runtimeError(std::string message, int line, int column);
 [[noreturn]] void runtimeError(std::string message);
@@ -19,7 +19,7 @@ public:
     ASTNode(int line, int column);
     virtual ~ASTNode() = default;
 
-    virtual std::optional<std::shared_ptr<Value>> evaluate() = 0;
+    virtual std::optional<std::shared_ptr<Value>> evaluate(Environment&) = 0;
 };
 
 
@@ -29,7 +29,7 @@ public:
 
     AtomNode(std::variant<int, double, bool, std::string> value, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate() override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
     bool isInt();
     bool isFloat();
@@ -49,7 +49,7 @@ public:
 
     UnaryOpNode(TokenType op, std::shared_ptr<ASTNode> right, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate() override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 };
 
 class BinaryOpNode : public ASTNode {
@@ -59,7 +59,7 @@ public:
 
     BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate() override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 };
 
 class ParenthesisOpNode : public ASTNode {
@@ -68,9 +68,17 @@ public:
 
     ParenthesisOpNode(std::shared_ptr<ASTNode> expr, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate() override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 };
 
+class IdentifierNode : public ASTNode {
+public:
+    std::string name;
+
+    IdentifierNode(std::string name, int line, int column);
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+};
 
 std::string getValueStr(std::shared_ptr<Value> value);
 std::string getValueStr(Value value);

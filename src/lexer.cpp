@@ -52,6 +52,24 @@ std::vector<Token> Lexer::tokenize() {
             }
             grabNextCharacter();
         }
+        else if (isalpha(character) || character == '_') {
+            int l = line;
+            int c = column;
+            std::string literal;
+            literal += character;
+
+            while (current_position < source_code.length()) {
+                char next = peekNextCharacter();
+
+                if (isalnum(next) || next == '_') {
+                    literal += grabNextCharacter();
+                } else {
+                    break;
+                }
+            }
+
+            tokens.push_back(Token{TokenType::_Identifier, literal, l, c});
+        }
 
         else if (isdigit(character)) { // Integer or float
             int l = line;
@@ -61,16 +79,16 @@ std::vector<Token> Lexer::tokenize() {
             literal += character;
 
             while (current_position < source_code.length()) {
-                char check = peekNextCharacter();
+                char next = peekNextCharacter();
                 
-                if (isdigit(check)) {
+                if (isdigit(next)) {
                     literal += grabNextCharacter();
                 }
-                else if (check == '.' && !found_decimal) { // First decimal point
+                else if (next == '.' && !found_decimal) { // First decimal point
                     found_decimal = true;
                     literal += grabNextCharacter();
                 }
-                else if (check == '.' && found_decimal) { // Second decimal point
+                else if (next == '.' && found_decimal) { // Second decimal point
                     lexerError("Invalid number format: multiple decimal points", line, column + 1);
                     break;
                 }
