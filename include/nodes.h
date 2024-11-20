@@ -60,6 +60,9 @@ public:
     BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right, int line, int column);
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    std::optional<std::shared_ptr<Value>> performOperation(std::shared_ptr<Value> left_value,
+                                                            std::shared_ptr<Value>(right_value));
 };
 
 class ParenthesisOpNode : public ASTNode {

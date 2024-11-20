@@ -124,6 +124,63 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
 BinaryOpNode::BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right, int line, int column)
     : ASTNode{line, column}, left{left}, op{op}, right{right} {}
 
+std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared_ptr<Value> left_value,
+                                                                    std::shared_ptr<Value>(right_value)) {
+
+    std::string left_str = getValueStr(left_value);
+    std::string right_str = getValueStr(right_value);
+
+    if ((left_str == "boolean" || left_str == "integer" || left_str == "float") &&
+            (right_str == "boolean" || right_str == "integer" || right_str == "float")) {
+        
+        // Convert whatever kind to a number to perform operation
+        std::vector<std::variant<int, double>> result_vec = transformNums(left_value, right_value);
+        std::string result_type;
+        // Int vs Float influences final type
+        double new_left, new_right;
+        if (std::holds_alternative<int>(result_vec[0])) {
+            result_type = "int";
+            new_left = std::get<int>(result_vec[0]);
+            new_right = std::get<int>(result_vec[1]);
+        } else {
+            result_type = "float";
+            new_left = std::get<double>(result_vec[0]);
+            new_right = std::get<double>(result_vec[1]);
+        }
+
+        double op_result;
+        if (op == TokenType::_Plus) {op_result = new_left + new_right;}
+        else if (op == TokenType::_Minus) {op_result = new_left - new_right;}
+        else if (op == TokenType::_Multiply) {op_result = new_left * new_right;}
+        else if (op == TokenType::_Divide) {
+            if (new_right == 0.0) {
+                handleError("Attempted division by zero", line, column, "Zero Division Error");
+            }
+            return std::make_shared<Value>(new_left / new_right);
+        }
+        else if (op == TokenType::_DoubleDivide) {
+            if (new_right == 0.0) {
+                handleError("Attempted division by zero", line, column, "Zero Division Error");
+            }
+            int result = static_cast<int>(new_left / new_right);
+            return std::make_shared<Value>(result);
+        }
+        else if (op == TokenType::_Caret) {op_result = pow(new_left, new_right);}
+        else if (op == TokenType::_DoubleMultiply) {op_result = pow(new_left, new_right);}
+        else {
+            return std::nullopt;
+        }
+
+        if (result_type == "int") {
+            return std::make_shared<Value>(static_cast<int>(op_result));
+        } else {
+            return std::make_shared<Value>(op_result);
+        }
+    }
+
+    return std::nullopt;
+}
+
 std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
     if (op == TokenType::_Equals) {
         std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
@@ -145,87 +202,8 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         if (!left_opt.has_value() || !right_opt.has_value()) {
             runtimeError(std::format("Unable to evaluate binary operand for operator '{}'", getTokenTypeLabel(op)), line, column);
         }
-        std::shared_ptr<Value> left_value = left_opt.value();
-        std::shared_ptr<Value> right_value = right_opt.value();
-
-        std::string left_str = getValueStr(left_value);
-        std::string right_str = getValueStr(right_value);
-
-        if ((left_str == "integer" || left_str == "float") &&
-                    (right_str == "integer" || right_str == "float") &&
-                    (left_str == "float" || right_str == "float")) {
-            double new_left, new_right;
-            if (left_str == "integer") {
-                new_left = static_cast<double>(std::get<int>(*left_value));
-            } else {
-                new_left = std::get<double>(*left_value);
-            }
-            if (right_str == "integer") {
-                new_right = static_cast<double>(std::get<int>(*right_value));
-            } else {
-                new_right = std::get<double>(*right_value);
-            }
-
-            if (op == TokenType::_Plus) {
-                return std::make_shared<Value>(new_left + new_right);
-            }
-            else if (op == TokenType::_Minus) {
-                return std::make_shared<Value>(new_left - new_right);
-            }
-            else if (op == TokenType::_Multiply) {
-                return std::make_shared<Value>(new_left * new_right);
-            }
-            else if (op == TokenType::_Divide) {
-                if (new_right == 0.0) {
-                    handleError("Float division by zero", line, column, "Zero Division Error");
-                }
-                return std::make_shared<Value>(new_left / new_right);
-            }
-            else if (op == TokenType::_DoubleDivide) {
-                if (new_right == 0.0) {
-                    handleError("Float division by zero", line, column, "Zero Division Error");
-                }
-                int result = static_cast<int>(new_left / new_right);
-                return std::make_shared<Value>(result);
-            }
-            else if (op == TokenType::_Caret) {
-                return std::make_shared<Value>(pow(new_left, new_right));
-            }
-            else if (op == TokenType::_DoubleMultiply) {
-                return std::make_shared<Value>(pow(new_left, new_right));
-            }
-        }
-        else if (left_str == "integer" && right_str == "integer") {
-            int left = std::get<int>(*left_value);
-            int right = std::get<int>(*right_value);
-            if (op == TokenType::_Plus) {
-                return std::make_shared<Value>(left + right);
-            }
-            else if (op == TokenType::_Minus) {
-                return std::make_shared<Value>(left - right);
-            }
-            else if (op == TokenType::_Multiply) {
-                return std::make_shared<Value>(left * right);
-            }
-            else if (op == TokenType::_Divide) {
-                if (right == 0) {
-                    handleError("Integer division by zero", line, column, "Zero Division Error");
-                }
-                double result = static_cast<double>(left) / static_cast<double>(right);
-                return std::make_shared<Value>(result);
-            }
-            else if (op == TokenType::_DoubleDivide) {
-                if (right == 0) {
-                    handleError("Integer division by zero", line, column, "Zero Division Error");
-                }
-                return std::make_shared<Value>(left / right);
-            }
-            else if (op == TokenType::_Caret || op == TokenType::_DoubleMultiply) {
-                return std::make_shared<Value>(static_cast<int>(pow(left, right)));
-            }
-        }
+        return performOperation(left_opt.value(), right_opt.value());
     }
-
     return std::nullopt;
 }
 

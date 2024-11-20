@@ -68,7 +68,13 @@ std::vector<Token> Lexer::tokenize() {
                 }
             }
 
-            tokens.push_back(Token{TokenType::_Identifier, literal, l, c});
+            if (literal == "true") {
+                tokens.push_back(Token{TokenType::_Boolean, true, l, c});
+            } else if (literal == "false") {
+                tokens.push_back(Token{TokenType::_Boolean, false, l, c});
+            } else {
+                tokens.push_back(Token{TokenType::_Identifier, literal, l, c});
+            }
         }
 
         else if (isdigit(character)) { // Integer or float
