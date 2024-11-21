@@ -1,3 +1,7 @@
+// Peter Vanderhyde
+// November 2024
+// Project: Funcy Language 2.0
+
 #include <iostream>
 #include <vector>
 #include "library.h"
