@@ -55,7 +55,7 @@ int main(int argc, char* argv[]) {
         try {
             auto result = statement->evaluate(env);
             if (result.has_value()) {
-                printValue(*result.value());
+                printValue(result.value(), env);
                 std::cout << std::endl;
             }
         }

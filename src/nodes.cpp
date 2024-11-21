@@ -3,6 +3,7 @@
 #include "library.h"
 #include <format>
 #include <math.h>
+#include <format>
 
 
 void runtimeError(std::string message, int line, int column) {
@@ -126,14 +127,34 @@ BinaryOpNode::BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::sha
 
 std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared_ptr<Value> left_value,
                                                                     std::shared_ptr<Value>(right_value)) {
-
     std::string left_str = getValueStr(left_value);
     std::string right_str = getValueStr(right_value);
 
-    if ((left_str == "boolean" || left_str == "integer" || left_str == "float") &&
+    if (left_str == "string" && right_str == "string") {
+        // BOTH STRINGS
+        if (op == TokenType::_Plus) {
+            std::string lhs = std::get<std::string>(*left_value);
+            std::string rhs = std::get<std::string>(*right_value);
+            return std::make_shared<Value>(lhs + rhs);
+        }
+    }
+
+    else if (left_str == "string" && right_str == "integer") {
+        // STRING AND INT
+        if (op == TokenType::_Multiply) {
+            std::string new_str = "";
+            std::string copying = std::get<std::string>(*left_value);
+            for (int i = 0; i < std::get<int>(*right_value); i++) {
+                new_str += copying;
+            }
+            return std::make_shared<Value>(new_str);
+        }
+    }
+
+    else if ((left_str == "boolean" || left_str == "integer" || left_str == "float") &&
             (right_str == "boolean" || right_str == "integer" || right_str == "float")) {
         
-        // Convert whatever kind to a number to perform operation
+        // Convert int/float/bool to a number to perform operation
         std::vector<std::variant<int, double>> result_vec = transformNums(left_value, right_value);
         std::string result_type;
         // Int vs Float influences final type
@@ -202,7 +223,13 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         if (!left_opt.has_value() || !right_opt.has_value()) {
             runtimeError(std::format("Unable to evaluate binary operand for operator '{}'", getTokenTypeLabel(op)), line, column);
         }
-        return performOperation(left_opt.value(), right_opt.value());
+        auto result = performOperation(left_opt.value(), right_opt.value());
+        if (result) {
+            return result;
+        } else {
+            runtimeError(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
+                                    getValueStr(left_opt.value()), getTokenTypeLabel(op), getValueStr(right_opt.value())), line, column);
+        }
     }
     return std::nullopt;
 }

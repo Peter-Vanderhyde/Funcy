@@ -31,15 +31,24 @@ void handleError(std::string message, int line, int column, std::string prefix) 
     }
 }
 
-void printValue(const std::variant<int, double, bool, std::string>& value) {
-    if (std::holds_alternative<int>(value)) {
-        std::cout << std::get<int>(value);
-    } else if (std::holds_alternative<double>(value)) {
-        std::cout << std::fixed << std::setprecision(1) << std::get<double>(value);
-    } else if (std::holds_alternative<bool>(value)) {
-        std::cout << std::boolalpha << std::get<bool>(value);
-    } else if (std::holds_alternative<std::string>(value)) {
-        std::cout << std::get<std::string>(value);
+void printValue(const std::shared_ptr<Value> value, Environment& env) {
+    Style style{};
+    if (std::holds_alternative<int>(*value)) {
+        auto int_value = std::get<int>(*value);
+        std::cout << style.light_blue << int_value << style.reset;
+    } else if (std::holds_alternative<double>(*value)) {
+        auto double_value = std::get<double>(*value);
+        if (double_value == static_cast<int>(double_value)) {
+            std::cout << style.light_blue << double_value << ".0" << style.reset;
+        } else {
+            std::cout << style.light_blue << double_value << style.reset;
+        }
+    } else if (std::holds_alternative<bool>(*value)) {
+        auto bool_value = std::get<bool>(*value);
+        std::cout << style.purple << std::boolalpha << bool_value << style.reset;
+    } else if (std::holds_alternative<std::string>(*value)) {
+        auto string_value = std::get<std::string>(*value);
+        std::cout << style.green << "'" << string_value << "'" << style.reset;
     }
 }
 

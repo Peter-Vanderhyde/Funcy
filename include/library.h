@@ -3,6 +3,7 @@
 #include <variant>
 #include <vector>
 #include <memory>
+#include "environment.h"
 
 struct Style {
     std::string red = "\033[31m";
@@ -19,7 +20,7 @@ std::string readSourceCodeFromFile(const std::string& filename);
 
 [[noreturn]] void handleError(std::string message, int line, int column, std::string prefix);
 
-void printValue(const std::variant<int, double, bool, std::string>& value);
+void printValue(const std::shared_ptr<Value> value, Environment& env);
 
 std::vector<std::variant<int, double>> transformNums(std::shared_ptr<std::variant<int, double, bool, std::string>> first,
                                                     std::shared_ptr<std::variant<int, double, bool, std::string>> second);

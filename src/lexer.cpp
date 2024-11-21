@@ -77,6 +77,56 @@ std::vector<Token> Lexer::tokenize() {
             }
         }
 
+        else if (character == '"' || character == '\'') {
+            // It's a string
+
+            std::string literal = "";
+            literal += character;
+            int l = line;
+            int c = column;
+
+            char starting_char = character;
+            literal = "";
+            char next = peekNextCharacter();
+            while (current_position < source_code.length()) {
+                if (next == '\\') {
+                    grabNextCharacter(); // Consume the backslash
+                    if (current_position >= source_code.length()) break; // Avoid out of bounds
+                    char escape_char = grabNextCharacter(); // Get the escaped character
+
+                    // Handle escape sequences
+                    switch (escape_char) {
+                        case 'n': literal += '\n'; break;    // Newline
+                        case 't': literal += '\t'; break;    // Tab
+                        case 'r': literal += '\r'; break;    // Carriage return
+                        case 'b': literal += '\b'; break;    // Backspace
+                        case 'f': literal += '\f'; break;    // Formfeed
+                        case '\\': literal += '\\'; break;   // Backslash
+                        case '\"': literal += '\"'; break;   // Double quote
+                        case '\'': literal += '\''; break;   // Single quote
+                        case '0': literal += '\0'; break;    // Null character
+                        default:
+                            // Invalid escape sequence
+                            lexerError("Unknown escape sequence \\" + std::string(1, escape_char), l, c);
+                            break;
+                    }
+                } else if (next == starting_char) {
+                    break;
+                } else {
+                    literal += grabNextCharacter();
+                }
+                next = peekNextCharacter();
+            }
+
+            if (current_position >= source_code.length()) {
+                lexerError("Expected closing quotes", l, c);
+            }
+
+            grabNextCharacter();
+            Token token{TokenType::_String, literal, l, c};
+            tokens.push_back(token);
+        }
+
         else if (isdigit(character)) { // Integer or float
             int l = line;
             int c = column;

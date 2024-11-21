@@ -1,5 +1,4 @@
-salary = 20;
-worked_holiday = true;
-holiday_bonus = 2;
-payout = salary + (salary * holiday_bonus * worked_holiday);
-payout;
+first = "Peter";
+last = "Vanderhyde ";
+name = first + " " + last;
+name * 2;
