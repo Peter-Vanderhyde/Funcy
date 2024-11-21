@@ -25,6 +25,7 @@ public:
     std::vector<std::shared_ptr<ASTNode>> parse();
     std::shared_ptr<ASTNode> parseFoundation();
     std::shared_ptr<ASTNode> parseStatement();
+    std::shared_ptr<ASTNode> parseEquality();
     std::shared_ptr<ASTNode> parseExpression();
     std::shared_ptr<ASTNode> parseTerm();
     std::shared_ptr<ASTNode> parseFactor();

@@ -132,10 +132,13 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
     if (left_str == "string" && right_str == "string") {
         // BOTH STRINGS
+        std::string lhs = std::get<std::string>(*left_value);
+        std::string rhs = std::get<std::string>(*right_value);
         if (op == TokenType::_Plus) {
-            std::string lhs = std::get<std::string>(*left_value);
-            std::string rhs = std::get<std::string>(*right_value);
             return std::make_shared<Value>(lhs + rhs);
+        }
+        else if (op == TokenType::_Compare) {
+            return std::make_shared<Value>(lhs == rhs);
         }
     }
 
@@ -148,6 +151,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
                 new_str += copying;
             }
             return std::make_shared<Value>(new_str);
+        }
+        else if (op == TokenType::_Compare) {
+            return std::make_shared<Value>(false);
         }
     }
 
@@ -188,6 +194,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
         else if (op == TokenType::_Caret) {op_result = pow(new_left, new_right);}
         else if (op == TokenType::_DoubleMultiply) {op_result = pow(new_left, new_right);}
+        else if (op == TokenType::_Compare) {
+            return std::make_shared<Value>(new_left == new_right);
+        }
         else {
             return std::nullopt;
         }
@@ -196,6 +205,29 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
             return std::make_shared<Value>(static_cast<int>(op_result));
         } else {
             return std::make_shared<Value>(op_result);
+        }
+    }
+
+    else {
+        // Unkown Type Combination
+        if (op == TokenType::_Compare) {
+            // Visitor to compare values of the same type
+            auto equalityVisitor = [](const auto& lhs, const auto& rhs) -> bool {
+                if constexpr (std::is_same_v<decltype(lhs), decltype(rhs)>) {
+                    return lhs == rhs; // Compare values if types match
+                } else {
+                    return false;
+                }
+            };
+
+            try {
+                // Apply the visitor to both variants
+                bool result = std::visit(equalityVisitor, *left_value, *right_value);
+                return std::make_shared<Value>(result); // Return the result wrapped in a shared_ptr
+            } catch (const std::bad_variant_access&) {
+                // Handle unexpected errors (shouldn't occur if left_value and right_value are valid)
+                return std::nullopt;
+            }
         }
     }
 
@@ -284,5 +316,34 @@ std::string getValueStr(Value value) {
         return "string";
     } else {
         runtimeError("Attempted to get string of unrecognized Value type.");
+    }
+}
+
+ValueType getValueType(std::shared_ptr<Value> value) {
+    std::string type = getValueStr(value);
+    if (type == "integer") {
+        return ValueType::Integer;
+    } else if (type == "float") {
+        return ValueType::Float;
+    } else if (type == "boolean") {
+        return ValueType::Boolean;
+    } else if (type == "string") {
+        return ValueType::String;
+    } else {
+        runtimeError("Unrecognized value type.");
+    }
+}
+
+std::string getTypeStr(ValueType type) {
+    std::unordered_map<ValueType, std::string> types = {
+        {ValueType::Integer, "Type:Integer"},
+        {ValueType::Float, "Type:Float"},
+        {ValueType::Boolean, "Type:Boolean"},
+        {ValueType::String, "Type:String"}
+    };
+    if (types.count(type) != 0) {
+        return types[type];
+    } else {
+        runtimeError("No such type string found");
     }
 }

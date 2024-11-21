@@ -73,12 +73,26 @@ std::shared_ptr<ASTNode> Parser::parseStatement() {
     if (tokenIs("identifier") && peekToken() && nextTokenIs("=")) {
         auto left = parseIdentifier();
         const Token& op = consumeToken();
-        auto right = parseExpression();
+        auto right = parseEquality();
         return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
     } else {
-        auto left = parseExpression();
+        auto left = parseEquality();
         return left;
     }
+}
+
+std::shared_ptr<ASTNode> Parser::parseEquality() {
+    if (debug) std::cout << "Parse Equality " << getTokenStr() << std::endl;
+    auto left = parseExpression();
+
+    while (tokenIs("==") || tokenIs("!=")) {
+        const Token& op = getToken();
+        consumeToken();
+        auto right = parseExpression();
+        left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+    }
+
+    return left;
 }
 
 std::shared_ptr<ASTNode> Parser::parseExpression() {

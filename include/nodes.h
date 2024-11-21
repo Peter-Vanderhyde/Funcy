@@ -7,6 +7,13 @@
 #include "environment.h"
 
 
+enum class ValueType {
+    Integer,
+    Float,
+    Boolean,
+    String,
+    Null
+};
 
 [[noreturn]] void runtimeError(std::string message, int line, int column);
 [[noreturn]] void runtimeError(std::string message);

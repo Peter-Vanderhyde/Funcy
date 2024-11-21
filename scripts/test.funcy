@@ -1,4 +1,7 @@
-first = "Peter";
-last = "Vanderhyde ";
-name = first + " " + last;
-name * 2;
+true == 1;
+true == 0;
+false == 0;
+true == 1.0;
+2.5 == 5 / 2;
+"Hey" == "Hello";
+"Hey" == "Hey";

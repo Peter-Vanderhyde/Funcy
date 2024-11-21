@@ -162,11 +162,15 @@ std::vector<Token> Lexer::tokenize() {
         }
         else if (char_tokens.find(character) != char_tokens.end()) {
             if (character == '*' && peekNextCharacter() == '*') {
-                tokens.push_back(Token(TokenType::_DoubleMultiply, "**", line, column));
+                tokens.push_back(Token(TokenType::_DoubleMultiply, line, column));
                 grabNextCharacter();
             }
             else if (character == '/' && peekNextCharacter() == '/') {
-                tokens.push_back(Token(TokenType::_DoubleDivide, "//", line, column));
+                tokens.push_back(Token(TokenType::_DoubleDivide, line, column));
+                grabNextCharacter();
+            }
+            else if (character == '=' && peekNextCharacter() == '=') {
+                tokens.push_back(Token(TokenType::_Compare, line, column));
                 grabNextCharacter();
             }
             else {

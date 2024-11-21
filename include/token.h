@@ -23,7 +23,8 @@ enum class TokenType{
     _CloseParen,
     _Caret,
     _Dot,
-    _Equals
+    _Equals,
+    _Compare
 };
 
 std::string getTokenTypeLabel(TokenType type);
