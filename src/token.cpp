@@ -25,7 +25,10 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_And, "and"},
     {TokenType::_Or, "or"},
     {TokenType::_Not, "not"},
-    {TokenType::_Exclamation, "!"}
+    {TokenType::_Exclamation, "!"},
+    {TokenType::_If, "if"},
+    {TokenType::_Elif, "elif"},
+    {TokenType::_Else, "else"}
     //{TokenType::, "T:"}
 };
 
@@ -54,7 +57,16 @@ std::unordered_map<char, TokenType> char_tokens {
 std::unordered_map<std::string, TokenType> keyword_tokens {
     {"and", TokenType::_And},
     {"or", TokenType::_Or},
-    {"not", TokenType::_Not}
+    {"not", TokenType::_Not},
+    {"if", TokenType::_If},
+    {"elif", TokenType::_Elif},
+    {"else", TokenType::_Else}
+};
+
+std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
+    {"if", TokenType::_If},
+    {"elif", TokenType::_Elif},
+    {"else", TokenType::_Else}
 };
 
 

@@ -28,7 +28,10 @@ enum class TokenType{
     _And,
     _Or,
     _Not,
-    _Exclamation
+    _Exclamation,
+    _If,
+    _Elif,
+    _Else
 };
 
 std::string getTokenTypeLabel(TokenType type);

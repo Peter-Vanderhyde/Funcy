@@ -3,15 +3,28 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <vector>
 
 using Value = std::variant<int, double, bool, std::string>;
+
+class Scope {
+public:
+    Scope();
+    void set(std::string name, std::shared_ptr<Value> value);
+    std::shared_ptr<Value> get(std::string name) const;
+    bool contains(std::string name) const;
+private:
+    std::unordered_map<std::string, std::shared_ptr<Value>> variables;
+};
 
 class Environment {
 public:
     Environment();
-    void add(std::string name, std::shared_ptr<Value> value);
+    void set(std::string name, std::shared_ptr<Value> value);
     bool contains(std::string name) const;
-    std::shared_ptr<Value> get(std::string name);
+    std::shared_ptr<Value> get(std::string name) const;
+
+    int scopeDepth() const;
 private:
-    std::unordered_map<std::string, std::shared_ptr<Value>> env;
+    std::vector<Scope> scopes;
 };
