@@ -21,7 +21,11 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Dot, "."},
     {TokenType::_Equals, "="},
     {TokenType::_EOF, "endOfFile"},
-    {TokenType::_Compare, "=="}
+    {TokenType::_Compare, "=="},
+    {TokenType::_And, "and"},
+    {TokenType::_Or, "or"},
+    {TokenType::_Not, "not"},
+    {TokenType::_Exclamation, "!"}
     //{TokenType::, "T:"}
 };
 
@@ -43,7 +47,14 @@ std::unordered_map<char, TokenType> char_tokens {
     {'^', TokenType::_Caret},
     {'(', TokenType::_OpenParen},
     {')', TokenType::_CloseParen},
-    {'=', TokenType::_Equals}
+    {'=', TokenType::_Equals},
+    {'!', TokenType::_Exclamation}
+};
+
+std::unordered_map<std::string, TokenType> keyword_tokens {
+    {"and", TokenType::_And},
+    {"or", TokenType::_Or},
+    {"not", TokenType::_Not}
 };
 
 

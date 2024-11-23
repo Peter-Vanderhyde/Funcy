@@ -68,7 +68,12 @@ std::vector<Token> Lexer::tokenize() {
                 }
             }
 
-            if (literal == "true") {
+            // Check if it's a keyword
+            if (keyword_tokens.contains(literal)) {
+                Token token{keyword_tokens[literal], l, c};
+                tokens.push_back(token);
+            }
+            else if (literal == "true") {
                 tokens.push_back(Token{TokenType::_Boolean, true, l, c});
             } else if (literal == "false") {
                 tokens.push_back(Token{TokenType::_Boolean, false, l, c});

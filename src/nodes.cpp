@@ -87,6 +87,10 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
         else if (op == TokenType::_Plus) {
             return right_value.value();
         }
+        else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            int val = std::get<int>(*right_value.value());
+            return std::make_shared<Value>(val == 0);
+        }
     }
     else if (val_string == "float") {
         if (op == TokenType::_Minus) {
@@ -95,6 +99,10 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
         }
         else if (op == TokenType::_Plus) {
             return right_value.value();
+        }
+        else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            double val = std::get<double>(*right_value.value());
+            return std::make_shared<Value>(val == 0.0);
         }
     }
     else if (val_string == "boolean") {
@@ -114,6 +122,16 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
                 return std::make_shared<Value>(0);
             }
         }
+        else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            bool val = std::get<bool>(*right_value.value());
+            return std::make_shared<Value>(!val);
+        }
+    }
+    else if (val_string == "string") {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            std::string val = std::get<std::string>(*right_value.value());
+            return std::make_shared<Value>(val == "");
+        }
     }
 
     runtimeError(std::format("Unsupported operand types for operation. Operation was '{}' {}",
@@ -130,7 +148,40 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
     std::string left_str = getValueStr(left_value);
     std::string right_str = getValueStr(right_value);
 
-    if (left_str == "string" && right_str == "string") {
+    // Helper function to give the bool value of each type
+    auto check_truthy = [](const Value& value) -> bool {
+        return std::visit([](const auto& v) -> bool {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, bool>) {
+                return v;
+            } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, double>) {
+                return v != 0;
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                return !v.empty();
+            }
+            return false;
+        }, value);
+    };
+
+    if (op == TokenType::_And) {
+        if (check_truthy(*left_value)) {
+            if (check_truthy(*right_value)) {
+                return std::make_shared<Value>(true);
+            }
+        }
+        return std::make_shared<Value>(false);
+    }
+    else if (op == TokenType::_Or) {
+        if (check_truthy(*left_value)) {
+            return std::make_shared<Value>(true);
+        } else if (check_truthy(*right_value)) {
+            return std::make_shared<Value>(true);
+        } else {
+            return std::make_shared<Value>(false);
+        }
+    }
+
+    else if (left_str == "string" && right_str == "string") {
         // BOTH STRINGS
         std::string lhs = std::get<std::string>(*left_value);
         std::string rhs = std::get<std::string>(*right_value);

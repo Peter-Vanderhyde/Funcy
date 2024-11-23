@@ -73,12 +73,34 @@ std::shared_ptr<ASTNode> Parser::parseStatement() {
     if (tokenIs("identifier") && peekToken() && nextTokenIs("=")) {
         auto left = parseIdentifier();
         const Token& op = consumeToken();
-        auto right = parseEquality();
+        auto right = parseLogicalOr();
         return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
     } else {
-        auto left = parseEquality();
+        auto left = parseLogicalOr();
         return left;
     }
+}
+
+std::shared_ptr<ASTNode> Parser::parseLogicalOr() {
+    if (debug) std::cout << "Parse Logical Or " << getTokenStr() << std::endl;
+    auto left = parseLogicalAnd();
+    while (tokenIs("or")) {
+        const Token& op = consumeToken();
+        auto right = parseLogicalAnd();
+        left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+    }
+    return left;
+}
+
+std::shared_ptr<ASTNode> Parser::parseLogicalAnd() {
+    if (debug) std::cout << "Parse Logical And " << getTokenStr() << std::endl;
+    auto left = parseEquality();
+    while (tokenIs("and")) {
+        const Token& op = consumeToken();
+        auto right = parseEquality();
+        left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+    }
+    return left;
 }
 
 std::shared_ptr<ASTNode> Parser::parseEquality() {
@@ -135,7 +157,7 @@ std::shared_ptr<ASTNode> Parser::parseFactor() {
 
 std::shared_ptr<ASTNode> Parser::parsePower() {
     if (debug) std::cout << "Parse Power " << getTokenStr() << std::endl;
-    auto left = parseCollection();
+    auto left = parseLogicalNot();
 
     if (tokenIs("^") || tokenIs("**")) {
         const Token& op = consumeToken();
@@ -144,6 +166,18 @@ std::shared_ptr<ASTNode> Parser::parsePower() {
     }
     else {
         return left;
+    }
+}
+
+std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
+    if (debug) std::cout << "Parse Not " << getTokenStr() << std::endl;
+    if (tokenIs("not") || tokenIs("!")) {
+        const Token& k_word = consumeToken();
+        auto right = parseCollection();
+        return std::make_shared<UnaryOpNode>(k_word.type, right, k_word.line, k_word.column);
+    }
+    else {
+        return parseCollection();
     }
 }
 

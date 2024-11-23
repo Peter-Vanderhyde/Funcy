@@ -24,12 +24,18 @@ enum class TokenType{
     _Caret,
     _Dot,
     _Equals,
-    _Compare
+    _Compare,
+    _And,
+    _Or,
+    _Not,
+    _Exclamation
 };
 
 std::string getTokenTypeLabel(TokenType type);
 
 extern std::unordered_map<char, TokenType> char_tokens;
+
+extern std::unordered_map<std::string, TokenType> keyword_tokens;
 
 class Token {
 public:
