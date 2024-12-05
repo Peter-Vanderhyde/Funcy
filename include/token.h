@@ -33,7 +33,8 @@ enum class TokenType{
     _Elif,
     _Else,
     _CurlyOpen,
-    _CurlyClose
+    _CurlyClose,
+    _While
 };
 
 std::string getTokenTypeLabel(TokenType type);

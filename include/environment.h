@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <vector>
+#include <optional>
 
 using Value = std::variant<int, double, bool, std::string>;
 
@@ -28,8 +29,23 @@ public:
     int scopeDepth() const;
     void addScope();
     void removeScope();
+    void addLoop();
+    void removeLoop();
+    bool inLoop() const;
+    void resetLoop();
 
     void display() const;
 private:
     std::vector<Scope> scopes;
+    int loop_depth;
+};
+
+class BreakException : public std::exception {};
+class ContinueException : public std::exception {};
+class ReturnException : public std::exception {
+public:
+    ReturnException(std::optional<std::shared_ptr<Value>> value)
+        : value{value} {}
+
+    std::optional<std::shared_ptr<Value>> value;
 };

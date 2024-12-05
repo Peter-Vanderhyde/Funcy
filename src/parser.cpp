@@ -91,7 +91,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
     std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
         {"if", TokenType::_If},
         {"elif", TokenType::_Elif},
-        {"else", TokenType::_Else}
+        {"else", TokenType::_Else},
+        {"while", TokenType::_While}
     };
 
     std::string t_str = getTokenStr();

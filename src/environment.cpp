@@ -81,6 +81,22 @@ int Environment::scopeDepth() const {
     return scopes.size();
 }
 
+void Environment::addLoop() {
+    loop_depth += 1;
+}
+
+void Environment::removeLoop() {
+    loop_depth -= 1;
+}
+
+bool Environment::inLoop() const {
+    return loop_depth > 0;
+}
+
+void Environment::resetLoop() {
+    loop_depth = 0;
+}
+
 void Environment::addScope() {
     scopes.push_back(Scope());
 }

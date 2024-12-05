@@ -30,7 +30,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Elif, "elif"},
     {TokenType::_Else, "else"},
     {TokenType::_CurlyOpen, "{"},
-    {TokenType::_CurlyClose, "}"}
+    {TokenType::_CurlyClose, "}"},
+    {TokenType::_While, "while"}
     //{TokenType::, "T:"}
 };
 
@@ -64,13 +65,15 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"not", TokenType::_Not},
     {"if", TokenType::_If},
     {"elif", TokenType::_Elif},
-    {"else", TokenType::_Else}
+    {"else", TokenType::_Else},
+    {"while", TokenType::_While}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
     {"if", TokenType::_If},
     {"elif", TokenType::_Elif},
-    {"else", TokenType::_Else}
+    {"else", TokenType::_Else},
+    {"while", TokenType::_While}
     // Also change in parser.cpp
 };
 

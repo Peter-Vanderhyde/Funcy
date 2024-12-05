@@ -390,14 +390,33 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     }
 
     std::string str = getTokenTypeLabel(keyword);
-    if (str == "if" || str == "elif" || str == "else") {
+    if (str == "if" || str == "elif" || str == "else" || str == "while") {
         env.addScope();
-        
-        for (int i = 0; i < statements_block.size(); i++) {
-            std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
-            if (result.has_value()) {
-                printValue(result.value(), env);
-                std::cout << std::endl;
+
+        if (str == "while") {
+            env.addLoop();
+            while (getComparisonValue(env)) {
+                try {
+                    for (int i = 0; i < statements_block.size(); i++) {
+                        auto result = statements_block[i]->evaluate(env);
+                    }
+                }
+                catch (const BreakException) {
+                    break;
+                }
+                catch (const ContinueException) {
+                    continue;
+                }
+            }
+            env.removeLoop();
+        }
+        else {
+            for (int i = 0; i < statements_block.size(); i++) {
+                std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
+                if (result.has_value()) {
+                    printValue(result.value(), env);
+                    std::cout << std::endl;
+                }
             }
         }
 
