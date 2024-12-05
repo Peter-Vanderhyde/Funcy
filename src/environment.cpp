@@ -1,6 +1,7 @@
 #include "environment.h"
 #include "library.h"
 #include <format>
+#include <iostream>
 
 
 Scope::Scope() {}
@@ -21,6 +22,17 @@ std::shared_ptr<Value> Scope::get(std::string name) const {
     }
 }
 
+void Scope::display() const {
+    for (const std::pair<const std::string, std::shared_ptr<Value>> pair : variables) {
+        const std::string& name = pair.first;
+        std::shared_ptr<Value> value = pair.second;
+
+        std::cout << name << " = ";
+        std::visit([](const auto& v) { std::cout << v; }, *value.get());
+        std::cout << std::endl;
+    }
+}
+
 
 Environment::Environment() {}
 
@@ -35,6 +47,8 @@ void Environment::set(std::string name, std::shared_ptr<Value> value) {
             }
         }
     }
+
+    scopes.back().set(name, value);
 }
 
 std::shared_ptr<Value> Environment::get(std::string name) const {
@@ -65,4 +79,18 @@ bool Environment::contains(std::string name) const {
 
 int Environment::scopeDepth() const {
     return scopes.size();
+}
+
+void Environment::addScope() {
+    scopes.push_back(Scope());
+}
+
+void Environment::removeScope() {
+    scopes.pop_back();
+}
+
+void Environment::display() const {
+    for (auto scope : scopes) {
+        scope.display();
+    }
 }

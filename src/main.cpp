@@ -54,6 +54,7 @@ int main(int argc, char* argv[]) {
     }
 
     Environment env;
+    env.addScope();
 
     for (auto statement : statements) {
         try {

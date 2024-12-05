@@ -10,11 +10,8 @@ private:
     bool debug = false;
     const std::vector<Token>& tokens;
     size_t current_index;
-public:
-    explicit Parser(const std::vector<Token>& tokens);
-    [[noreturn]] void parsingError(std::string message, int line, int column) const;
-    // noreturn used so compiler doesn't complain about functions not returning when
-    // calling this error function
+    std::vector<std::shared_ptr<ScopedNode>> last_if_else{nullptr};
+
     std::optional<const Token*> peekToken(int ahead = 1) const;
     const Token& getToken() const;
     const Token& consumeToken();
@@ -22,8 +19,9 @@ public:
     bool tokenIs(std::string str) const;
     bool nextTokenIs(std::string str, int ahead = 1) const;
 
-    std::vector<std::shared_ptr<ASTNode>> parse();
     std::shared_ptr<ASTNode> parseFoundation();
+    std::shared_ptr<ASTNode> parseControlFlowStatement();
+    std::shared_ptr<ASTNode> parseKeyword();
     std::shared_ptr<ASTNode> parseStatement();
     std::shared_ptr<ASTNode> parseLogicalOr();
     std::shared_ptr<ASTNode> parseLogicalAnd();
@@ -36,4 +34,14 @@ public:
     std::shared_ptr<ASTNode> parseCollection();
     std::shared_ptr<ASTNode> parseAtom();
     std::shared_ptr<ASTNode> parseIdentifier();
+public:
+    explicit Parser(const std::vector<Token>& tokens);
+    [[noreturn]] void parsingError(std::string message, int line, int column) const;
+    // noreturn used so compiler doesn't complain about functions not returning when
+    // calling this error function
+
+    std::vector<std::shared_ptr<ASTNode>> parse();
+
+    void addIfElseScope();
+    void removeIfElseScope();
 };

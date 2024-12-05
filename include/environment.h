@@ -13,6 +13,7 @@ public:
     void set(std::string name, std::shared_ptr<Value> value);
     std::shared_ptr<Value> get(std::string name) const;
     bool contains(std::string name) const;
+    void display() const;
 private:
     std::unordered_map<std::string, std::shared_ptr<Value>> variables;
 };
@@ -25,6 +26,10 @@ public:
     std::shared_ptr<Value> get(std::string name) const;
 
     int scopeDepth() const;
+    void addScope();
+    void removeScope();
+
+    void display() const;
 private:
     std::vector<Scope> scopes;
 };

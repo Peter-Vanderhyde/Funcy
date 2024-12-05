@@ -20,7 +20,7 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Caret, "^"},
     {TokenType::_Dot, "."},
     {TokenType::_Equals, "="},
-    {TokenType::_EOF, "endOfFile"},
+    {TokenType::_EOF, "eof"},
     {TokenType::_Compare, "=="},
     {TokenType::_And, "and"},
     {TokenType::_Or, "or"},
@@ -28,7 +28,9 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Exclamation, "!"},
     {TokenType::_If, "if"},
     {TokenType::_Elif, "elif"},
-    {TokenType::_Else, "else"}
+    {TokenType::_Else, "else"},
+    {TokenType::_CurlyOpen, "{"},
+    {TokenType::_CurlyClose, "}"}
     //{TokenType::, "T:"}
 };
 
@@ -51,7 +53,9 @@ std::unordered_map<char, TokenType> char_tokens {
     {'(', TokenType::_OpenParen},
     {')', TokenType::_CloseParen},
     {'=', TokenType::_Equals},
-    {'!', TokenType::_Exclamation}
+    {'!', TokenType::_Exclamation},
+    {'{', TokenType::_CurlyOpen},
+    {'}', TokenType::_CurlyClose}
 };
 
 std::unordered_map<std::string, TokenType> keyword_tokens {
@@ -67,6 +71,7 @@ std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
     {"if", TokenType::_If},
     {"elif", TokenType::_Elif},
     {"else", TokenType::_Else}
+    // Also change in parser.cpp
 };
 
 

@@ -90,5 +90,22 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 };
 
+class ScopedNode : public ASTNode {
+public:
+    TokenType keyword;
+    const std::shared_ptr<ScopedNode> if_link;
+    std::shared_ptr<ASTNode> comparison;
+    bool last_comparison_result;
+    std::vector<std::shared_ptr<ASTNode>> statements_block;
+
+    ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison,
+                std::vector<std::shared_ptr<ASTNode>> statements_block, int line, int column);
+
+    ~ScopedNode() noexcept override = default;
+
+    bool getComparisonValue(Environment& env) const;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+};
+
 std::string getValueStr(std::shared_ptr<Value> value);
 std::string getValueStr(Value value);

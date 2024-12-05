@@ -31,7 +31,9 @@ enum class TokenType{
     _Exclamation,
     _If,
     _Elif,
-    _Else
+    _Else,
+    _CurlyOpen,
+    _CurlyClose
 };
 
 std::string getTokenTypeLabel(TokenType type);

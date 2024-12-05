@@ -294,7 +294,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         
         auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(left);
         if (ident_node) {
-            env.add(ident_node->name, right_opt.value());
+            env.set(ident_node->name, right_opt.value());
             return std::nullopt;
         } else {
             runtimeError("Invalid value assignment", line, column);
@@ -340,6 +340,72 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
     }
 }
 
+
+ScopedNode::ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison,
+            std::vector<std::shared_ptr<ASTNode>> statements_block, int line, int column)
+    : ASTNode{line, column}, keyword{keyword}, if_link{if_link}, comparison{comparison},
+        last_comparison_result{false}, statements_block{statements_block} {}
+
+bool ScopedNode::getComparisonValue(Environment& env) const {
+    auto result = comparison->evaluate(env);
+    if (result.has_value()) {
+        auto checkTruthy = [](const Value& value) -> bool {
+            return std::visit([](const auto& v) -> bool {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, bool>) {
+                    return v;
+                } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, double>) {
+                    return v != 0;
+                } else if constexpr (std::is_same_v<T, std::string>) {
+                    return !v.empty();
+                }
+                return false;
+            }, value);
+        };
+
+        return checkTruthy(*result.value());
+    }
+    else {
+        runtimeError("Missing a boolean comparison for keyword to evaluate", line, column);
+        return false;
+    }
+}
+
+std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
+    if (debug) std::cout << "Evaluate Scoped" << std::endl;
+    if (if_link) {
+        // It's connected to a former if statement
+        if (if_link->last_comparison_result) {
+            // The previous if was true, so skip
+            last_comparison_result = true;
+            return {};
+        }
+    }
+
+    if (comparison && getComparisonValue(env) == false) {
+        last_comparison_result = false;
+        return std::nullopt;
+    } else if (comparison) {
+        last_comparison_result = true;
+    }
+
+    std::string str = getTokenTypeLabel(keyword);
+    if (str == "if" || str == "elif" || str == "else") {
+        env.addScope();
+        
+        for (int i = 0; i < statements_block.size(); i++) {
+            std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
+            if (result.has_value()) {
+                printValue(result.value(), env);
+                std::cout << std::endl;
+            }
+        }
+
+        env.removeScope();
+    }
+
+    return std::nullopt;
+}
 
 
 std::string getValueStr(std::shared_ptr<Value> value) {

@@ -56,16 +56,129 @@ std::vector<std::shared_ptr<ASTNode>> Parser::parse() {
     return statements;
 }
 
+void Parser::addIfElseScope() {
+    last_if_else.push_back(nullptr);
+}
+
+void Parser::removeIfElseScope() {
+    last_if_else.pop_back();
+}
+
 
 std::shared_ptr<ASTNode> Parser::parseFoundation() {
     if (debug) std::cout << "Parse Foundation " << getTokenStr() << std::endl;
-    auto statement = parseStatement();
-    if (!tokenIs(";")) {
-        handleError("Expected ';' but got " + getTokenStr(), getToken().line, getToken().column, "Syntax Error");
-    } else {
-        consumeToken();
+    if (keyword_tokens.contains(getTokenStr())) {
+        return parseControlFlowStatement();
     }
-    return statement;
+    else {
+        auto statement = parseStatement();
+        if (!tokenIs(";")) {
+            handleError("Expected ';' but got " + getTokenStr(), getToken().line, getToken().column, "Syntax Error");
+        } else {
+            consumeToken();
+        }
+        return statement;
+    }
+}
+
+std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
+    if (debug) std::cout << "Parse Control Flow " << getTokenStr() << std::endl;
+    if (peekToken() && peekToken().value()->type == TokenType::_Equals) {
+        // Make sure they're not trying to use a keyword as a variable
+        parsingError(getTokenStr() + " is a keyword and is not allowed to be redefined", getToken().line, getToken().column);
+    }
+
+    std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
+        {"if", TokenType::_If},
+        {"elif", TokenType::_Elif},
+        {"else", TokenType::_Else}
+    };
+
+    std::string t_str = getTokenStr();
+    if (scoped_keyword_tokens.contains(t_str)) {
+        const Token& keyword = consumeToken();
+        std::shared_ptr<ASTNode> comparison_expr = nullptr;
+        std::shared_ptr<ASTNode> for_initialization;
+        auto variable_str = std::make_shared<std::string>(""); // For loop saves the string of the variable to increment
+        std::shared_ptr<ASTNode> for_increment;
+        std::vector<std::shared_ptr<ASTNode>> func_args;
+        std::shared_ptr<ASTNode> func_name;
+        auto func_str = std::make_shared<std::string>("");
+        if (t_str == "if" || t_str == "elif" || t_str == "while") {
+            if (tokenIs("{")) {
+                parsingError("Missing boolean expression ", getToken().line, getToken().column);
+            }
+
+            comparison_expr = parseLogicalOr();
+        }
+
+        if (!tokenIs("{")) {
+            parsingError("Expected '{' but got " + getTokenStr(), getToken().line, getToken().column);
+        }
+        consumeToken();
+
+        // Prevent connected elif to if outside of scope
+        addIfElseScope();
+
+        std::vector<std::shared_ptr<ASTNode>> block;
+        while (!tokenIs("eof") && !tokenIs("}")) {
+            block.push_back(parseFoundation());
+        }
+
+        if (tokenIs("eof")) {
+            parsingError("Expected '}'", getToken().line, getToken().column);
+        }
+        consumeToken();
+
+        removeIfElseScope();
+
+        if (t_str == "if") {
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword.type, nullptr, comparison_expr, block, keyword.line, keyword.column);
+            last_if_else.back() = keyword_node;
+            return keyword_node;
+        } else if (t_str == "elif") {
+            if (last_if_else.back() == nullptr) {
+                parsingError("Missing 'if' before 'elif'", getToken().line, getToken().column);
+            }
+
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword.type, last_if_else.back(), comparison_expr, block, keyword.line, keyword.column);
+            last_if_else.back() = keyword_node;
+            return keyword_node;
+        } else if (t_str == "else") {
+            if (last_if_else.back() == nullptr) {
+                parsingError("Missing 'if' before 'else'", getToken().line, getToken().column);
+            }
+
+            std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword.type, last_if_else.back(), comparison_expr, block, keyword.line, keyword.column);
+            last_if_else.back() = nullptr;
+            return keyword_node;
+        } else {
+            return std::make_shared<ScopedNode>(keyword.type, nullptr, comparison_expr, block, keyword.line, keyword.column);
+        }
+    }
+    else {
+        auto node = parseKeyword();
+        if (tokenIs(";")) {
+            consumeToken();
+            return node;
+        }
+        else {
+            parsingError("Expected ; but got " + getTokenStr(), getToken().line, getToken().column);
+            return nullptr;
+        }
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<ASTNode> Parser::parseKeyword() {
+    // Token not, and, or
+    std::string t_str = getTokenStr();
+    if (t_str == "not" || t_str == "and" || t_str == "or") {
+        return parseLogicalOr();
+    }
+
+    return nullptr;
 }
 
 std::shared_ptr<ASTNode> Parser::parseStatement() {

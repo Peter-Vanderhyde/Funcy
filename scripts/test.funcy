@@ -1,2 +1,14 @@
-age = not 20;
+age = 10;
+if age == 10 {
+    "age is 10";
+    if age == 30 {
+        "age is 30";
+    } elif age == 35 {
+        'age is 35';
+    }
+    age = 15;
+}
+elif age == 15 {
+    "age is 15";
+}
 age;
