@@ -184,7 +184,7 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
 
 std::shared_ptr<ASTNode> Parser::parseStatement() {
     if (debug) std::cout << "Parse Statement " << getTokenStr() << std::endl;
-    if (tokenIs("identifier") && peekToken() && nextTokenIs("=")) {
+    if (tokenIs("identifier") && peekToken() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
         auto left = parseIdentifier();
         const Token& op = consumeToken();
         auto right = parseLogicalOr();

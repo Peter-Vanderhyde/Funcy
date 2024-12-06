@@ -180,6 +180,18 @@ std::vector<Token> Lexer::tokenize() {
                     case '=' :
                         op = TokenType::_Compare;
                         break;
+                    case '+' :
+                        op = TokenType::_PlusEquals;
+                        break;
+                    case '-' :
+                        op = TokenType::_MinusEquals;
+                        break;
+                    case '*' :
+                        op = TokenType::_MultiplyEquals;
+                        break;
+                    case '/' :
+                        op = TokenType::_DivideEquals;
+                        break;
                     case '>' :
                         op = TokenType::_GreaterEquals;
                         break;

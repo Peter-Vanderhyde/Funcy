@@ -185,7 +185,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         // BOTH STRINGS
         std::string lhs = std::get<std::string>(*left_value);
         std::string rhs = std::get<std::string>(*right_value);
-        if (op == TokenType::_Plus) {
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
             return std::make_shared<Value>(lhs + rhs);
         }
         else if (op == TokenType::_Compare) {
@@ -198,7 +198,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
     else if (left_str == "string" && right_str == "integer") {
         // STRING AND INT
-        if (op == TokenType::_Multiply) {
+        if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) {
             std::string new_str = "";
             std::string copying = std::get<std::string>(*left_value);
             for (int i = 0; i < std::get<int>(*right_value); i++) {
@@ -233,10 +233,10 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
 
         double op_result;
-        if (op == TokenType::_Plus) {op_result = new_left + new_right;}
-        else if (op == TokenType::_Minus) {op_result = new_left - new_right;}
-        else if (op == TokenType::_Multiply) {op_result = new_left * new_right;}
-        else if (op == TokenType::_Divide) {
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {op_result = new_left + new_right;}
+        else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) {op_result = new_left - new_right;}
+        else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) {op_result = new_left * new_right;}
+        else if (op == TokenType::_Divide || op == TokenType::_DivideEquals) {
             if (new_right == 0.0) {
                 handleError("Attempted division by zero", line, column, "Zero Division Error");
             }
@@ -325,7 +325,18 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         }
         auto result = performOperation(left_opt.value(), right_opt.value());
         if (result) {
-            return result;
+            if (op == TokenType::_PlusEquals || op == TokenType::_MinusEquals || op == TokenType::_MultiplyEquals || op == TokenType::_DivideEquals) {
+                // Handle setting +=, -= etc.
+                if (auto identifierNode = dynamic_cast<IdentifierNode*>(left.get())) {
+                    env.set(identifierNode->name, result.value());
+                }
+                else {
+                    runtimeError("The operator '=' can only be used with variables", line, column);
+                }
+            }
+            else {
+                return result;
+            }
         } else {
             runtimeError(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
                                     getValueStr(left_opt.value()), getTokenTypeLabel(op), getValueStr(right_opt.value())), line, column);

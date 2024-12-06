@@ -36,7 +36,11 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_LessEquals, "<="},
     {TokenType::_GreaterThan, ">"},
     {TokenType::_GreaterEquals, ">="},
-    {TokenType::_NotEqual, "!="}
+    {TokenType::_NotEqual, "!="},
+    {TokenType::_PlusEquals, "+="},
+    {TokenType::_MinusEquals, "-="},
+    {TokenType::_MultiplyEquals, "*="},
+    {TokenType::_DivideEquals, "/="}
     //{TokenType::, ""}
 };
 
