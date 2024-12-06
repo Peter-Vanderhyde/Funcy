@@ -458,6 +458,31 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     return std::nullopt;
 }
 
+std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
+    if (debug) std::cout << "evaluate keyword" << std::endl;
+    if (keyword == TokenType::_Break) {
+        if (env.inLoop()) {
+            throw BreakException();
+        }
+        else {
+            runtimeError("Break used outside of loop", line, column);
+        }
+    } else if (keyword == TokenType::_Continue) {
+        if (env.inLoop()) {
+            throw ContinueException();
+        }
+        else {
+            runtimeError("Continue used outside of loop", line, column);
+        }
+    }
+
+    if (right) {
+        return right->evaluate(env);
+    } else {
+        return std::nullopt;
+    }
+}
+
 
 std::string getValueStr(std::shared_ptr<Value> value) {
     if (std::holds_alternative<int>(*value)) {

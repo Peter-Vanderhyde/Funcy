@@ -40,7 +40,9 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_PlusEquals, "+="},
     {TokenType::_MinusEquals, "-="},
     {TokenType::_MultiplyEquals, "*="},
-    {TokenType::_DivideEquals, "/="}
+    {TokenType::_DivideEquals, "/="},
+    {TokenType::_Break, "break"},
+    {TokenType::_Continue, "continue"}
     //{TokenType::, ""}
 };
 
@@ -77,7 +79,9 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"if", TokenType::_If},
     {"elif", TokenType::_Elif},
     {"else", TokenType::_Else},
-    {"while", TokenType::_While}
+    {"while", TokenType::_While},
+    {"break", TokenType::_Break},
+    {"continue", TokenType::_Continue}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {

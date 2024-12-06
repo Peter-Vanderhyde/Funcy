@@ -43,7 +43,9 @@ enum class TokenType{
     _GreaterEquals,
     _LessThan,
     _LessEquals,
-    _NotEqual
+    _NotEqual,
+    _Break,
+    _Continue
 };
 
 std::string getTokenTypeLabel(TokenType type);

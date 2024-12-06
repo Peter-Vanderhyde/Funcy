@@ -1,6 +1,15 @@
-age = 15;
+age = 10;
 while age < 20 {
+    if age < 13 {
+        age += 1;
+        continue;
+    }
+    elif age > 15 {
+        break;
+    }
+    age;
     "Still young.";
     age += 1;
 }
+age;
 "Old now.";

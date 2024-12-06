@@ -178,6 +178,14 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
     if (t_str == "not" || t_str == "and" || t_str == "or") {
         return parseLogicalOr();
     }
+    else {
+        const Token& token = getToken();
+        std::shared_ptr<KeywordNode> node;
+
+        node = std::make_shared<KeywordNode>(getToken().type, nullptr, token.line, token.column);
+        consumeToken();
+        return node;
+    }
 
     return nullptr;
 }

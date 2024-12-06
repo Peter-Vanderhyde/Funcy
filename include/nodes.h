@@ -107,5 +107,18 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 };
 
+class KeywordNode : public ASTNode {
+public:
+    KeywordNode(TokenType keyword, std::shared_ptr<ASTNode> right, int line, int column)
+        : ASTNode{line, column}, keyword{keyword}, right{right} {}
+    
+    ~KeywordNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    TokenType keyword;
+    std::shared_ptr<ASTNode> right;
+};
+
 std::string getValueStr(std::shared_ptr<Value> value);
 std::string getValueStr(Value value);

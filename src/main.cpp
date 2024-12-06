@@ -64,6 +64,15 @@ int main(int argc, char* argv[]) {
                 std::cout << std::endl;
             }
         }
+        catch (const ReturnException) {
+            throw std::runtime_error("Return was used outside of function.");
+        }
+        catch (const BreakException) {
+            throw std::runtime_error("Break was used outside of loop.");
+        }
+        catch (const ContinueException) {
+            throw std::runtime_error("Continue was used outside of loop.");
+        }
         catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;
             return 1;
