@@ -219,11 +219,24 @@ std::shared_ptr<ASTNode> Parser::parseLogicalAnd() {
 
 std::shared_ptr<ASTNode> Parser::parseEquality() {
     if (debug) std::cout << "Parse Equality " << getTokenStr() << std::endl;
-    auto left = parseExpression();
+    auto left = parseRelation();
 
     while (tokenIs("==") || tokenIs("!=")) {
         const Token& op = getToken();
         consumeToken();
+        auto right = parseRelation();
+        left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+    }
+
+    return left;
+}
+
+std::shared_ptr<ASTNode> Parser::parseRelation() {
+    if (debug) std::cout << "Parse Relation " << getTokenStr() << std::endl;
+    auto left = parseExpression();
+
+    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=")) {
+        const Token& op = consumeToken();
         auto right = parseExpression();
         left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
     }

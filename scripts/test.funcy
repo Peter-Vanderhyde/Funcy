@@ -1,1 +1,6 @@
-10 < 20;
+age = 15;
+while age < 20 {
+    "Still young.";
+    age = age + 1;
+}
+"Old now.";

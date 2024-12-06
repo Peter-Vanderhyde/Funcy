@@ -174,9 +174,28 @@ std::vector<Token> Lexer::tokenize() {
                 tokens.push_back(Token(TokenType::_DoubleDivide, line, column));
                 grabNextCharacter();
             }
-            else if (character == '=' && peekNextCharacter() == '=') {
-                tokens.push_back(Token(TokenType::_Compare, line, column));
+            else if (peekNextCharacter() == '=') {
+                TokenType op;
+                switch (character) {
+                    case '=' :
+                        op = TokenType::_Compare;
+                        break;
+                    case '>' :
+                        op = TokenType::_GreaterEquals;
+                        break;
+                    case '<' :
+                        op = TokenType::_LessEquals;
+                        break;
+                    case '!' :
+                        op = TokenType::_NotEqual;
+                        break;
+                    default:
+                        handleError("Unrecognized operator", line, column, "Syntax Error");
+                }
+
+                Token token{op, line, column};
                 grabNextCharacter();
+                tokens.push_back(token);
             }
             else {
                 Token token{char_tokens[character], line, column};

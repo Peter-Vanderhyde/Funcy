@@ -31,8 +31,13 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Else, "else"},
     {TokenType::_CurlyOpen, "{"},
     {TokenType::_CurlyClose, "}"},
-    {TokenType::_While, "while"}
-    //{TokenType::, "T:"}
+    {TokenType::_While, "while"},
+    {TokenType::_LessThan, "<"},
+    {TokenType::_LessEquals, "<="},
+    {TokenType::_GreaterThan, ">"},
+    {TokenType::_GreaterEquals, ">="},
+    {TokenType::_NotEqual, "!="}
+    //{TokenType::, ""}
 };
 
 std::string getTokenTypeLabel(TokenType type) {
@@ -56,7 +61,9 @@ std::unordered_map<char, TokenType> char_tokens {
     {'=', TokenType::_Equals},
     {'!', TokenType::_Exclamation},
     {'{', TokenType::_CurlyOpen},
-    {'}', TokenType::_CurlyClose}
+    {'}', TokenType::_CurlyClose},
+    {'<', TokenType::_LessThan},
+    {'>', TokenType::_GreaterThan}
 };
 
 std::unordered_map<std::string, TokenType> keyword_tokens {

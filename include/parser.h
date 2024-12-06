@@ -26,6 +26,7 @@ private:
     std::shared_ptr<ASTNode> parseLogicalOr();
     std::shared_ptr<ASTNode> parseLogicalAnd();
     std::shared_ptr<ASTNode> parseEquality();
+    std::shared_ptr<ASTNode> parseRelation();
     std::shared_ptr<ASTNode> parseExpression();
     std::shared_ptr<ASTNode> parseTerm();
     std::shared_ptr<ASTNode> parseFactor();

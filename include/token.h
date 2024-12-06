@@ -34,7 +34,12 @@ enum class TokenType{
     _Else,
     _CurlyOpen,
     _CurlyClose,
-    _While
+    _While,
+    _GreaterThan,
+    _GreaterEquals,
+    _LessThan,
+    _LessEquals,
+    _NotEqual
 };
 
 std::string getTokenTypeLabel(TokenType type);

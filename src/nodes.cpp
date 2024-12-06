@@ -191,6 +191,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         else if (op == TokenType::_Compare) {
             return std::make_shared<Value>(lhs == rhs);
         }
+        else if (op == TokenType::_NotEqual) {
+            return std::make_shared<Value>(lhs != rhs);
+        }
     }
 
     else if (left_str == "string" && right_str == "integer") {
@@ -205,6 +208,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
         else if (op == TokenType::_Compare) {
             return std::make_shared<Value>(false);
+        }
+        else if (op == TokenType::_NotEqual) {
+            return std::make_shared<Value>(true);
         }
     }
 
@@ -245,8 +251,15 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
         else if (op == TokenType::_Caret) {op_result = pow(new_left, new_right);}
         else if (op == TokenType::_DoubleMultiply) {op_result = pow(new_left, new_right);}
+        else if (op == TokenType::_LessThan) {return std::make_shared<Value>(new_left < new_right);}
+        else if (op == TokenType::_LessEquals) {return std::make_shared<Value>(new_left <= new_right);}
+        else if (op == TokenType::_GreaterThan) {return std::make_shared<Value>(new_left > new_right);}
+        else if (op == TokenType::_GreaterEquals) {return std::make_shared<Value>(new_left >= new_right);}
         else if (op == TokenType::_Compare) {
             return std::make_shared<Value>(new_left == new_right);
+        }
+        else if (op == TokenType::_NotEqual) {
+            return std::make_shared<Value>(new_left != new_right);
         }
         else {
             return std::nullopt;
@@ -261,7 +274,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
     else {
         // Unkown Type Combination
-        if (op == TokenType::_Compare) {
+        if (op == TokenType::_Compare || op == TokenType::_NotEqual) {
             // Visitor to compare values of the same type
             auto equalityVisitor = [](const auto& lhs, const auto& rhs) -> bool {
                 if constexpr (std::is_same_v<decltype(lhs), decltype(rhs)>) {
@@ -274,7 +287,11 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
             try {
                 // Apply the visitor to both variants
                 bool result = std::visit(equalityVisitor, *left_value, *right_value);
-                return std::make_shared<Value>(result); // Return the result wrapped in a shared_ptr
+                if (op == TokenType::_Compare) {
+                    return std::make_shared<Value>(result);
+                } else if (op == TokenType::_NotEqual) {
+                    return std::make_shared<Value>(!result);
+                }
             } catch (const std::bad_variant_access&) {
                 // Handle unexpected errors (shouldn't occur if left_value and right_value are valid)
                 return std::nullopt;
@@ -399,6 +416,10 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                 try {
                     for (int i = 0; i < statements_block.size(); i++) {
                         auto result = statements_block[i]->evaluate(env);
+                        if (result.has_value()) {
+                            printValue(result.value(), env);
+                            std::cout << std::endl;
+                        }
                     }
                 }
                 catch (const BreakException) {
