@@ -22,7 +22,7 @@ private:
     std::shared_ptr<ASTNode> parseFoundation();
     std::shared_ptr<ASTNode> parseControlFlowStatement();
     std::shared_ptr<ASTNode> parseKeyword();
-    std::shared_ptr<ASTNode> parseStatement();
+    std::shared_ptr<ASTNode> parseStatement(std::shared_ptr<std::string> varString = nullptr);
     std::shared_ptr<ASTNode> parseLogicalOr();
     std::shared_ptr<ASTNode> parseLogicalAnd();
     std::shared_ptr<ASTNode> parseEquality();
@@ -34,7 +34,7 @@ private:
     std::shared_ptr<ASTNode> parseLogicalNot();
     std::shared_ptr<ASTNode> parseCollection();
     std::shared_ptr<ASTNode> parseAtom();
-    std::shared_ptr<ASTNode> parseIdentifier();
+    std::shared_ptr<ASTNode> parseIdentifier(std::shared_ptr<std::string> varString = nullptr);
 public:
     explicit Parser(const std::vector<Token>& tokens);
     [[noreturn]] void parsingError(std::string message, int line, int column) const;

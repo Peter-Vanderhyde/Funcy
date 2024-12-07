@@ -92,7 +92,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         {"if", TokenType::_If},
         {"elif", TokenType::_Elif},
         {"else", TokenType::_Else},
-        {"while", TokenType::_While}
+        {"while", TokenType::_While},
+        {"for", TokenType::_For}
     };
 
     std::string t_str = getTokenStr();
@@ -111,6 +112,26 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             }
 
             comparison_expr = parseLogicalOr();
+        } else if (t_str == "for") {
+            if (tokenIs("{") || !tokenIs("identifier")) {
+                parsingError("Missing for loop expression", getToken().line, getToken().column);
+            }
+            for_initialization = parseStatement(variable_str);
+            auto in_node = dynamic_cast<BinaryOpNode*>(for_initialization.get());
+            if (!tokenIs(",")) {
+                parsingError("Invalid for loop syntax", getToken().line, getToken().column);
+            }
+            consumeToken();
+            comparison_expr = parseRelation();
+            if (!tokenIs(",")) {
+                parsingError("Invalid for loop syntax", getToken().line, getToken().column);
+            }
+            consumeToken();
+            auto var_test = std::make_shared<std::string>("");
+            for_increment = parseStatement(var_test);
+            if (*var_test != *variable_str) {
+                parsingError("For loop requires manipulation of the initialized variable", getToken().line, getToken().column);
+            }
         }
 
         if (!tokenIs("{")) {
@@ -153,6 +174,9 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             std::shared_ptr<ScopedNode> keyword_node = std::make_shared<ScopedNode>(keyword.type, last_if_else.back(), comparison_expr, block, keyword.line, keyword.column);
             last_if_else.back() = nullptr;
             return keyword_node;
+        } else if (t_str == "for") {
+            // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
+            return std::make_shared<ForNode>(keyword.type, for_initialization, variable_str, comparison_expr, for_increment, block, keyword.line, keyword.column);
         } else {
             return std::make_shared<ScopedNode>(keyword.type, nullptr, comparison_expr, block, keyword.line, keyword.column);
         }
@@ -190,10 +214,10 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
     return nullptr;
 }
 
-std::shared_ptr<ASTNode> Parser::parseStatement() {
+std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> varString) {
     if (debug) std::cout << "Parse Statement " << getTokenStr() << std::endl;
     if (tokenIs("identifier") && peekToken() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
-        auto left = parseIdentifier();
+        auto left = parseIdentifier(varString);
         const Token& op = consumeToken();
         auto right = parseLogicalOr();
         return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
@@ -362,12 +386,16 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
     return nullptr;
 }
 
-std::shared_ptr<ASTNode> Parser::parseIdentifier() {
+std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString) {
     if (debug) std::cout << "Parse Identifier " << getTokenStr() << std::endl;
     if (tokenIs("identifier")) {
         const Token& token = consumeToken();
         if (std::holds_alternative<std::string>(token.value)) {
-            return std::make_shared<IdentifierNode>(std::get<std::string>(token.value), token.line, token.column);
+            auto ident_value = std::get<std::string>(token.value);
+            if (varString != nullptr) {
+                *varString = ident_value;
+            }
+            return std::make_shared<IdentifierNode>(ident_value, token.line, token.column);
         } else {
             parsingError("Identifier was not a string??", token.line, token.column);
         }

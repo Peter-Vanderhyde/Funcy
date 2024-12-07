@@ -1,15 +1,5 @@
-age = 10;
-while age < 20 {
-    if age < 13 {
-        age += 1;
-        continue;
-    }
-    elif age > 15 {
-        break;
-    }
-    age;
-    "Still young.";
-    age += 1;
+for x = 0, x < 10, x += 1 {
+    x;
+    x *= 2;
+    x;
 }
-age;
-"Old now.";

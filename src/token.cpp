@@ -32,6 +32,7 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_CurlyOpen, "{"},
     {TokenType::_CurlyClose, "}"},
     {TokenType::_While, "while"},
+    {TokenType::_For, "for"},
     {TokenType::_LessThan, "<"},
     {TokenType::_LessEquals, "<="},
     {TokenType::_GreaterThan, ">"},
@@ -42,7 +43,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_MultiplyEquals, "*="},
     {TokenType::_DivideEquals, "/="},
     {TokenType::_Break, "break"},
-    {TokenType::_Continue, "continue"}
+    {TokenType::_Continue, "continue"},
+    {TokenType::_Comma, ","}
     //{TokenType::, ""}
 };
 
@@ -69,7 +71,8 @@ std::unordered_map<char, TokenType> char_tokens {
     {'{', TokenType::_CurlyOpen},
     {'}', TokenType::_CurlyClose},
     {'<', TokenType::_LessThan},
-    {'>', TokenType::_GreaterThan}
+    {'>', TokenType::_GreaterThan},
+    {',', TokenType::_Comma}
 };
 
 std::unordered_map<std::string, TokenType> keyword_tokens {
@@ -80,6 +83,7 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"elif", TokenType::_Elif},
     {"else", TokenType::_Else},
     {"while", TokenType::_While},
+    {"for", TokenType::_For},
     {"break", TokenType::_Break},
     {"continue", TokenType::_Continue}
 };
@@ -88,7 +92,8 @@ std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
     {"if", TokenType::_If},
     {"elif", TokenType::_Elif},
     {"else", TokenType::_Else},
-    {"while", TokenType::_While}
+    {"while", TokenType::_While},
+    {"for", TokenType::_For}
     // Also change in parser.cpp
 };
 

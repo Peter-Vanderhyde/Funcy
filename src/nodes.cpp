@@ -418,7 +418,7 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     }
 
     std::string str = getTokenTypeLabel(keyword);
-    if (str == "if" || str == "elif" || str == "else" || str == "while") {
+    if (str == "if" || str == "elif" || str == "else" || str == "while" || str == "for") {
         env.addScope();
 
         if (str == "while") {
@@ -455,6 +455,76 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         env.removeScope();
     }
 
+    return std::nullopt;
+}
+
+ForNode::ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string,
+        std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment,
+        std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+    : ASTNode{line, column}, keyword{keyword}, initialization{initialization}, init_string{init_string},
+        condition_value{condition_value}, increment{increment}, block{block} {}
+
+std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
+    if (debug) std::cout << "Evaluate For" << std::endl;
+    env.addScope();
+    env.addLoop();
+    auto init_node = dynamic_cast<BinaryOpNode*>(initialization.get());
+    initialization->evaluate(env);
+
+    int variable;
+    if (std::holds_alternative<int>(*env.get(*init_string))) {
+        auto i = std::get<int>(*env.get(*init_string));
+        variable = i;
+    }
+    else {
+        runtimeError("For loop requires int variable", line, column);
+    }
+
+    while (true) {
+        auto cond_value = condition_value->evaluate(env);
+        if (!cond_value) {
+            runtimeError("Unable to evaluate for loop condition", line, column);
+        }
+
+        if (std::holds_alternative<bool>(*cond_value.value())) {
+            auto bool_value = std::get<bool>(*cond_value.value());
+            if (!bool_value) break;
+        } else {
+            runtimeError("For loop requires boolean condition", line, column);
+        }
+
+        int original_variable = variable;
+
+        try {
+            for (auto statement : block) {
+                auto result = statement->evaluate(env);
+                if (result.has_value()) {
+                    printValue(result.value(), env);
+                    std::cout << std::endl;
+                }
+            }
+        }
+        catch (const BreakException) {
+            break;
+        }
+        catch (const ContinueException) {
+            // Does nothing but catches exception and proceeds to increment the variable
+            auto x = 1;
+        }
+
+        variable = original_variable;
+        // set variable in env
+        env.set(*init_string, std::make_shared<Value>(variable));
+        // increment them
+        increment->evaluate(env);
+        if (std::holds_alternative<int>(*env.get(*init_string))) {
+            auto i = std::get<int>(*env.get(*init_string));
+            variable = i;
+        }
+    }
+
+    env.removeScope();
+    env.removeLoop();
     return std::nullopt;
 }
 

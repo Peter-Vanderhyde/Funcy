@@ -107,6 +107,24 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 };
 
+class ForNode : public ASTNode {
+public:
+    ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string,
+            std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment,
+            std::vector<std::shared_ptr<ASTNode>> block, int line, int column);
+    
+    ~ForNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    
+    TokenType keyword;
+    std::shared_ptr<ASTNode> initialization;
+    std::shared_ptr<std::string> init_string;
+    std::shared_ptr<ASTNode> condition_value;
+    std::shared_ptr<ASTNode> increment;
+    std::vector<std::shared_ptr<ASTNode>> block;
+};
+
 class KeywordNode : public ASTNode {
 public:
     KeywordNode(TokenType keyword, std::shared_ptr<ASTNode> right, int line, int column)
