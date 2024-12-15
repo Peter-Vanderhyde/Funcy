@@ -53,11 +53,13 @@ std::vector<Token> Lexer::tokenize() {
             grabNextCharacter();
         }
         else if (isalpha(character) || character == '_') {
+            // Keyword or Identifier
             int l = line;
             int c = column;
             std::string literal;
             literal += character;
 
+            // Get the entire word
             while (current_position < source_code.length()) {
                 char next = peekNextCharacter();
 
@@ -68,7 +70,7 @@ std::vector<Token> Lexer::tokenize() {
                 }
             }
 
-            // Check if it's a keyword
+            // Check if it's a keyword/true/false
             if (keyword_tokens.contains(literal)) {
                 Token token{keyword_tokens[literal], l, c};
                 tokens.push_back(token);
@@ -83,15 +85,13 @@ std::vector<Token> Lexer::tokenize() {
         }
 
         else if (character == '"' || character == '\'') {
-            // It's a string
+            // It's a string literal
 
             std::string literal = "";
-            literal += character;
             int l = line;
             int c = column;
 
             char starting_char = character;
-            literal = "";
             char next = peekNextCharacter();
             while (current_position < source_code.length()) {
                 if (next == '\\') {
@@ -166,6 +166,7 @@ std::vector<Token> Lexer::tokenize() {
             }
         }
         else if (char_tokens.find(character) != char_tokens.end()) {
+            // Find any single character tokens + , - etc
             if (character == '*' && peekNextCharacter() == '*') {
                 tokens.push_back(Token(TokenType::_DoubleMultiply, line, column));
                 grabNextCharacter();

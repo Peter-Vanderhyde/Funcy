@@ -47,7 +47,8 @@ enum class TokenType{
     _NotEqual,
     _Break,
     _Continue,
-    _Comma
+    _Comma,
+    _Func
 };
 
 std::string getTokenTypeLabel(TokenType type);

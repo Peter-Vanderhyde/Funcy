@@ -44,7 +44,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_DivideEquals, "/="},
     {TokenType::_Break, "break"},
     {TokenType::_Continue, "continue"},
-    {TokenType::_Comma, ","}
+    {TokenType::_Comma, ","},
+    {TokenType::_Func, "func"}
     //{TokenType::, ""}
 };
 
@@ -85,7 +86,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"while", TokenType::_While},
     {"for", TokenType::_For},
     {"break", TokenType::_Break},
-    {"continue", TokenType::_Continue}
+    {"continue", TokenType::_Continue},
+    {"func", TokenType::_Func}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
@@ -93,7 +95,8 @@ std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
     {"elif", TokenType::_Elif},
     {"else", TokenType::_Else},
     {"while", TokenType::_While},
-    {"for", TokenType::_For}
+    {"for", TokenType::_For},
+    {"func", TokenType::_Func}
     // Also change in parser.cpp
 };
 

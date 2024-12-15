@@ -93,7 +93,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         {"elif", TokenType::_Elif},
         {"else", TokenType::_Else},
         {"while", TokenType::_While},
-        {"for", TokenType::_For}
+        {"for", TokenType::_For},
+        {"func", TokenType::_Func}
     };
 
     std::string t_str = getTokenStr();
