@@ -8,6 +8,11 @@
 #include <memory>
 
 std::string readSourceCodeFromFile(const std::string& filename) {
+    if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
+        throw std::runtime_error("Error: File must have a .fy extension.");
+        return "";
+    }
+
     std::ifstream file(filename);
     if (!file) {
         std::cerr << "Error opening file: " << filename << std::endl;

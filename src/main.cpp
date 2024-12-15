@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
 
     std::string filename = ""; // Replace with your file name
     if (TESTING) {
-        filename = "../scripts/test.funcy";
+        filename = "../scripts/test.fy";
     } else {
         filename = argv[1];
     }
