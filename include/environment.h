@@ -36,10 +36,17 @@ public:
     bool inLoop() const;
     void resetLoop();
 
+    void addFunction(const std::string& name, std::shared_ptr<Value> func);
+    std::shared_ptr<Value> getFunction(const std::string& name) const;
+    std::string getName(const std::shared_ptr<Value> func) const;
+    bool hasFunction(const std::string& name) const;
+
     void display() const;
 private:
     std::vector<Scope> scopes;
     int loop_depth;
+    std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
+    std::unordered_map<std::shared_ptr<Value>, std::string> built_in_names;
 };
 
 class BreakException : public std::exception {};

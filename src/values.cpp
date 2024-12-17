@@ -68,6 +68,9 @@ Value::Value(SpecialIndex v)
 Value::Value(std::shared_ptr<ASTNode> v)
     : value{v}, value_type{ValueType::Function} {}
 
+Value::Value(std::shared_ptr<BuiltInFunction> v)
+    : value{v}, value_type{ValueType::BuiltInFunction} {}
+
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;

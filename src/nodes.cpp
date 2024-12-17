@@ -451,6 +451,8 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
     if (debug) std::cout << "Evaluate Identifier" << std::endl;
     if (env.contains(name)) {
         return env.get(name);
+    } else if (env.hasFunction(name)) {
+        return env.getFunction(name);
     } else {
         runtimeError(std::format("Name '{}' is not defined", name), line, column);
     }
@@ -988,6 +990,15 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         } else {
             runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
         }
+    } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
+        auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
+        std::vector<std::shared_ptr<Value>> values = evaluateArgs(env);
+        try {
+            return (*func_value)(values, env);
+        }
+        catch (const std::exception e) {
+            runtimeError(e.what(), line, column);
+        }
     } else {
         runtimeError("Object type " + getValueStr(mapped_value) + " is not callable", line, column);
     }
@@ -1022,6 +1033,8 @@ std::string getValueStr(std::shared_ptr<Value> value) {
             return "list";
         case ValueType::Function:
             return "function";
+        case ValueType::BuiltInFunction:
+            return "builtin function";
         case ValueType::None:
             return "null";
         default:
@@ -1043,6 +1056,8 @@ std::string getValueStr(Value value) {
             return "list";
         case ValueType::Function:
             return "function";
+        case ValueType::BuiltInFunction:
+            return "builtin function";
         case ValueType::None:
             return "null";
         default:
@@ -1058,6 +1073,7 @@ std::string getTypeStr(ValueType type) {
         {ValueType::String, "Type:String"},
         {ValueType::Function, "Type:Function"},
         {ValueType::List, "Type:List"},
+        {ValueType::BuiltInFunction, "Type:BuiltInFunction"},
         {ValueType::None, "Type:Null"}
     };
     if (types.count(type) != 0) {

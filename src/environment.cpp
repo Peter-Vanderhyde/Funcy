@@ -118,6 +118,34 @@ std::vector<Scope> Environment::copyScopes() const {
     return scopes;
 }
 
+void Environment::addFunction(const std::string& name, std::shared_ptr<Value> func) {
+    built_in_functions[name] = func;
+    built_in_names[func] = name;
+}
+
+std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
+    auto func = built_in_functions.find(name);
+    if (func != built_in_functions.end()) {
+        return func->second;
+    }
+
+    throw std::runtime_error("Unrecognized built-in function: " + name);
+}
+
+std::string Environment::getName(const std::shared_ptr<Value> func) const {
+    auto name = built_in_names.find(func);
+    if (name != built_in_names.end()) {
+        return name->second;
+    }
+
+    throw std::runtime_error("Unrecognized built-in name.");
+}
+
+bool Environment::hasFunction(const std::string& name) const {
+    auto func = built_in_functions.find(name);
+    return func != built_in_functions.end();
+}
+
 void Environment::display() const {
     for (auto scope : scopes) {
         scope.display();

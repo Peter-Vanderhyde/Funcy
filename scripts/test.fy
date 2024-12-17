@@ -1,11 +1,2 @@
-x = 10;
-func go() {
-    x = 20;
-    func stop(x) {
-        return x;
-    }
-    return stop(5);
-}
-
-x += go();
-x;
+x = true;
+print("Hello there", 3, x);

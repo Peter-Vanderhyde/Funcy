@@ -56,6 +56,9 @@ int main(int argc, char* argv[]) {
     Environment env;
     env.addScope();
 
+    env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
+
+
     for (auto statement : statements) {
         try {
             auto result = statement->evaluate(env);

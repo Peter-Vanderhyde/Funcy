@@ -76,6 +76,11 @@ void printValue(const std::shared_ptr<Value> value) {
         }
         case ValueType::Function: {
             std::cout << style.blue << "Type:Function" << style.reset;
+            return;
+        }
+        case ValueType::BuiltInFunction: {
+            std::cout << style.blue << "Type:BuiltInFunction" << style.reset;
+            return;
         }
         default:
             return;
@@ -135,4 +140,14 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
         // Both are integers
         return {std::get<int>(first_num), std::get<int>(second_num)};
     }
+}
+
+
+BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    for (const auto& arg : args) {
+        printValue(arg);
+        std::cout << " ";
+    }
+    std::cout << std::endl;
+    return std::nullopt;
 }

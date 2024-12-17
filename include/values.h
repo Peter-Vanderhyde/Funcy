@@ -5,6 +5,8 @@
 #include <memory>
 #include <iostream>
 #include <vector>
+#include <functional>
+#include <optional>
 
 enum class SpecialIndex {
     Begin,
@@ -13,6 +15,11 @@ enum class SpecialIndex {
 
 class Value;
 class ASTNode;
+class Environment;
+
+using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
+    const std::vector<std::shared_ptr<Value>>& args, Environment& env
+)>;
 
 class List {
 private:
@@ -38,13 +45,14 @@ enum class ValueType {
     List,
     None,
     Function,
-    Index
+    Index,
+    BuiltInFunction
 };
 
 class Value {
 private:
     std::variant<std::monostate, int, double, bool, std::string, std::shared_ptr<List>,
-                SpecialIndex, std::shared_ptr<ASTNode>> value;
+                SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>> value;
     ValueType value_type;
 
 public:
@@ -56,6 +64,7 @@ public:
     Value(std::shared_ptr<List> v);
     Value(SpecialIndex v);
     Value(std::shared_ptr<ASTNode> v);
+    Value(std::shared_ptr<BuiltInFunction> v);
 
     ValueType getType() const;
 
