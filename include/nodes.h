@@ -28,10 +28,10 @@ public:
 
 class AtomNode : public ASTNode {
 private:
-    std::variant<int, double, bool, std::string> value;
+    std::variant<int, double, bool, std::string, SpecialIndex> value;
 
 public:
-    AtomNode(std::variant<int, double, bool, std::string> value, int line, int column);
+    AtomNode(std::variant<int, double, bool, std::string, SpecialIndex> value, int line, int column);
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
@@ -39,11 +39,13 @@ public:
     bool isFloat();
     bool isBool();
     bool isString();
+    bool isIndex();
 
     int getInt();
     double getFloat();
     bool getBool();
     std::string getString();
+    SpecialIndex getIndex();
 };
 
 class UnaryOpNode : public ASTNode {
@@ -149,3 +151,21 @@ public:
 std::string getValueStr(std::shared_ptr<Value> value);
 std::string getValueStr(Value value);
 std::string getTypeStr(ValueType type);
+
+class IndexNode : public ASTNode {
+public:
+    IndexNode(std::shared_ptr<ASTNode> container, std::shared_ptr<ASTNode> start_index, std::shared_ptr<ASTNode> end_index,
+                int line, int column)
+        : ASTNode{line, column}, container{container}, start_index{start_index}, end_index{end_index} {}
+    ~IndexNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> getIndex(Environment& env,
+                                                    std::variant<std::shared_ptr<std::string>,
+                                                                std::shared_ptr<List>> listr);
+    void assignIndex(Environment& env, std::shared_ptr<Value> value);
+
+    std::shared_ptr<ASTNode> container;
+    std::shared_ptr<ASTNode> start_index;
+    std::shared_ptr<ASTNode> end_index;
+};

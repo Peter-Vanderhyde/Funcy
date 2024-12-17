@@ -6,6 +6,11 @@
 #include <iostream>
 #include <vector>
 
+enum class SpecialIndex {
+    Begin,
+    End
+};
+
 class Value;
 
 class List {
@@ -18,7 +23,8 @@ public:
     void append(std::shared_ptr<Value> value);
     std::shared_ptr<Value> pop(size_t index);
     void insert(size_t index, std::shared_ptr<Value> value);
-    std::shared_ptr<Value> get(size_t index) const;
+    void insert(const std::shared_ptr<List>& other); // Overload for inserting a List directly
+    std::shared_ptr<Value> at(size_t index) const;
     size_t size() const;
     bool empty() const;
 };
@@ -29,12 +35,13 @@ enum class ValueType {
     String,
     Float,
     List,
-    None
+    None,
+    Index
 };
 
 class Value {
 private:
-    std::variant<std::monostate, int, double, bool, std::string, std::shared_ptr<List>> value;
+    std::variant<std::monostate, int, double, bool, std::string, std::shared_ptr<List>, SpecialIndex> value;
     ValueType value_type;
 
 public:
@@ -44,6 +51,7 @@ public:
     Value(bool v);
     Value(const std::string& v);
     Value(std::shared_ptr<List> v);
+    Value(SpecialIndex v);
 
     ValueType getType() const;
 

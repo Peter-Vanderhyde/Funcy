@@ -6,13 +6,15 @@
 #include <format>
 #include "values.h"
 #include "errorDefs.h"
+#include <functional>
+#include <algorithm>
 
 
 ASTNode::ASTNode(int line, int column)
     : line{line}, column{column} {}
 
 
-AtomNode::AtomNode(std::variant<int, double, bool, std::string> value, int line, int column)
+AtomNode::AtomNode(std::variant<int, double, bool, std::string, SpecialIndex> value, int line, int column)
     : ASTNode{line, column}, value(std::move(value)) {}
 
 std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
@@ -28,6 +30,9 @@ std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
     }
     else if (isString()) {
         return std::make_shared<Value>(getString());
+    }
+    else if (isIndex()) {
+        return std::make_shared<Value>(getIndex());
     }
     else {
         runtimeError("Unable to evaluate atom", line, column);
@@ -46,6 +51,9 @@ bool AtomNode::isBool() {
 bool AtomNode::isString() {
     return std::holds_alternative<std::string>(value);
 }
+bool AtomNode::isIndex() {
+    return std::holds_alternative<SpecialIndex>(value);
+}
 
 int AtomNode::getInt() {
     return std::get<int>(value);
@@ -58,6 +66,9 @@ bool AtomNode::getBool() {
 }
 std::string AtomNode::getString() {
     return std::get<std::string>(value);
+}
+SpecialIndex AtomNode::getIndex() {
+    return std::get<SpecialIndex>(value);
 }
 
 
@@ -165,6 +176,50 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
     };
 
+    // Deep comparison function for lists
+    std::function<bool(const std::shared_ptr<List>&, const std::shared_ptr<List>&)> deepCompareLists;
+
+    deepCompareLists = [&](const std::shared_ptr<List>& lhs_list, const std::shared_ptr<List>& rhs_list) -> bool {
+        if (lhs_list->size() != rhs_list->size()) {
+            return false;
+        }
+        for (size_t i = 0; i < lhs_list->size(); ++i) {
+            auto lhs_element = lhs_list->at(i);
+            auto rhs_element = rhs_list->at(i);
+
+            // Compare both values recursively or directly
+            if (lhs_element->getType() != rhs_element->getType()) {
+                return false; // Types must match
+            }
+
+            switch (lhs_element->getType()) {
+                case ValueType::Boolean:
+                    if (lhs_element->get<bool>() != rhs_element->get<bool>()) return false;
+                    break;
+                case ValueType::Integer:
+                    if (lhs_element->get<int>() != rhs_element->get<int>()) return false;
+                    break;
+                case ValueType::Float:
+                    if (lhs_element->get<double>() != rhs_element->get<double>()) return false;
+                    break;
+                case ValueType::String:
+                    if (lhs_element->get<std::string>() != rhs_element->get<std::string>()) return false;
+                    break;
+                case ValueType::List:
+                    if (!deepCompareLists(lhs_element->get<std::shared_ptr<List>>(), 
+                                        rhs_element->get<std::shared_ptr<List>>())) {
+                        return false; // Recursive call for nested lists
+                    }
+                    break;
+                case ValueType::None:
+                    break; // None values are considered equal
+                default:
+                    return false; // Unknown types are not equal
+            }
+        }
+        return true; // All elements match
+    };
+
     if (op == TokenType::_And) {
         if (check_truthy(*left_value)) {
             if (check_truthy(*right_value)) {
@@ -181,6 +236,20 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         } else {
             return std::make_shared<Value>(false);
         }
+    }
+
+    if (left_str == "list" && right_str == "list") {
+        // BOTH ARE LISTS
+        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
+            std::shared_ptr<List> new_list = std::make_shared<List>();
+            new_list->insert(left_value->get<std::shared_ptr<List>>()); // append the second list
+            new_list->insert(right_value->get<std::shared_ptr<List>>()); // append the second list
+            return std::make_shared<Value>(new_list);
+        }
+        else if (op == TokenType::_Compare) return std::make_shared<Value>(deepCompareLists(left_value->get<std::shared_ptr<List>>(),
+                                                                                            right_value->get<std::shared_ptr<List>>()));
+        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareLists(left_value->get<std::shared_ptr<List>>(), 
+                                                                                            right_value->get<std::shared_ptr<List>>()));
     }
 
     else if (left_str == "string" && right_str == "string") {
@@ -593,6 +662,257 @@ std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
     }
 
     return std::make_shared<Value>(std::make_shared<List>(evaluated_list));
+}
+
+
+std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
+    if (debug) std::cout << "Evaluate Index" << std::endl;
+    if (container == nullptr) {
+        runtimeError("Null object is not subscriptable", line, column);
+    }
+
+    auto eval = container->evaluate(env);
+    if (eval) {
+        if (eval.value()->getType() == ValueType::String) {
+            auto string_val = std::make_shared<std::string>(eval.value()->get<std::string>());
+            return getIndex(env, string_val);
+        }
+        else if (eval.value()->getType() == ValueType::List) {
+            auto list_val = eval.value()->get<std::shared_ptr<List>>();
+            return getIndex(env, list_val);
+        }
+        else {
+            runtimeError("Index node container was an unexpected type", line, column);
+        }
+    }
+    return std::nullopt;
+}
+
+std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_ptr<std::string>,
+                                                                    std::shared_ptr<List>> listr,
+                                                        int index, int line, int column) {
+    // The function is given the container to extract the index from
+
+    if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
+        auto string = std::get<std::shared_ptr<std::string>>(listr);
+        if (index >= 0 && index < string->length()) {
+            return string->at(index);
+        } else if (index >= string->length() * -1 && index < 0) {
+            return string->at(string->length() - -index);
+        } else {
+            runtimeError("String index out of range", line, column);
+        }
+    } else if (std::holds_alternative<std::shared_ptr<List>>(listr)) {
+        auto list = std::get<std::shared_ptr<List>>(listr);
+        if (index >= 0 && index < list->size()) {
+            return list->at(index);
+        } else if (index >= list->size() * -1 && index < 0) {
+            return list->at(list->size() - -index);
+        } else {
+            runtimeError("List index out of range", line, column);
+        }
+    } else {
+        runtimeError("getAtIndex did not receive a string or list", line, column);
+    }
+    return nullptr;
+}
+
+std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
+                                                    std::variant<std::shared_ptr<std::string>,
+                                                                std::shared_ptr<List>> listr) {
+    if (end_index) {
+        auto resolveIndex = [&](const Value& index, int container_size) -> int {
+            if (index.getType() == ValueType::Integer) {
+                int idx = index.get<int>();
+                if (idx < 0) {
+                    idx += container_size; // Handle negative index
+                }
+                return std::clamp(idx, 0, container_size); // Clamp within bounds
+            } else if (index.getType() == ValueType::Index) {
+                if (index.get<SpecialIndex>() == SpecialIndex::End) {
+                    return container_size; // Resolve "end" to container size
+                }
+            }
+            throw std::runtime_error("Invalid index type");
+        };
+
+        auto start_result = start_index->evaluate(env);
+        auto end_result = end_index->evaluate(env);
+
+        if (start_result && end_result) {
+            // Check if the container is a string or list
+            if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
+                auto str = std::get<std::shared_ptr<std::string>>(listr);
+                int size = str->size();
+
+                // Resolve indices
+                int start_val = resolveIndex(*start_result.value(), size);
+                int end_val = resolveIndex(*end_result.value(), size);
+
+                // Return empty string if range is invalid
+                if (start_val >= end_val) {
+                    return std::make_shared<Value>("");
+                }
+
+                // Extract substring
+                std::string sub_str = str->substr(start_val, end_val - start_val);
+                return std::make_shared<Value>(sub_str);
+            } else if (std::holds_alternative<std::shared_ptr<List>>(listr)) {
+                auto list_ptr = std::get<std::shared_ptr<List>>(listr);
+                int size = list_ptr->size();
+
+                // Resolve indices
+                int start_val = resolveIndex(*start_result.value(), size);
+                int end_val = resolveIndex(*end_result.value(), size);
+
+                // Return empty list if range is invalid
+                if (start_val >= end_val) {
+                    return std::make_shared<Value>(std::make_shared<List>());
+                }
+
+                // Create a new list with the slice
+                auto new_list = std::make_shared<List>();
+                for (int i = start_val; i < end_val; ++i) {
+                    auto list_val = std::get<std::shared_ptr<Value>>(
+                        getAtIndex(list_ptr, i, line, column));
+                    new_list->append(list_val);
+                }
+                return std::make_shared<Value>(new_list);
+            } else {
+                runtimeError("Invalid type for getting index", line, column);
+            }
+        } else {
+            runtimeError("Failed to evaluate start_index or end_index", line, column);
+        }
+    } else {
+        auto result = start_index->evaluate(env);
+        if (result) {
+            if (result.value()->getType() == ValueType::Integer) {
+                int int_val = result.value()->get<int>();
+                if (std::holds_alternative<std::shared_ptr<std::string>>(listr)) {
+                    auto get_char = getAtIndex(listr, int_val, line, column);
+                    if (std::holds_alternative<char>(get_char)) {
+                        auto c = std::get<char>(get_char);
+                        std::string str = std::string(1, c);
+                        return std::make_shared<Value>(str);
+                    }
+                } else {
+                    auto value = std::get<std::shared_ptr<Value>>(getAtIndex(listr, int_val, line, column));
+                    return value;
+                }
+            } else {
+                runtimeError("The index was not given an int", line, column);
+            }
+        } else {
+            runtimeError("Failed to evaluate start_index", line, column);
+            return std::nullopt;
+        }
+    }
+    
+    return std::nullopt;
+}
+
+void setAtIndex(std::variant<std::shared_ptr<List>> env_dist, std::shared_ptr<Value> index_key, std::shared_ptr<Value> value) {
+    if (std::holds_alternative<std::shared_ptr<List>>(env_dist)) {
+        auto env_list = std::get<std::shared_ptr<List>>(env_dist);
+        int list_index = index_key->get<int>();
+        if (list_index >= 0 && list_index <= env_list->size()) {
+            if (value->getType() == ValueType::String) {
+                // Assigning a string
+                auto str_val = value->get<std::string>();
+                std::string s = "";
+                int i = 0;
+                for (auto c : str_val) {
+                    s += c;
+                    auto char_str = std::make_shared<Value>(s);
+                    if (list_index + i == env_list->size()) {
+                        env_list->append(char_str);
+                    } else {
+                        env_list->insert(list_index + i, char_str);
+                    }
+                    s = "";
+                    i++;
+                }
+            } else if (value->getType() == ValueType::List) {
+                auto list_val = value->get<std::shared_ptr<List>>();
+                // Assigning a list
+                for (int i = list_val->size() - 1; i >= 0; i--) {
+                    if (list_index == env_list->size()) {
+                        env_list->append(list_val->at(i));
+                    } else {
+                        env_list->insert(list_index, list_val->at(i));
+                    }
+                }
+            }
+        }
+    }
+}
+
+void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
+    auto eval = container->evaluate(env);
+    std::shared_ptr<Value> env_val;
+    if (eval) {
+        env_val = eval.value();
+    } else {
+        runtimeError("Index assignment unable to evaluate the container", line, column);
+        return;
+    }
+    if (env_val->getType() == ValueType::List) {
+        std::shared_ptr<List> env_list = env_val->get<std::shared_ptr<List>>();
+
+        if (end_index == nullptr) {
+            // A single index assignment
+            auto index_eval = start_index->evaluate(env);
+            if (index_eval) {
+                if (index_eval.value()->getType() == ValueType::Integer) {
+                    int index = index_eval.value()->get<int>();
+                    if (index >= 0 && index < env_list->size()) {
+                        env_list->at(index) = value;
+                    } else if (index < 0 && index >= env_list->size() * -1) {
+                        env_list->at(env_list->size() - index) = value;
+                    } else {
+                        runtimeError("Index assignment out of range", line, column);
+                    }
+                } else {
+                    runtimeError("Index assignment requires int", line, column);
+                }
+            } else {
+                runtimeError("Failed to evaluate assignment index", line, column);
+            }
+        } else {
+            // List slice index assignment
+            auto start_eval = start_index->evaluate(env);
+            auto end_eval = end_index->evaluate(env);
+            if (start_eval && end_eval) {
+                if (start_eval.value()->getType() == ValueType::Integer) {
+                    int start_val = start_eval.value()->get<int>();
+                    if (end_eval.value()->getType() == ValueType::Integer) {
+                        int end_val = end_eval.value()->get<int>();
+                        int slice_size = std::abs(end_val - start_val);
+                        // Cut out the slice section of the original list
+                        for (int i = 0; i < slice_size; i++) {
+                            if (start_val == env_list->size()) {
+                                break;
+                                // runtimeError("Assignment index went out of range.");
+                            }
+                            env_list->pop(start_val);
+                        }
+                        setAtIndex(env_list, start_eval.value(), value);
+                    } else {
+                        runtimeError("Assignment index end value is not an int", line, column);
+                    }
+                } else {
+                    runtimeError("Assignment index start value is not an int", line, column);
+                }
+            } else {
+                runtimeError("Assignment index was unable to evaluate", line, column);
+            }
+        }
+    }
+    else {
+        runtimeError(getValueStr(env_val) + " object does not support item assignment", line, column);
+        return;
+    }
 }
 
 

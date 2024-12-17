@@ -53,6 +53,22 @@ void printValue(const std::shared_ptr<Value> value) {
             std::cout << style.green << "'" << string_value << "'" << style.reset;
             return;
         }
+        case ValueType::List: {
+            std::shared_ptr<List> list_value = value->get<std::shared_ptr<List>>();
+            std::cout << "[";
+            bool first = true;
+            for (int i = 0; i < list_value->size(); i++) {
+                auto item = list_value->at(i);
+                if (!first) {
+                    std::cout << ", ";
+                } else {
+                    first = false;
+                }
+                printValue(item);
+            }
+            std::cout << "]";
+            return;
+        }
         case ValueType::None: {
             std::cout << style.blue << "Null" << style.reset;
             return;

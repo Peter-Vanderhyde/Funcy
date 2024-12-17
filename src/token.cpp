@@ -47,7 +47,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Comma, ","},
     {TokenType::_Func, "func"},
     {TokenType::_SquareOpen, "["},
-    {TokenType::_SquareClose, "]"}
+    {TokenType::_SquareClose, "]"},
+    {TokenType::_Colon, ":"}
     //{TokenType::, ""}
 };
 
@@ -75,7 +76,10 @@ std::unordered_map<char, TokenType> char_tokens {
     {'}', TokenType::_CurlyClose},
     {'<', TokenType::_LessThan},
     {'>', TokenType::_GreaterThan},
-    {',', TokenType::_Comma}
+    {',', TokenType::_Comma},
+    {'[', TokenType::_SquareOpen},
+    {']', TokenType::_SquareClose},
+    {':', TokenType::_Colon}
 };
 
 std::unordered_map<std::string, TokenType> keyword_tokens {

@@ -334,20 +334,75 @@ std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
     if (debug) std::cout << "Parse Not " << getTokenStr() << std::endl;
     if (tokenIs("not") || tokenIs("!")) {
         const Token& k_word = consumeToken();
-        auto right = parseCollection();
+        auto right = parseIndexing();
         return std::make_shared<UnaryOpNode>(k_word.type, right, k_word.line, k_word.column);
     }
     else {
-        return parseCollection();
+        return parseIndexing();
     }
+}
+
+std::shared_ptr<ASTNode> Parser::parseIndexing(std::shared_ptr<ASTNode> left) {
+    if (debug) std::cout << "Parse Indexing " << getTokenStr() << std::endl;
+    if (!left) {
+        left = parseCollection();
+    }
+    while (tokenIs("[")) {
+        const Token& token = consumeToken();
+        std::shared_ptr<ASTNode> start;
+        if (tokenIs(":")) {
+            start = std::make_shared<AtomNode>(0, token.line, token.column);
+        } else {
+            start = parseExpression(); // Assuming it ends up as an int
+        }
+        if (tokenIs("]")) {
+            consumeToken();
+            left = std::make_shared<IndexNode>(left, start, nullptr, token.line, token.column);
+        } else if (!tokenIs(":")) {
+            parsingError("Expected either ']' or ':'", getToken().line, getToken().column);
+        } else {
+            // Is :
+            consumeToken();
+            std::shared_ptr<ASTNode> end;
+            if (tokenIs("]")) {
+                end = std::make_shared<AtomNode>(SpecialIndex::End, token.line, token.column);
+            } else {
+                end = parseExpression();
+            }
+            if (!tokenIs("]")) {
+                parsingError("Expected ']'", getToken().line, getToken().column);
+            }
+            consumeToken();
+            left = std::make_shared<IndexNode>(left, start, end, token.line, token.column);
+        }
+    }
+
+    return left;
 }
 
 std::shared_ptr<ASTNode> Parser::parseCollection() {
     if (debug) std::cout << "Parse Collection " << getTokenStr() << std::endl;
-    if (tokenIs("(")) {
+    if (tokenIs("[")) {
         const Token& token = consumeToken();
-        // auto parse_or = parseLogicalOr();
-        auto parse_or = parseExpression();
+        ASTList list;
+        while (!tokenIs("]") && !tokenIs("eof") && !tokenIs(";")) {
+            auto element = parseLogicalOr();
+            list.push_back(element);
+            if (tokenIs(",") && !nextTokenIs("]")) {
+                consumeToken();
+            } else if (tokenIs(",")) {
+                parsingError("Expected more values", getToken().line, getToken().column);
+            }
+        }
+        if (tokenIs("eof") || tokenIs(";")) {
+            parsingError("Expected ']'", getToken().line, getToken().column);
+        }
+        consumeToken();
+        return std::make_shared<ListNode>(list, token.line, token.column);
+    }
+    else if (tokenIs("(")) {
+        const Token& token = consumeToken();
+        auto parse_or = parseLogicalOr();
         if (!tokenIs(")")) {
             parsingError("Expected ')' but got " + getTokenStr(), getToken().line, getToken().column);
         }
