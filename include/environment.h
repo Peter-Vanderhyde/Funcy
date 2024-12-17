@@ -21,7 +21,6 @@ private:
 class Environment {
 public:
     Environment();
-    Environment(Environment& env);
     void set(std::string name, std::shared_ptr<Value> value);
     bool contains(std::string name) const;
     std::shared_ptr<Value> get(std::string name) const;

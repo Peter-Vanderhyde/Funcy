@@ -37,9 +37,6 @@ void Scope::display() const {
 
 Environment::Environment() {}
 
-Environment::Environment(Environment& env)
-    : scopes{env.copyScopes()} {}
-
 void Environment::set(std::string name, std::shared_ptr<Value> value) {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");

@@ -925,6 +925,7 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
 
 std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Function" << std::endl;
+    local_env = env;
     return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<FuncNode>(*this)));
 }
 
@@ -945,15 +946,13 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_
     return;
 }
 
-std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& parent_env) {
-    Environment local_env = parent_env;
+std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values) {
     Scope local_scope;
     setArgs(values, local_scope);
     local_env.addScope(local_scope);
     for (auto statement : block) {
         try {
             if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
-                func_statement->parent_env = std::make_shared<Environment>(local_env);
                 auto result = func_statement->evaluate(local_env);
                 if (result) {
                     printValue(result.value());
@@ -981,12 +980,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
-            if (parent_env) {
-                return func->callFunc(evaluateArgs(env), *parent_env.get());
-            }
-            else {
-                return func->callFunc(evaluateArgs(env), env);
-            }
+            return func->callFunc(evaluateArgs(env));
         } else {
             runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
         }
