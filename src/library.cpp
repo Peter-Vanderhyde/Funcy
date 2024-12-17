@@ -151,3 +151,163 @@ BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Env
     std::cout << std::endl;
     return std::nullopt;
 }
+
+BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("int() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto arg = args[0];
+
+    switch(arg->getType()) {
+        case ValueType::Integer:
+            return arg; // If it's already an int, return as is
+        case ValueType::Float: {
+            int int_value = static_cast<int>(arg->get<double>());
+            return std::make_shared<Value>(int_value);
+        }
+        case ValueType::String: {
+            try {
+                int int_value = std::stoi(arg->get<std::string>());
+                return std::make_shared<Value>(int_value);
+            } catch (const std::invalid_argument&) {
+                throw std::runtime_error("Cannot convert string to int");
+            } catch (const std::out_of_range&) {
+                throw std::runtime_error("String value out of range for int conversion");
+            }
+        }
+        case ValueType::Boolean: {
+            bool bool_value = arg->get<bool>();
+            if (bool_value) {
+                return std::make_shared<Value>(1);
+            } else {
+                return std::make_shared<Value>(0);
+            }
+        }
+        default:
+            throw std::runtime_error("Unsupported type " + getValueStr(arg) + " for int conversion");
+    }
+}
+
+BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("float() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto arg = args[0];
+
+    switch (arg->getType()) {
+        case ValueType::Float:
+            return arg; // Already a float
+        case ValueType::Integer:
+            return std::make_shared<Value>(static_cast<double>(arg->get<int>()));
+        case ValueType::String: {
+            try {
+                double doubleValue = std::stod(arg->get<std::string>());
+                return std::make_shared<Value>(doubleValue);
+            } catch (const std::invalid_argument&) {
+                throw std::runtime_error("Cannot convert string to double");
+            } catch (const std::out_of_range&) {
+                throw std::runtime_error("String value out of range for double conversion");
+            }
+        }
+        case ValueType::Boolean:
+            return std::make_shared<Value>(arg->get<bool>() ? 1.0 : 0.0);
+        default:
+            throw std::runtime_error("Unsupported type for float conversion");
+    }
+}
+
+BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("bool() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto arg = args[0];
+
+    switch (arg->getType()) {
+        case ValueType::Boolean:
+            return arg; // Already a bool
+        case ValueType::Integer:
+            return std::make_shared<Value>(arg->get<int>() != 0);
+        case ValueType::Float:
+            return std::make_shared<Value>(arg->get<double>() != 0.0);
+        case ValueType::String: {
+            const std::string& strValue = arg->get<std::string>();
+            return std::make_shared<Value>(!strValue.empty() && strValue != "false");
+        }
+        case ValueType::List:
+            return std::make_shared<Value>(!arg->get<std::shared_ptr<List>>()->empty());
+        default:
+            throw std::runtime_error("Unsupported type for bool conversion");
+    }
+}
+
+std::string toString(double value){
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2) << value;
+    return oss.str();
+}
+
+BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("string() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto arg = args[0];
+
+    switch (arg->getType()) {
+        case ValueType::String:
+            return arg; // Already a string
+        case ValueType::Integer:
+            return std::make_shared<Value>(std::to_string(arg->get<int>()));
+        case ValueType::Float:
+            return std::make_shared<Value>(toString(arg->get<double>()));
+        case ValueType::Boolean:
+            return std::make_shared<Value>(arg->get<bool>() ? "true" : "false");
+        case ValueType::List: {
+            std::shared_ptr<List> list = arg->get<std::shared_ptr<List>>();
+            std::string result = "[";
+            for (size_t i = 0; i < list->size(); ++i) {
+                auto str_return = stringConverter({list->at(i)}, env).value();
+                result += str_return->get<std::string>();
+                if (i < list->size() - 1) {
+                    result += ", ";
+                }
+            }
+            result += "]";
+            return std::make_shared<Value>(result);
+        }
+        default:
+            throw std::runtime_error("Unsupported type for string conversion");
+    }
+}
+
+BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    auto list = std::make_shared<List>();
+
+    if (args.size() == 0) {
+        throw std::runtime_error("list() conversion takes at least 1 argument. None were given");
+    }
+
+    auto arg = args[0];
+    switch (arg->getType()) {
+        case ValueType::String: {
+            // Split string into characters
+            const std::string& str = arg->get<std::string>();
+            for (char c : str) {
+                list->push_back(std::make_shared<Value>(std::string(1, c)));
+            }
+            break;
+        }
+        case ValueType::List:
+            return arg; // Already a list
+        default: {
+            for (const auto& element : args) {
+                list->push_back(element);
+            }
+            break;
+        }
+    }
+    return std::make_shared<Value>(list);
+}

@@ -1,15 +1,8 @@
-x = 20;
+age = 20;
 
-func first() {
-    print(x);  # Works: x is global
-    x = 15;
-    print(y);
-}
+first = "Peter";
+last = "Vanderhyde";
 
-func second() {
-    y = 10;  # Creates a local variable y
-    first();
-}
+print(first + " " + last + " is " + str(age) + " years old.");
 
-second();
-print(x);
+print(list(last));

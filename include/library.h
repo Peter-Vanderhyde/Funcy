@@ -20,3 +20,8 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
 
 
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

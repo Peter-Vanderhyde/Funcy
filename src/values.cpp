@@ -3,7 +3,7 @@
 #include "errorDefs.h"
 
 
-void List::append(std::shared_ptr<Value> value) {
+void List::push_back(std::shared_ptr<Value> value) {
         elements.push_back(value);
     }
 
@@ -74,4 +74,69 @@ Value::Value(std::shared_ptr<BuiltInFunction> v)
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;
+}
+
+
+std::string getValueStr(std::shared_ptr<Value> value) {
+    switch(value->getType()) {
+        case ValueType::Integer:
+            return "integer";
+        case ValueType::Float:
+            return "float";
+        case ValueType::Boolean:
+            return "boolean";
+        case ValueType::String:
+            return "string";
+        case ValueType::List:
+            return "list";
+        case ValueType::Function:
+            return "function";
+        case ValueType::BuiltInFunction:
+            return "builtin function";
+        case ValueType::None:
+            return "null";
+        default:
+            runtimeError("Attempted to get string of unrecognized Value type.");
+    }
+}
+
+std::string getValueStr(Value value) {
+    switch(value.getType()) {
+        case ValueType::Integer:
+            return "integer";
+        case ValueType::Float:
+            return "float";
+        case ValueType::Boolean:
+            return "boolean";
+        case ValueType::String:
+            return "string";
+        case ValueType::List:
+            return "list";
+        case ValueType::Function:
+            return "function";
+        case ValueType::BuiltInFunction:
+            return "builtin function";
+        case ValueType::None:
+            return "null";
+        default:
+            runtimeError("Attempted to get string of unrecognized Value type.");
+    }
+}
+
+std::string getTypeStr(ValueType type) {
+    std::unordered_map<ValueType, std::string> types = {
+        {ValueType::Integer, "Type:Integer"},
+        {ValueType::Float, "Type:Float"},
+        {ValueType::Boolean, "Type:Boolean"},
+        {ValueType::String, "Type:String"},
+        {ValueType::Function, "Type:Function"},
+        {ValueType::List, "Type:List"},
+        {ValueType::BuiltInFunction, "Type:BuiltInFunction"},
+        {ValueType::None, "Type:Null"}
+    };
+    if (types.count(type) != 0) {
+        return types[type];
+    } else {
+        runtimeError("No such type string found");
+    }
 }

@@ -28,7 +28,7 @@ private:
 public:
     List() {}
 
-    void append(std::shared_ptr<Value> value);
+    void push_back(std::shared_ptr<Value> value);
     std::shared_ptr<Value> pop(size_t index);
     void insert(size_t index, std::shared_ptr<Value> value);
     void insert(const std::shared_ptr<List>& other); // Overload for inserting a List directly
@@ -78,3 +78,8 @@ public:
     }
 
 };
+
+
+std::string getValueStr(std::shared_ptr<Value> value);
+std::string getValueStr(Value value);
+std::string getTypeStr(ValueType type);

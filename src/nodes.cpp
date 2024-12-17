@@ -242,8 +242,8 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         // BOTH ARE LISTS
         if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
             std::shared_ptr<List> new_list = std::make_shared<List>();
-            new_list->insert(left_value->get<std::shared_ptr<List>>()); // append the second list
-            new_list->insert(right_value->get<std::shared_ptr<List>>()); // append the second list
+            new_list->insert(left_value->get<std::shared_ptr<List>>()); // push_back the second list
+            new_list->insert(right_value->get<std::shared_ptr<List>>()); // push_back the second list
             return std::make_shared<Value>(new_list);
         }
         else if (op == TokenType::_Compare) return std::make_shared<Value>(deepCompareLists(left_value->get<std::shared_ptr<List>>(),
@@ -660,7 +660,7 @@ std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
             // Evaluate the ASTNode and add the result to the evaluated list
             auto result = element->evaluate(env);
             if (result) {
-                evaluated_list.append(result.value());
+                evaluated_list.push_back(result.value());
             } else {
                 runtimeError("List element was unable to be evaluated", line, column);
             }
@@ -783,7 +783,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                 for (int i = start_val; i < end_val; ++i) {
                     auto list_val = std::get<std::shared_ptr<Value>>(
                         getAtIndex(list_ptr, i, line, column));
-                    new_list->append(list_val);
+                    new_list->push_back(list_val);
                 }
                 return std::make_shared<Value>(new_list);
             } else {
@@ -834,7 +834,7 @@ void setAtIndex(std::variant<std::shared_ptr<List>> env_dist, std::shared_ptr<Va
                     s += c;
                     auto char_str = std::make_shared<Value>(s);
                     if (list_index + i == env_list->size()) {
-                        env_list->append(char_str);
+                        env_list->push_back(char_str);
                     } else {
                         env_list->insert(list_index + i, char_str);
                     }
@@ -846,7 +846,7 @@ void setAtIndex(std::variant<std::shared_ptr<List>> env_dist, std::shared_ptr<Va
                 // Assigning a list
                 for (int i = list_val->size() - 1; i >= 0; i--) {
                     if (list_index == env_list->size()) {
-                        env_list->append(list_val->at(i));
+                        env_list->push_back(list_val->at(i));
                     } else {
                         env_list->insert(list_index, list_val->at(i));
                     }
@@ -1010,69 +1010,4 @@ std::vector<std::shared_ptr<Value>> FuncCallNode::evaluateArgs(Environment& env)
     }
 
     return evaluated_values;
-}
-
-
-std::string getValueStr(std::shared_ptr<Value> value) {
-    switch(value->getType()) {
-        case ValueType::Integer:
-            return "integer";
-        case ValueType::Float:
-            return "float";
-        case ValueType::Boolean:
-            return "boolean";
-        case ValueType::String:
-            return "string";
-        case ValueType::List:
-            return "list";
-        case ValueType::Function:
-            return "function";
-        case ValueType::BuiltInFunction:
-            return "builtin function";
-        case ValueType::None:
-            return "null";
-        default:
-            runtimeError("Attempted to get string of unrecognized Value type.");
-    }
-}
-
-std::string getValueStr(Value value) {
-    switch(value.getType()) {
-        case ValueType::Integer:
-            return "integer";
-        case ValueType::Float:
-            return "float";
-        case ValueType::Boolean:
-            return "boolean";
-        case ValueType::String:
-            return "string";
-        case ValueType::List:
-            return "list";
-        case ValueType::Function:
-            return "function";
-        case ValueType::BuiltInFunction:
-            return "builtin function";
-        case ValueType::None:
-            return "null";
-        default:
-            runtimeError("Attempted to get string of unrecognized Value type.");
-    }
-}
-
-std::string getTypeStr(ValueType type) {
-    std::unordered_map<ValueType, std::string> types = {
-        {ValueType::Integer, "Type:Integer"},
-        {ValueType::Float, "Type:Float"},
-        {ValueType::Boolean, "Type:Boolean"},
-        {ValueType::String, "Type:String"},
-        {ValueType::Function, "Type:Function"},
-        {ValueType::List, "Type:List"},
-        {ValueType::BuiltInFunction, "Type:BuiltInFunction"},
-        {ValueType::None, "Type:Null"}
-    };
-    if (types.count(type) != 0) {
-        return types[type];
-    } else {
-        runtimeError("No such type string found");
-    }
 }

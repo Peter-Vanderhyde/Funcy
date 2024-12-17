@@ -148,10 +148,6 @@ public:
     ASTList list;
 };
 
-std::string getValueStr(std::shared_ptr<Value> value);
-std::string getValueStr(Value value);
-std::string getTypeStr(ValueType type);
-
 class IndexNode : public ASTNode {
 public:
     IndexNode(std::shared_ptr<ASTNode> container, std::shared_ptr<ASTNode> start_index, std::shared_ptr<ASTNode> end_index,

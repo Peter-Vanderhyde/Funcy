@@ -57,6 +57,11 @@ int main(int argc, char* argv[]) {
     env.addScope();
 
     env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
+    env.addFunction("int", std::make_shared<Value>(std::make_shared<BuiltInFunction>(intConverter)));
+    env.addFunction("float", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatConverter)));
+    env.addFunction("bool", std::make_shared<Value>(std::make_shared<BuiltInFunction>(boolConverter)));
+    env.addFunction("str", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
+    env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
 
 
     for (auto statement : statements) {
