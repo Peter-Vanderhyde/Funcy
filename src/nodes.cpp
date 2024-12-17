@@ -634,6 +634,12 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         else {
             runtimeError("Continue used outside of loop", line, column);
         }
+    } else if (keyword == TokenType::_Return) {
+        if (right != nullptr) {
+            throw ReturnException(right->evaluate(env));
+        } else {
+            throw ReturnException(std::nullopt);
+        }
     }
 
     if (right) {
@@ -920,15 +926,15 @@ std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
     return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<FuncNode>(*this)));
 }
 
-void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Environment& base_env, Environment& local_env) {
+void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_scope) {
     if (values.size() != args.size()) {
         runtimeError(std::format("Incorrect number of args were passed in. {} instead of {}", values.size(), args.size()), line, column);
     }
 
-    for (int i = 0; i < values.size(); i++) {
+    for (size_t i = 0; i < values.size(); i++) {
         if (auto ident_node = dynamic_cast<IdentifierNode*>(args.at(i).get())) {
             std::string arg_string = ident_node->name;
-            local_env.set(arg_string, values.at(i));
+            local_scope.set(arg_string, values.at(i));
         } else {
             runtimeError("Unable to convert identifier for function argument", line, column);
         }
@@ -937,15 +943,15 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Environment& 
     return;
 }
 
-std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& env) {
-    Environment local_env = env;
-    local_env.resetLoop();
-    local_env.addScope();
-    setArgs(values, env, local_env);
+std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& parent_env) {
+    Environment local_env = parent_env;
+    Scope local_scope;
+    setArgs(values, local_scope);
+    local_env.addScope(local_scope);
     for (auto statement : block) {
         try {
             if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
-                func_statement->base_env = std::make_shared<Environment>(env);
+                func_statement->parent_env = std::make_shared<Environment>(local_env);
                 auto result = func_statement->evaluate(local_env);
                 if (result) {
                     printValue(result.value());
@@ -973,8 +979,8 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
-            if (base_env) {
-                return func->callFunc(evaluateArgs(env), *base_env.get());
+            if (parent_env) {
+                return func->callFunc(evaluateArgs(env), *parent_env.get());
             }
             else {
                 return func->callFunc(evaluateArgs(env), env);

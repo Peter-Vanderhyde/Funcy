@@ -1,5 +1,11 @@
-func add(x, y) {
-    x + y;
+x = 10;
+func go() {
+    x = 20;
+    func stop(x) {
+        return x;
+    }
+    return stop(5);
 }
 
-add(2, 3);
+x += go();
+x;

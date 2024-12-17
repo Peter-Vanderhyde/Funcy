@@ -21,13 +21,16 @@ private:
 class Environment {
 public:
     Environment();
+    Environment(Environment& env);
     void set(std::string name, std::shared_ptr<Value> value);
     bool contains(std::string name) const;
     std::shared_ptr<Value> get(std::string name) const;
 
     int scopeDepth() const;
     void addScope();
+    void addScope(Scope& scope);
     void removeScope();
+    std::vector<Scope> copyScopes() const;
     void addLoop();
     void removeLoop();
     bool inLoop() const;

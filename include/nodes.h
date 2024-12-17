@@ -179,12 +179,11 @@ public:
     ~FuncNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
-    void setArgs(std::vector<std::shared_ptr<Value>> values, Environment& base_env, Environment& local_env);
-    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& env);
+    void setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_scope);
+    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& parent_env);
     
     std::shared_ptr<std::string> func_name;
     std::vector<std::shared_ptr<ASTNode>> args;
-    Environment local_env;
     std::vector<std::shared_ptr<ASTNode>> block;
 };
 
@@ -202,5 +201,5 @@ public:
     std::shared_ptr<ASTNode> identifier;
     std::vector<std::shared_ptr<ASTNode>> values;
     std::shared_ptr<Value> member_value;
-    std::shared_ptr<Environment> base_env = nullptr;
+    std::shared_ptr<Environment> parent_env = nullptr;
 };

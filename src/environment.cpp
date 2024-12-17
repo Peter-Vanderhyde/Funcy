@@ -37,6 +37,9 @@ void Scope::display() const {
 
 Environment::Environment() {}
 
+Environment::Environment(Environment& env)
+    : scopes{env.copyScopes()} {}
+
 void Environment::set(std::string name, std::shared_ptr<Value> value) {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");
@@ -56,7 +59,8 @@ std::shared_ptr<Value> Environment::get(std::string name) const {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");
     }
-    for (const auto scope : scopes) {
+    for (int i = scopes.size() - 1; i >= 0; i--) {
+        const auto scope = scopes.at(i);
         if (scope.contains(name)) {
             return scope.get(name);
         }
@@ -102,12 +106,21 @@ void Environment::addScope() {
     scopes.push_back(Scope());
 }
 
+void Environment::addScope(Scope& scope) {
+    scopes.push_back(scope);
+}
+
 void Environment::removeScope() {
     scopes.pop_back();
+}
+
+std::vector<Scope> Environment::copyScopes() const {
+    return scopes;
 }
 
 void Environment::display() const {
     for (auto scope : scopes) {
         scope.display();
     }
+    std::cout << std::endl;
 }

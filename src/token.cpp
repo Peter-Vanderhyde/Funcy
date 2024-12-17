@@ -48,7 +48,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Func, "func"},
     {TokenType::_SquareOpen, "["},
     {TokenType::_SquareClose, "]"},
-    {TokenType::_Colon, ":"}
+    {TokenType::_Colon, ":"},
+    {TokenType::_Return, "return"}
     //{TokenType::, ""}
 };
 
@@ -93,7 +94,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"for", TokenType::_For},
     {"break", TokenType::_Break},
     {"continue", TokenType::_Continue},
-    {"func", TokenType::_Func}
+    {"func", TokenType::_Func},
+    {"return", TokenType::_Return}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {

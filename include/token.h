@@ -52,7 +52,8 @@ enum class TokenType{
     _List,
     _SquareOpen,
     _SquareClose,
-    _Colon
+    _Colon,
+    _Return
 };
 
 std::string getTokenTypeLabel(TokenType type);

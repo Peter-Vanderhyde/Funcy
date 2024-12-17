@@ -251,9 +251,16 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
     else {
         const Token& token = getToken();
         std::shared_ptr<KeywordNode> node;
+        if (tokenIs("return") && !nextTokenIs(";")) {
+            consumeToken();
+            auto right = parseLogicalOr();
+            node = std::make_shared<KeywordNode>(TokenType::_Return, right, token.line, token.column);
+        }
 
-        node = std::make_shared<KeywordNode>(getToken().type, nullptr, token.line, token.column);
-        consumeToken();
+        else {
+            node = std::make_shared<KeywordNode>(getToken().type, nullptr, token.line, token.column);
+            consumeToken();
+        }
         return node;
     }
 
