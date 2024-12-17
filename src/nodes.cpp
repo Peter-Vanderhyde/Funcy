@@ -4,15 +4,8 @@
 #include <format>
 #include <math.h>
 #include <format>
-
-
-void runtimeError(std::string message, int line, int column) {
-    handleError(message, line, column, "Runtime Error");
-}
-
-void runtimeError(std::string message) {
-    handleError(message, 0, 0, "Runtime Error");
-}
+#include "values.h"
+#include "errorDefs.h"
 
 
 ASTNode::ASTNode(int line, int column)
@@ -78,36 +71,35 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
         runtimeError(std::format("Failed to evaluate unary operand with operator '{}'", getTokenTypeLabel(op)), line, column);
     }
 
-    std::string val_string = getValueStr(right_value.value());
-    if (val_string == "integer") {
+    std::shared_ptr<Value> value = right_value.value();
+    ValueType val_type = value->getType();
+    if (val_type == ValueType::Integer) {
+        int val = value->get<int>();
         if (op == TokenType::_Minus) {
-            int val = std::get<int>(*right_value.value());
             return std::make_shared<Value>(-val);
         }
         else if (op == TokenType::_Plus) {
-            return right_value.value();
+            return value;
         }
         else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
-            int val = std::get<int>(*right_value.value());
             return std::make_shared<Value>(val == 0);
         }
     }
-    else if (val_string == "float") {
+    else if (val_type == ValueType::Float) {
+        double val = value->get<double>();
         if (op == TokenType::_Minus) {
-            int val = std::get<double>(*right_value.value());
             return std::make_shared<Value>(-val);
         }
         else if (op == TokenType::_Plus) {
-            return right_value.value();
+            return value;
         }
         else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
-            double val = std::get<double>(*right_value.value());
             return std::make_shared<Value>(val == 0.0);
         }
     }
-    else if (val_string == "boolean") {
+    else if (val_type == ValueType::Boolean) {
+        bool val = value->get<bool>();
         if (op == TokenType::_Minus) {
-            bool val = std::get<bool>(*right_value.value());
             if (val) {
                 return std::make_shared<Value>(-1);
             } else {
@@ -115,7 +107,6 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             }
         }
         else if (op == TokenType::_Plus) {
-            bool val = std::get<bool>(*right_value.value());
             if (val) {
                 return std::make_shared<Value>(1);
             } else {
@@ -123,19 +114,18 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             }
         }
         else if (op == TokenType::_Not || op == TokenType::_Exclamation) {
-            bool val = std::get<bool>(*right_value.value());
             return std::make_shared<Value>(!val);
         }
     }
-    else if (val_string == "string") {
+    else if (val_type == ValueType::String) {
         if (op == TokenType::_Not || op == TokenType::_Exclamation) {
-            std::string val = std::get<std::string>(*right_value.value());
+            std::string val = value->get<std::string>();
             return std::make_shared<Value>(val == "");
         }
     }
 
     runtimeError(std::format("Unsupported operand types for operation. Operation was '{}' {}",
-                                getTokenTypeLabel(op), val_string), line, column);
+                                getTokenTypeLabel(op), getTypeStr(value->getType())), line, column);
     return std::nullopt;
 }
 
@@ -148,19 +138,31 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
     std::string left_str = getValueStr(left_value);
     std::string right_str = getValueStr(right_value);
 
-    // Helper function to give the bool value of each type
+    // Helper function to determine the truthiness of a Value object
     auto check_truthy = [](const Value& value) -> bool {
-        return std::visit([](const auto& v) -> bool {
-            using T = std::decay_t<decltype(v)>;
-            if constexpr (std::is_same_v<T, bool>) {
-                return v;
-            } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, double>) {
-                return v != 0;
-            } else if constexpr (std::is_same_v<T, std::string>) {
-                return !v.empty();
+        switch (value.getType()) {
+            case ValueType::Boolean: {
+                return value.get<bool>(); // Directly get and return the bool value
             }
-            return false;
-        }, value);
+            case ValueType::Integer: {
+                return value.get<int>() != 0; // Integers are truthy if non-zero
+            }
+            case ValueType::Float: {
+                return value.get<double>() != 0.0; // Floats are truthy if non-zero
+            }
+            case ValueType::String: {
+                return !value.get<std::string>().empty(); // Strings are truthy if not empty
+            }
+            case ValueType::List: {
+                return !value.get<std::shared_ptr<List>>()->empty();
+            }
+            case ValueType::None: {
+                return false; // None is always false
+            }
+            default: {
+                runtimeError("Check Truthy called on unknown value type.");
+            }
+        }
     };
 
     if (op == TokenType::_And) {
@@ -183,8 +185,8 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
     else if (left_str == "string" && right_str == "string") {
         // BOTH STRINGS
-        std::string lhs = std::get<std::string>(*left_value);
-        std::string rhs = std::get<std::string>(*right_value);
+        std::string lhs = left_value->get<std::string>();
+        std::string rhs = right_value->get<std::string>();
         if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
             return std::make_shared<Value>(lhs + rhs);
         }
@@ -200,8 +202,8 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         // STRING AND INT
         if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) {
             std::string new_str = "";
-            std::string copying = std::get<std::string>(*left_value);
-            for (int i = 0; i < std::get<int>(*right_value); i++) {
+            std::string copying = left_value->get<std::string>();
+            for (int i = 0; i < right_value->get<int>(); i++) {
                 new_str += copying;
             }
             return std::make_shared<Value>(new_str);
@@ -273,27 +275,44 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
     }
 
     else {
-        // Unkown Type Combination
+        // Unknown Type Combination
         if (op == TokenType::_Compare || op == TokenType::_NotEqual) {
-            // Visitor to compare values of the same type
-            auto equalityVisitor = [](const auto& lhs, const auto& rhs) -> bool {
-                if constexpr (std::is_same_v<decltype(lhs), decltype(rhs)>) {
-                    return lhs == rhs; // Compare values if types match
-                } else {
-                    return false;
+            // Lambda to compare values of the same type
+            auto equalityCheck = [](const Value& lhs, const Value& rhs) -> bool {
+                // Compare based on type
+                if (lhs.getType() != rhs.getType()) {
+                    return false; // Types don't match, return false
+                }
+
+                // Use switch to handle specific types
+                switch (lhs.getType()) {
+                    case ValueType::Boolean:
+                        return lhs.get<bool>() == rhs.get<bool>();
+                    case ValueType::Integer:
+                        return lhs.get<int>() == rhs.get<int>();
+                    case ValueType::Float:
+                        return lhs.get<double>() == rhs.get<double>();
+                    case ValueType::String:
+                        return lhs.get<std::string>() == rhs.get<std::string>();
+                    case ValueType::None:
+                        return true; // Two "None" values are equal
+                    default:
+                        return false; // Fallback for unknown types
                 }
             };
 
             try {
-                // Apply the visitor to both variants
-                bool result = std::visit(equalityVisitor, *left_value, *right_value);
+                // Perform equality comparison
+                bool result = equalityCheck(*left_value, *right_value);
+
                 if (op == TokenType::_Compare) {
-                    return std::make_shared<Value>(result);
+                    return std::make_shared<Value>(result); // Return true/false
                 } else if (op == TokenType::_NotEqual) {
-                    return std::make_shared<Value>(!result);
+                    return std::make_shared<Value>(!result); // Negate result for "NotEqual"
                 }
-            } catch (const std::bad_variant_access&) {
-                // Handle unexpected errors (shouldn't occur if left_value and right_value are valid)
+            } catch (const std::runtime_error& e) {
+                // Handle unexpected errors (e.g., type mismatch or invalid access)
+                handleError(e.what(), 0, 0, "Runtime Error");
                 return std::nullopt;
             }
         }
@@ -378,17 +397,21 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
     auto result = comparison->evaluate(env);
     if (result.has_value()) {
         auto checkTruthy = [](const Value& value) -> bool {
-            return std::visit([](const auto& v) -> bool {
-                using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, bool>) {
-                    return v;
-                } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, double>) {
-                    return v != 0;
-                } else if constexpr (std::is_same_v<T, std::string>) {
-                    return !v.empty();
-                }
-                return false;
-            }, value);
+            switch (value.getType()) {
+                case ValueType::Boolean:
+                    return value.get<bool>(); // Return the boolean value directly
+                case ValueType::Integer:
+                    return value.get<int>() != 0; // Non-zero integers are truthy
+                case ValueType::Float:
+                    return value.get<double>() != 0.0; // Non-zero floats are truthy
+                case ValueType::String:
+                    return !value.get<std::string>().empty(); // Non-empty strings are truthy
+                case ValueType::List:
+                    return !value.get<std::shared_ptr<List>>()->empty(); // Non-empty lists are truthy
+                case ValueType::None:
+                default:
+                    return false; // None or unknown types are always false
+            }
         };
 
         return checkTruthy(*result.value());
@@ -428,7 +451,7 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                     for (int i = 0; i < statements_block.size(); i++) {
                         auto result = statements_block[i]->evaluate(env);
                         if (result.has_value()) {
-                            printValue(result.value(), env);
+                            printValue(result.value());
                             std::cout << std::endl;
                         }
                     }
@@ -446,7 +469,7 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
             for (int i = 0; i < statements_block.size(); i++) {
                 std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
                 if (result.has_value()) {
-                    printValue(result.value(), env);
+                    printValue(result.value());
                     std::cout << std::endl;
                 }
             }
@@ -472,9 +495,8 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     initialization->evaluate(env);
 
     int variable;
-    if (std::holds_alternative<int>(*env.get(*init_string))) {
-        auto i = std::get<int>(*env.get(*init_string));
-        variable = i;
+    if (env.get(*init_string)->getType() == ValueType::Integer) {
+        variable = env.get(*init_string)->get<int>();
     }
     else {
         runtimeError("For loop requires int variable", line, column);
@@ -486,8 +508,8 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             runtimeError("Unable to evaluate for loop condition", line, column);
         }
 
-        if (std::holds_alternative<bool>(*cond_value.value())) {
-            auto bool_value = std::get<bool>(*cond_value.value());
+        if (cond_value.value()->getType() == ValueType::Boolean) {
+            auto bool_value = cond_value.value()->get<bool>();
             if (!bool_value) break;
         } else {
             runtimeError("For loop requires boolean condition", line, column);
@@ -499,7 +521,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             for (auto statement : block) {
                 auto result = statement->evaluate(env);
                 if (result.has_value()) {
-                    printValue(result.value(), env);
+                    printValue(result.value());
                     std::cout << std::endl;
                 }
             }
@@ -517,9 +539,8 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         env.set(*init_string, std::make_shared<Value>(variable));
         // increment them
         increment->evaluate(env);
-        if (std::holds_alternative<int>(*env.get(*init_string))) {
-            auto i = std::get<int>(*env.get(*init_string));
-            variable = i;
+        if (env.get(*init_string)->getType() == ValueType::Integer) {
+            variable = env.get(*init_string)->get<int>();
         }
     }
 
@@ -553,47 +574,63 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     }
 }
 
+std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
+    if (debug) std::cout << "evaluate list" << std::endl;
+    List evaluated_list;
+
+    for (const auto element : list) {
+        if (element) {
+            // Evaluate the ASTNode and add the result to the evaluated list
+            auto result = element->evaluate(env);
+            if (result) {
+                evaluated_list.append(result.value());
+            } else {
+                runtimeError("List element was unable to be evaluated", line, column);
+            }
+        } else {
+            runtimeError("List contained a nullptr pointing to an ASTNode", line, column); // Null ASTNode pointer
+        }
+    }
+
+    return std::make_shared<Value>(std::make_shared<List>(evaluated_list));
+}
+
 
 std::string getValueStr(std::shared_ptr<Value> value) {
-    if (std::holds_alternative<int>(*value)) {
-        return "integer";
-    } else if (std::holds_alternative<double>(*value)) {
-        return "float";
-    } else if (std::holds_alternative<bool>(*value)) {
-        return "boolean";
-    } else if (std::holds_alternative<std::string>(*value)) {
-        return "string";
-    } else {
-        runtimeError("Attempted to get string of unrecognized Value type.");
+    switch(value->getType()) {
+        case ValueType::Integer:
+            return "integer";
+        case ValueType::Float:
+            return "float";
+        case ValueType::Boolean:
+            return "boolean";
+        case ValueType::String:
+            return "string";
+        case ValueType::List:
+            return "list";
+        case ValueType::None:
+            return "null";
+        default:
+            runtimeError("Attempted to get string of unrecognized Value type.");
     }
 }
 
 std::string getValueStr(Value value) {
-    if (std::holds_alternative<int>(value)) {
-        return "integer";
-    } else if (std::holds_alternative<double>(value)) {
-        return "float";
-    } else if (std::holds_alternative<bool>(value)) {
-        return "boolean";
-    } else if (std::holds_alternative<std::string>(value)) {
-        return "string";
-    } else {
-        runtimeError("Attempted to get string of unrecognized Value type.");
-    }
-}
-
-ValueType getValueType(std::shared_ptr<Value> value) {
-    std::string type = getValueStr(value);
-    if (type == "integer") {
-        return ValueType::Integer;
-    } else if (type == "float") {
-        return ValueType::Float;
-    } else if (type == "boolean") {
-        return ValueType::Boolean;
-    } else if (type == "string") {
-        return ValueType::String;
-    } else {
-        runtimeError("Unrecognized value type.");
+    switch(value.getType()) {
+        case ValueType::Integer:
+            return "integer";
+        case ValueType::Float:
+            return "float";
+        case ValueType::Boolean:
+            return "boolean";
+        case ValueType::String:
+            return "string";
+        case ValueType::List:
+            return "list";
+        case ValueType::None:
+            return "null";
+        default:
+            runtimeError("Attempted to get string of unrecognized Value type.");
     }
 }
 

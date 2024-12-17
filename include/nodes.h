@@ -5,15 +5,11 @@
 #include "token.h"
 #include <optional>
 #include "environment.h"
+#include "values.h"
 
 
-enum class ValueType {
-    Integer,
-    Float,
-    Boolean,
-    String,
-    Null
-};
+class ASTNode;
+using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 
 [[noreturn]] void runtimeError(std::string message, int line, int column);
 [[noreturn]] void runtimeError(std::string message);
@@ -31,9 +27,10 @@ public:
 
 
 class AtomNode : public ASTNode {
-public:
+private:
     std::variant<int, double, bool, std::string> value;
 
+public:
     AtomNode(std::variant<int, double, bool, std::string> value, int line, int column);
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
@@ -138,5 +135,17 @@ public:
     std::shared_ptr<ASTNode> right;
 };
 
+class ListNode : public ASTNode {
+public:
+    ListNode(ASTList list, int line, int column)
+        : ASTNode{line, column}, list{list} {}
+    ~ListNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    ASTList list;
+};
+
 std::string getValueStr(std::shared_ptr<Value> value);
 std::string getValueStr(Value value);
+std::string getTypeStr(ValueType type);

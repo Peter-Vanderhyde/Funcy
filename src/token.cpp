@@ -14,8 +14,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_DoubleMultiply, "**"},
     {TokenType::_Divide, "/"},
     {TokenType::_DoubleDivide, "//"},
-    {TokenType::_OpenParen, "("},
-    {TokenType::_CloseParen, ")"},
+    {TokenType::_ParenOpen, "("},
+    {TokenType::_ParenClose, ")"},
     {TokenType::_Semi, ";"},
     {TokenType::_Caret, "^"},
     {TokenType::_Dot, "."},
@@ -45,7 +45,9 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Break, "break"},
     {TokenType::_Continue, "continue"},
     {TokenType::_Comma, ","},
-    {TokenType::_Func, "func"}
+    {TokenType::_Func, "func"},
+    {TokenType::_SquareOpen, "["},
+    {TokenType::_SquareClose, "]"}
     //{TokenType::, ""}
 };
 
@@ -65,8 +67,8 @@ std::unordered_map<char, TokenType> char_tokens {
     {'*', TokenType::_Multiply},
     {'/', TokenType::_Divide},
     {'^', TokenType::_Caret},
-    {'(', TokenType::_OpenParen},
-    {')', TokenType::_CloseParen},
+    {'(', TokenType::_ParenOpen},
+    {')', TokenType::_ParenClose},
     {'=', TokenType::_Equals},
     {'!', TokenType::_Exclamation},
     {'{', TokenType::_CurlyOpen},

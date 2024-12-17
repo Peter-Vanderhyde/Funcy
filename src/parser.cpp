@@ -3,6 +3,7 @@
 #include <format>
 #include "library.h"
 #include <iostream>
+#include "errorDefs.h"
 
 
 Parser::Parser(const std::vector<Token>& tokens)

@@ -23,8 +23,8 @@ enum class TokenType{
     _DivideEquals,
     _EOF,
     _Semi,
-    _OpenParen,
-    _CloseParen,
+    _ParenOpen,
+    _ParenClose,
     _Caret,
     _Dot,
     _Equals,
@@ -48,7 +48,10 @@ enum class TokenType{
     _Break,
     _Continue,
     _Comma,
-    _Func
+    _Func,
+    _List,
+    _SquareOpen,
+    _SquareClose
 };
 
 std::string getTokenTypeLabel(TokenType type);

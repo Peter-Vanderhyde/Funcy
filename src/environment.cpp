@@ -2,6 +2,7 @@
 #include "library.h"
 #include <format>
 #include <iostream>
+#include "errorDefs.h"
 
 
 Scope::Scope() {}
@@ -28,7 +29,7 @@ void Scope::display() const {
         std::shared_ptr<Value> value = pair.second;
 
         std::cout << name << " = ";
-        std::visit([](const auto& v) { std::cout << v; }, *value.get());
+        printValue(value);
         std::cout << std::endl;
     }
 }

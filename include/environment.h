@@ -5,8 +5,7 @@
 #include <memory>
 #include <vector>
 #include <optional>
-
-using Value = std::variant<int, double, bool, std::string>;
+#include "values.h"
 
 class Scope {
 public:

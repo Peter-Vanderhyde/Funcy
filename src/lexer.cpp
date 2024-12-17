@@ -3,6 +3,7 @@
 #include <format>
 #include "token.h"
 #include "library.h"
+#include "errorDefs.h"
 
 
 Lexer::Lexer(const std::string& source_code)
