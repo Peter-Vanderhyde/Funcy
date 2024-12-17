@@ -40,6 +40,9 @@ std::string Parser::getTokenStr() const {
 }
 
 bool Parser::tokenIs(std::string str) const {
+    if (str == "ident") {
+        runtimeError("Found ident instead of identifier.");
+    }
     return str == getTokenStr();
 }
 
@@ -134,6 +137,45 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             if (*var_test != *variable_str) {
                 parsingError("For loop requires manipulation of the initialized variable", getToken().line, getToken().column);
             }
+        } else if (t_str == "func") {
+            if (!tokenIs("identifier")) {
+                parsingError("Expected an identifier but got " + getTokenStr(), getToken().line, getToken().column);
+            }
+            func_name = parseIdentifier(func_str);
+            if (!tokenIs("(")) {
+                parsingError("Expected an '(' but got " + getTokenStr(), getToken().line, getToken().column);
+            }
+            consumeToken();
+            auto arg_name = std::make_shared<std::string>("");
+            std::vector<std::string> arg_strings;
+            while (!tokenIs(")") && !tokenIs("eof") && !tokenIs("{")) {
+                if (!tokenIs("identifier")) {
+                    parsingError("Expected argument but got " + getTokenStr(), getToken().line, getToken().column);
+                }
+                func_args.push_back(parseIdentifier(arg_name));
+                if (std::find(arg_strings.begin(), arg_strings.end(), *arg_name) == arg_strings.end()) {
+                    arg_strings.push_back(*arg_name);
+                    *arg_name = "";
+                } else {
+                    parsingError("Duplicate argument names found in function creation", getToken().line, getToken().column);
+                }
+
+                if (tokenIs("identifier")) {
+                    parsingError("Expected ',' but got argument", getToken().line, getToken().column);
+                } else if (tokenIs(",")) {
+                    consumeToken();
+                    if (!tokenIs("identifier")) {
+                        parsingError("Expected argument but got " + getTokenStr(), getToken().line, getToken().column);
+                    }
+                }
+            }
+            if (tokenIs("eof")) {
+                parsingError("Missing ')'", getToken().line, getToken().column);
+            } else if (tokenIs("{")) {
+                parsingError("Missing ')' before '{'", getToken().line, getToken().column);
+            } else {
+                consumeToken();
+            }
         }
 
         if (!tokenIs("{")) {
@@ -179,6 +221,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         } else if (t_str == "for") {
             // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
             return std::make_shared<ForNode>(keyword.type, for_initialization, variable_str, comparison_expr, for_increment, block, keyword.line, keyword.column);
+        } else if (t_str == "func") {
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_str, func_args, block, keyword.line, keyword.column), keyword.line, keyword.column);
         } else {
             return std::make_shared<ScopedNode>(keyword.type, nullptr, comparison_expr, block, keyword.line, keyword.column);
         }
@@ -434,6 +478,8 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
             auto string_value = std::get<std::string>(token.value);
             return std::make_shared<AtomNode>(string_value, token.line, token.column);
         }
+    } else if (tokenIs("identifier") && peekToken() && peekToken().value()->type == TokenType::_ParenOpen) {
+        return parseFuncCall();
     } else if (tokenIs("identifier")) {
         return parseIdentifier();
     }
@@ -441,6 +487,37 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
         parsingError(std::format("Expected atom but got {}", getTokenStr()), getToken().line, getToken().column);
     }
     return nullptr;
+}
+
+std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifier) {
+    if (debug) std::cout << "Parse Func Call " << getTokenStr() << std::endl;
+    if (!identifier) {
+        if (!tokenIs("identifier")) {
+            parsingError("Expected function name but got " + getTokenStr(), getToken().line, getToken().column);
+        }
+        identifier = parseIdentifier(nullptr);
+    }
+    if (!tokenIs("(")) {
+        parsingError("Missing '(' at function call", getToken().line, getToken().column);
+    }
+    consumeToken();
+    std::vector<std::shared_ptr<ASTNode>> arguments;
+    while (!tokenIs(")") && !tokenIs("eof") && !tokenIs(";")) {
+        arguments.push_back(parseLogicalOr());
+        if (!tokenIs(")") && !tokenIs(",")) {
+            parsingError("Expected ','", getToken().line, getToken().column);
+        } else if (tokenIs(",")) {
+            consumeToken();
+            if (tokenIs(")")) {
+                parsingError("Expected another argument", getToken().line, getToken().column);
+            }
+        }
+    }
+    if (tokenIs("eof") || tokenIs(";")) {
+        parsingError("Expected ')'", getToken().line, getToken().column);
+    }
+    consumeToken();
+    return std::make_shared<FuncCallNode>(identifier, arguments, identifier->line, identifier->column);
 }
 
 std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString) {

@@ -169,3 +169,38 @@ public:
     std::shared_ptr<ASTNode> start_index;
     std::shared_ptr<ASTNode> end_index;
 };
+
+class FuncNode : public ASTNode {
+public:
+    FuncNode(std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args,
+            std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+        : ASTNode{line, column}, func_name{func_name}, args{args}, block{block} {}
+    
+    ~FuncNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    void setArgs(std::vector<std::shared_ptr<Value>> values, Environment& base_env, Environment& local_env);
+    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& env);
+    
+    std::shared_ptr<std::string> func_name;
+    std::vector<std::shared_ptr<ASTNode>> args;
+    Environment local_env;
+    std::vector<std::shared_ptr<ASTNode>> block;
+};
+
+class FuncCallNode : public ASTNode {
+public:
+    FuncCallNode(std::shared_ptr<ASTNode> identifier, std::vector<std::shared_ptr<ASTNode>> values, int line, int column)
+        : ASTNode{line, column}, identifier{identifier}, values{values} {}
+    
+    ~FuncCallNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, std::shared_ptr<ValueType> member_type);
+    std::vector<std::shared_ptr<Value>> evaluateArgs(Environment& env);
+
+    std::shared_ptr<ASTNode> identifier;
+    std::vector<std::shared_ptr<ASTNode>> values;
+    std::shared_ptr<Value> member_value;
+    std::shared_ptr<Environment> base_env = nullptr;
+};

@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include "errorDefs.h"
+#include "values.h"
 
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
@@ -72,6 +73,9 @@ void printValue(const std::shared_ptr<Value> value) {
         case ValueType::None: {
             std::cout << style.blue << "Null" << style.reset;
             return;
+        }
+        case ValueType::Function: {
+            std::cout << style.blue << "Type:Function" << style.reset;
         }
         default:
             return;

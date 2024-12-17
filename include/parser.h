@@ -35,6 +35,7 @@ private:
     std::shared_ptr<ASTNode> parseIndexing(std::shared_ptr<ASTNode> = nullptr);
     std::shared_ptr<ASTNode> parseCollection();
     std::shared_ptr<ASTNode> parseAtom();
+    std::shared_ptr<ASTNode> parseFuncCall(std::shared_ptr<ASTNode> identifier = nullptr);
     std::shared_ptr<ASTNode> parseIdentifier(std::shared_ptr<std::string> varString = nullptr);
 public:
     explicit Parser(const std::vector<Token>& tokens);

@@ -65,6 +65,9 @@ Value::Value(std::shared_ptr<List> v)
 Value::Value(SpecialIndex v)
     : value{v}, value_type{ValueType::Index} {}
 
+Value::Value(std::shared_ptr<ASTNode> v)
+    : value{v}, value_type{ValueType::Function} {}
+
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;
