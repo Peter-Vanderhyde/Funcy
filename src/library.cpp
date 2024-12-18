@@ -343,7 +343,15 @@ BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args
 
     if (args[0]->getType() == ValueType::List) {
         auto list = args[0]->get<std::shared_ptr<List>>();
-        list->push_back(args[1]);
+        if (args[1]->getType() == ValueType::List) {
+            auto orig = args[1]->get<std::shared_ptr<List>>();
+            auto copy = std::make_shared<List>(*orig);
+            list->push_back(std::make_shared<Value>(copy));
+        }
+        // Add one for dictionaries too
+        else {
+            list->push_back(args[1]);
+        }
         return std::make_shared<Value>();
     } else {
         runtimeError("append() expected a list but got " + getValueStr(args[0]));
