@@ -564,10 +564,6 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                 try {
                     for (int i = 0; i < statements_block.size(); i++) {
                         auto result = statements_block[i]->evaluate(env);
-                        if (result.has_value()) {
-                            printValue(result.value());
-                            std::cout << std::endl;
-                        }
                     }
                 }
                 catch (const BreakException) {
@@ -582,10 +578,6 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         else {
             for (int i = 0; i < statements_block.size(); i++) {
                 std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
-                if (result.has_value()) {
-                    printValue(result.value());
-                    std::cout << std::endl;
-                }
             }
         }
 
@@ -634,10 +626,6 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         try {
             for (auto statement : block) {
                 auto result = statement->evaluate(env);
-                if (result.has_value()) {
-                    printValue(result.value());
-                    std::cout << std::endl;
-                }
             }
         }
         catch (const BreakException) {
@@ -997,16 +985,8 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
         try {
             if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
                 auto result = func_statement->evaluate(local_env);
-                if (result) {
-                    printValue(result.value());
-                    std::cout << std::endl;
-                }
             } else {
                 auto result = statement->evaluate(local_env);
-                if (result) {
-                    printValue(result.value());
-                    std::cout << std::endl;
-                }
             }
         }
         catch (const ReturnException& e) {

@@ -71,10 +71,6 @@ int main(int argc, char* argv[]) {
     for (auto statement : statements) {
         try {
             auto result = statement->evaluate(env);
-            if (result.has_value()) {
-                printValue(result.value());
-                std::cout << std::endl;
-            }
         }
         catch (const ReturnException) {
             throw std::runtime_error("Return was used outside of function.");
