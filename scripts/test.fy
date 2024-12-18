@@ -1,8 +1,8 @@
-age = 20;
+x = [1, 2, 3, 4];
 
-first = "Peter";
-last = "Vanderhyde";
-
-print(first + " " + last + " is " + str(age) + " years old.");
-
-print(list(last));
+x.size();
+x.append(x[1]);
+print(x);
+#x[3].size();
+#print(x.pop());
+#print(x.pop(0));

@@ -46,13 +46,14 @@ enum class ValueType {
     None,
     Function,
     Index,
-    BuiltInFunction
+    BuiltInFunction,
+    Type
 };
 
 class Value {
 private:
     std::variant<std::monostate, int, double, bool, std::string, std::shared_ptr<List>,
-                SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>> value;
+                SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>, ValueType> value;
     ValueType value_type;
 
 public:
@@ -65,6 +66,7 @@ public:
     Value(SpecialIndex v);
     Value(std::shared_ptr<ASTNode> v);
     Value(std::shared_ptr<BuiltInFunction> v);
+    Value(ValueType v);
 
     ValueType getType() const;
 

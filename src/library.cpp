@@ -82,6 +82,10 @@ void printValue(const std::shared_ptr<Value> value) {
             std::cout << style.blue << "Type:BuiltInFunction" << style.reset;
             return;
         }
+        case ValueType::Type: {
+            std::cout << style.blue << getTypeStr(value->getType()) << style.reset;
+            return;
+        }
         default:
             return;
     }
@@ -340,7 +344,7 @@ BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args
     if (args[0]->getType() == ValueType::List) {
         auto list = args[0]->get<std::shared_ptr<List>>();
         list->push_back(args[1]);
-        return std::make_shared<Value>(ValueType::None);
+        return std::make_shared<Value>();
     } else {
         runtimeError("append() expected a list but got " + getValueStr(args[0]));
     }

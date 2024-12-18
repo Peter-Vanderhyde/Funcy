@@ -134,6 +134,11 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(val == "");
         }
     }
+    else if (val_type == ValueType::None) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(true);
+        }
+    }
 
     runtimeError(std::format("Unsupported operand types for operation. Operation was '{}' {}",
                                 getTokenTypeLabel(op), getTypeStr(value->getType())), line, column);
@@ -166,6 +171,12 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
             }
             case ValueType::List: {
                 return !value.get<std::shared_ptr<List>>()->empty();
+            }
+            case ValueType::Function: {
+                return true;
+            }
+            case ValueType::BuiltInFunction: {
+                return true;
             }
             case ValueType::None: {
                 return false; // None is always false

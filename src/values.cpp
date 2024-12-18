@@ -77,6 +77,9 @@ Value::Value(std::shared_ptr<ASTNode> v)
 Value::Value(std::shared_ptr<BuiltInFunction> v)
     : value{v}, value_type{ValueType::BuiltInFunction} {}
 
+Value::Value(ValueType v)
+    : value{v}, value_type{ValueType::Type} {}
+
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;
@@ -99,6 +102,8 @@ std::string getValueStr(std::shared_ptr<Value> value) {
             return "function";
         case ValueType::BuiltInFunction:
             return "builtin function";
+        case ValueType::Type:
+            return "type";
         case ValueType::None:
             return "null";
         default:
@@ -122,6 +127,8 @@ std::string getValueStr(Value value) {
             return "function";
         case ValueType::BuiltInFunction:
             return "builtin function";
+        case ValueType::Type:
+            return "type";
         case ValueType::None:
             return "null";
         default:
@@ -138,6 +145,7 @@ std::string getTypeStr(ValueType type) {
         {ValueType::Function, "Type:Function"},
         {ValueType::List, "Type:List"},
         {ValueType::BuiltInFunction, "Type:BuiltInFunction"},
+        {ValueType::Type, "Type:Type"},
         {ValueType::None, "Type:Null"}
     };
     if (types.count(type) != 0) {
