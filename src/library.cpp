@@ -83,7 +83,7 @@ void printValue(const std::shared_ptr<Value> value) {
             return;
         }
         case ValueType::Type: {
-            std::cout << style.blue << getTypeStr(value->getType()) << style.reset;
+            std::cout << style.blue << getTypeStr(value->get<ValueType>()) << style.reset;
             return;
         }
         default:

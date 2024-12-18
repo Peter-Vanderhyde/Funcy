@@ -50,7 +50,16 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_SquareClose, "]"},
     {TokenType::_Colon, ":"},
     {TokenType::_Return, "return"},
-    {TokenType::_Dot, "."}
+    {TokenType::_Dot, "."},
+    {TokenType::_NullType, "type:null"},
+    {TokenType::_IntType, "type:integer"},
+    {TokenType::_FloatType, "type:float"},
+    {TokenType::_BoolType, "type:boolean"},
+    {TokenType::_StrType, "type:string"},
+    {TokenType::_ListType, "type:list"},
+    {TokenType::_DictType, "type:dictionary"},
+    {TokenType::_FuncType, "type:function"},
+    {TokenType::_BuiltInType, "type:builtin function"}
     //{TokenType::, ""}
 };
 
@@ -97,7 +106,16 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"break", TokenType::_Break},
     {"continue", TokenType::_Continue},
     {"func", TokenType::_Func},
-    {"return", TokenType::_Return}
+    {"return", TokenType::_Return},
+    {"Integer", TokenType::_IntType},
+    {"Float", TokenType::_FloatType},
+    {"String", TokenType::_StrType},
+    {"Boolean", TokenType::_BoolType},
+    {"List", TokenType::_ListType},
+    {"Dictionary", TokenType::_DictType},
+    {"Function", TokenType::_FuncType},
+    {"BuiltInFunction", TokenType::_BuiltInType},
+    {"Null", TokenType::_NullType}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {

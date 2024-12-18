@@ -146,7 +146,7 @@ std::string getTypeStr(ValueType type) {
         {ValueType::List, "Type:List"},
         {ValueType::BuiltInFunction, "Type:BuiltInFunction"},
         {ValueType::Type, "Type:Type"},
-        {ValueType::None, "Type:Null"}
+        {ValueType::None, "Null"}
     };
     if (types.count(type) != 0) {
         return types[type];

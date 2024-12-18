@@ -9,6 +9,16 @@
 #include <functional>
 #include <algorithm>
 
+std::unordered_map<TokenType, ValueType> type_map{
+    {TokenType::_IntType, ValueType::Integer},
+    {TokenType::_FloatType, ValueType::Float},
+    {TokenType::_BoolType, ValueType::Boolean},
+    {TokenType::_StrType, ValueType::String},
+    {TokenType::_ListType, ValueType::List},
+    {TokenType::_FuncType, ValueType::Function},
+    {TokenType::_BuiltInType, ValueType::BuiltInFunction},
+    {TokenType::_NullType, ValueType::None}
+};
 
 ASTNode::ASTNode(int line, int column)
     : line{line}, column{column} {}
@@ -19,7 +29,7 @@ AtomNode::AtomNode(std::variant<int, double, bool, std::string, SpecialIndex> va
 
 std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Atom" << std::endl;
-    if (isInt()) {
+    else if (isInt()) {
         return std::make_shared<Value>(getInt());
     }
     else if (isFloat()) {
@@ -37,6 +47,7 @@ std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
     else {
         runtimeError("Unable to evaluate atom", line, column);
     }
+    return std::nullopt;
 }
 
 bool AtomNode::isInt() {
@@ -177,6 +188,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
             }
             case ValueType::BuiltInFunction: {
                 return true;
+            }
+            case ValueType::Type: {
+                return value.get<ValueType>() != ValueType::None;
             }
             case ValueType::None: {
                 return false; // None is always false
@@ -374,6 +388,12 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
                         return lhs.get<double>() == rhs.get<double>();
                     case ValueType::String:
                         return lhs.get<std::string>() == rhs.get<std::string>();
+                    case ValueType::Function:
+                        return lhs.get<std::shared_ptr<ASTNode>>() == rhs.get<std::shared_ptr<ASTNode>>();
+                    case ValueType::BuiltInFunction:
+                        return lhs.get<std::shared_ptr<BuiltInFunction>>() == rhs.get<std::shared_ptr<BuiltInFunction>>();
+                    case ValueType::Type:
+                        return lhs.get<ValueType>() == rhs.get<ValueType>();
                     case ValueType::None:
                         return true; // Two "None" values are equal
                     default:
@@ -652,7 +672,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
 }
 
 std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
-    if (debug) std::cout << "evaluate keyword" << std::endl;
+    if (debug) std::cout << "Evaluate Keyword" << std::endl;
     if (keyword == TokenType::_Break) {
         if (env.inLoop()) {
             throw BreakException();
@@ -673,6 +693,11 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         } else {
             throw ReturnException(std::nullopt);
         }
+    } else if (type_map.contains(keyword)) {
+        if (keyword == TokenType::_NullType) {
+            return std::make_shared<Value>();
+        }
+        return std::make_shared<Value>(type_map[keyword]);
     }
 
     if (right) {
