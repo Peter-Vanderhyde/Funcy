@@ -311,3 +311,67 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
     }
     return std::make_shared<Value>(list);
 }
+
+
+
+///  MEMBER FUNCTIONS  ///
+
+
+BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        runtimeError("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() == ValueType::List) {
+        auto list = args[0]->get<std::shared_ptr<List>>();
+        int size = list->size();
+        return std::make_shared<Value>(size);
+    } else {
+        runtimeError("size() expected a list but got " + getValueStr(args[0]));
+    }
+    return std::nullopt;
+}
+
+BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        runtimeError("append() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() == ValueType::List) {
+        auto list = args[0]->get<std::shared_ptr<List>>();
+        list->push_back(args[1]);
+        return std::make_shared<Value>(ValueType::None);
+    } else {
+        runtimeError("append() expected a list but got " + getValueStr(args[0]));
+    }
+    return std::nullopt;
+}
+
+BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1 && args.size() != 2) {
+        runtimeError("pop() takes 1-2 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    int index;
+    if (args.size() == 1) {
+        index = -1;
+    } else {
+        if (args[1]->getType() != ValueType::Integer) {
+            runtimeError("pop() expected an integer index but got " + getValueStr(args[1]));
+        }
+        index = args[1]->get<int>();
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        runtimeError("pop() expected a list but got " + getValueStr(args[0]));
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    int size = list->size();
+
+    if (index >= size || index < size * -1) {
+        runtimeError("pop() index out of range");
+    } else {
+        return list->pop(index);
+    }
+}

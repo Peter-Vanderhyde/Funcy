@@ -8,9 +8,15 @@ void List::push_back(std::shared_ptr<Value> value) {
     }
 
 std::shared_ptr<Value> List::pop(size_t index) {
-    auto element = at(index);
-    elements.erase(elements.begin() + index);
-    return element;
+    if (index < 0) {
+        auto value = elements.at(elements.size() - -index);
+        elements.erase(elements.end() - -index);
+        return value;
+    } else {
+        auto value = elements.at(index);
+        elements.erase(elements.begin() + index);
+        return value;
+    }
 }
 
 void List::insert(size_t index, std::shared_ptr<Value> value) {

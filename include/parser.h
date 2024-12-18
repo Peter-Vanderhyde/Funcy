@@ -32,6 +32,7 @@ private:
     std::shared_ptr<ASTNode> parseFactor();
     std::shared_ptr<ASTNode> parsePower();
     std::shared_ptr<ASTNode> parseLogicalNot();
+    std::shared_ptr<ASTNode> parseMemberAccess();
     std::shared_ptr<ASTNode> parseIndexing(std::shared_ptr<ASTNode> = nullptr);
     std::shared_ptr<ASTNode> parseCollection();
     std::shared_ptr<ASTNode> parseAtom();

@@ -385,12 +385,40 @@ std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
     if (debug) std::cout << "Parse Not " << getTokenStr() << std::endl;
     if (tokenIs("not") || tokenIs("!")) {
         const Token& k_word = consumeToken();
-        auto right = parseIndexing();
+        auto right = parseMemberAccess();
         return std::make_shared<UnaryOpNode>(k_word.type, right, k_word.line, k_word.column);
     }
     else {
-        return parseIndexing();
+        return parseMemberAccess();
     }
+}
+
+std::shared_ptr<ASTNode> Parser::parseMemberAccess() {
+    if (debug) std::cout << "Parse Member" << std::endl;
+    std::shared_ptr<ASTNode> node = parseIndexing();
+
+    while (true) {
+        if (tokenIs(".")) {
+            const Token& token = consumeToken();
+            if (tokenIs("identifier")) {
+                std::shared_ptr<ASTNode> right;
+                if (nextTokenIs("(")) {
+                    right = parseFuncCall();
+                } else {
+                    right = parseIdentifier();
+                }
+                node = std::make_shared<BinaryOpNode>(node, TokenType::_Dot, right, token.line, token.column);
+            }
+        } else if (tokenIs("[")) {
+            node = parseIndexing(node);
+        } else if (tokenIs("(")) {
+            node = parseFuncCall(node);
+        } else {
+            break;
+        }
+    }
+
+    return node;
 }
 
 std::shared_ptr<ASTNode> Parser::parseIndexing(std::shared_ptr<ASTNode> left) {

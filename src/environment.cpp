@@ -143,6 +143,32 @@ bool Environment::hasFunction(const std::string& name) const {
     return func != built_in_functions.end();
 }
 
+void Environment::addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func) {
+    member_functions[type][name] = func;
+    built_in_names[func] = getTypeStr(type) + "." + name;
+}
+
+std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string& name) const {
+    auto members = member_functions.find(type);
+    if (members != member_functions.end()) {
+        auto func = members->second.find(name);
+        if (func != members->second.end()) {
+            return func->second;
+        }
+    }
+
+    throw std::runtime_error("Unrecognized member function: " + name);
+}
+
+bool Environment::hasMember(ValueType type, const std::string& name) const {
+    auto members = member_functions.find(type);
+    if (members != member_functions.end()) {
+        auto func = members->second.find(name);
+        return func != members->second.end();
+    }
+    return false;
+}
+
 void Environment::display() const {
     for (auto scope : scopes) {
         scope.display();

@@ -87,6 +87,7 @@ public:
     IdentifierNode(std::string name, int line, int column);
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, ValueType member_type);
 };
 
 class ScopedNode : public ASTNode {
@@ -192,7 +193,7 @@ public:
     ~FuncCallNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, std::shared_ptr<ValueType> member_type);
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, ValueType member_type);
     std::vector<std::shared_ptr<Value>> evaluateArgs(Environment& env);
 
     std::shared_ptr<ASTNode> identifier;

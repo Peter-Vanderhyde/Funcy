@@ -404,6 +404,28 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         } else {
             runtimeError("Invalid value assignment", line, column);
         }
+    } else if (op == TokenType::_Dot) {
+        // Handle member functions of types
+        std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
+        if (!left_value.has_value()) {
+            runtimeError("Failed to get member function. Identifier could not be computed", line, column);
+        }
+
+        // Get the type of the member
+        ValueType member_type = left_value.value()->getType();
+        if (auto func_node = std::dynamic_pointer_cast<FuncCallNode>(right)) {
+            // It's a member function
+            // Save the result of the member to pass into the function
+            func_node->member_value = left_value.value();
+            // Pass member type so evaluate knows to search for functions of that type
+            return func_node->evaluate(env, member_type);
+        }
+        else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
+            return ident_node->evaluate(env, member_type);
+        }
+        else {
+            runtimeError("Invalid syntax", line, column);
+        }
     } else {
         std::optional<std::shared_ptr<Value>> left_opt = left->evaluate(env);
         std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
@@ -456,6 +478,16 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
     } else {
         runtimeError(std::format("Name '{}' is not defined", name), line, column);
     }
+}
+
+std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env, ValueType member_type) {
+    if (debug) std::cout << "Evaluate Identifier" << std::endl;
+    if (env.hasMember(member_type, name)) {
+        return env.getMember(member_type, name);
+    } else {
+        runtimeError(name + " is not defined", line, column);
+    }
+    return std::nullopt;
 }
 
 
@@ -995,6 +1027,35 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         }
     } else {
         runtimeError("Object type " + getValueStr(mapped_value) + " is not callable", line, column);
+    }
+    return std::nullopt;
+}
+
+std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, ValueType member_type) {
+    if (debug) std::cout << "Evaluate Function Call" << std::endl;
+    auto ident_node = dynamic_cast<IdentifierNode*>(&*identifier);
+    auto mapped_value = ident_node->evaluate(env, member_type).value();
+    if (mapped_value->getType() == ValueType::Function) {
+        auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
+        if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
+            auto values = evaluateArgs(env);
+            values.insert(values.begin(), member_value);
+            return func->callFunc(values);
+        } else {
+            runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
+        }
+    } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
+        auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
+        auto values = evaluateArgs(env);
+        values.insert(values.begin(), member_value);
+        try {
+            return (*func_value)(values, env);
+        }
+        catch (const std::exception e) {
+            runtimeError(e.what(), line, column);
+        }
+    } else {
+        runtimeError("Object type " + getTypeStr(member_type) + " has no member function " + ident_node->name, line, column);
     }
     return std::nullopt;
 }

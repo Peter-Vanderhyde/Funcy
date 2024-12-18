@@ -40,12 +40,17 @@ public:
     std::string getName(const std::shared_ptr<Value> func) const;
     bool hasFunction(const std::string& name) const;
 
+    void addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func);
+    std::shared_ptr<Value> getMember(ValueType type, const std::string& name) const;
+    bool hasMember(ValueType type, const std::string& name) const;
+
     void display() const;
 private:
     std::vector<Scope> scopes;
     int loop_depth;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
     std::unordered_map<std::shared_ptr<Value>, std::string> built_in_names;
+    std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> member_functions;
 };
 
 class BreakException : public std::exception {};
