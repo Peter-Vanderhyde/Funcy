@@ -7,7 +7,7 @@ print(x.pop(0));
 print(x);
 
 test = Null;
-print(test);
-print(x.append(1) == Null);
-print(Integer == Float);
-print(Integer == Integer);
+
+print(type(x));
+print(type(test));
+print(type([]) == type(x));

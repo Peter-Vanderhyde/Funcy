@@ -316,6 +316,14 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(list);
 }
 
+BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("type() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    return std::make_shared<Value>(args[0]->getType());
+}
+
 
 
 ///  MEMBER FUNCTIONS  ///

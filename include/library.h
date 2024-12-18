@@ -25,6 +25,7 @@ BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& 
 BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 
 
