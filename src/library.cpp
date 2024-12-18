@@ -11,7 +11,7 @@
 
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
-        throw std::runtime_error("Error: File must have a .fy extension.");
+        runtimeError("Error: File must have a .fy extension.");
         return "";
     }
 
@@ -158,7 +158,7 @@ BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Env
 
 BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("int() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        runtimeError("int() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -175,9 +175,9 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
                 int int_value = std::stoi(arg->get<std::string>());
                 return std::make_shared<Value>(int_value);
             } catch (const std::invalid_argument&) {
-                throw std::runtime_error("Cannot convert string to int");
+                runtimeError("Cannot convert string to int");
             } catch (const std::out_of_range&) {
-                throw std::runtime_error("String value out of range for int conversion");
+                runtimeError("String value out of range for int conversion");
             }
         }
         case ValueType::Boolean: {
@@ -189,13 +189,13 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
             }
         }
         default:
-            throw std::runtime_error("Unsupported type " + getValueStr(arg) + " for int conversion");
+            runtimeError("Unsupported type " + getValueStr(arg) + " for int conversion");
     }
 }
 
 BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("float() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        runtimeError("float() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -210,21 +210,21 @@ BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& 
                 double doubleValue = std::stod(arg->get<std::string>());
                 return std::make_shared<Value>(doubleValue);
             } catch (const std::invalid_argument&) {
-                throw std::runtime_error("Cannot convert string to double");
+                runtimeError("Cannot convert string to double");
             } catch (const std::out_of_range&) {
-                throw std::runtime_error("String value out of range for double conversion");
+                runtimeError("String value out of range for double conversion");
             }
         }
         case ValueType::Boolean:
             return std::make_shared<Value>(arg->get<bool>() ? 1.0 : 0.0);
         default:
-            throw std::runtime_error("Unsupported type for float conversion");
+            runtimeError("Unsupported type for float conversion");
     }
 }
 
 BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("bool() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        runtimeError("bool() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -243,7 +243,7 @@ BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& a
         case ValueType::List:
             return std::make_shared<Value>(!arg->get<std::shared_ptr<List>>()->empty());
         default:
-            throw std::runtime_error("Unsupported type for bool conversion");
+            runtimeError("Unsupported type for bool conversion");
     }
 }
 
@@ -255,7 +255,7 @@ std::string toString(double value){
 
 BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        throw std::runtime_error("string() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        runtimeError("string() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -283,7 +283,7 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
             return std::make_shared<Value>(result);
         }
         default:
-            throw std::runtime_error("Unsupported type for string conversion");
+            runtimeError("Unsupported type for string conversion");
     }
 }
 
@@ -291,7 +291,7 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
     auto list = std::make_shared<List>();
 
     if (args.size() == 0) {
-        throw std::runtime_error("list() conversion takes at least 1 argument. None were given");
+        runtimeError("list() conversion takes at least 1 argument. None were given");
     }
 
     auto arg = args[0];

@@ -772,7 +772,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                     return container_size; // Resolve "end" to container size
                 }
             }
-            throw std::runtime_error("Invalid index type");
+            runtimeError("Invalid index type");
         };
 
         auto start_result = start_index->evaluate(env);

@@ -29,7 +29,7 @@ public:
     List() {}
 
     void push_back(std::shared_ptr<Value> value);
-    std::shared_ptr<Value> pop(size_t index);
+    std::shared_ptr<Value> pop(int index);
     void insert(size_t index, std::shared_ptr<Value> value);
     void insert(const std::shared_ptr<List>& other); // Overload for inserting a List directly
     std::shared_ptr<Value> at(size_t index) const;

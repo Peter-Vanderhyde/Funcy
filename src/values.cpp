@@ -7,7 +7,7 @@ void List::push_back(std::shared_ptr<Value> value) {
         elements.push_back(value);
     }
 
-std::shared_ptr<Value> List::pop(size_t index) {
+std::shared_ptr<Value> List::pop(int index) {
     if (index < 0) {
         auto value = elements.at(elements.size() - -index);
         elements.erase(elements.end() - -index);

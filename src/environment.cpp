@@ -126,7 +126,7 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
         return func->second;
     }
 
-    throw std::runtime_error("Unrecognized built-in function: " + name);
+    runtimeError("Unrecognized built-in function: " + name);
 }
 
 std::string Environment::getName(const std::shared_ptr<Value> func) const {
@@ -135,7 +135,7 @@ std::string Environment::getName(const std::shared_ptr<Value> func) const {
         return name->second;
     }
 
-    throw std::runtime_error("Unrecognized built-in name.");
+    runtimeError("Unrecognized built-in name.");
 }
 
 bool Environment::hasFunction(const std::string& name) const {
@@ -157,7 +157,7 @@ std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string&
         }
     }
 
-    throw std::runtime_error("Unrecognized member function: " + name);
+    runtimeError("Unrecognized member function: " + name);
 }
 
 bool Environment::hasMember(ValueType type, const std::string& name) const {

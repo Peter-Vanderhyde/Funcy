@@ -12,7 +12,7 @@
 int main(int argc, char* argv[]) {
     bool TESTING = true;
     if (!TESTING && argc < 2) {
-        throw std::runtime_error("Program usage: Funcy <program_path>");
+        runtimeError("Program usage: Funcy <program_path>");
         return 0;
     }
 
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
     std::string source_code = readSourceCodeFromFile(filename);
 
     if (source_code.empty()) {
-        throw std::runtime_error("File " + filename + " is empty or could not be read.");
+        runtimeError("File " + filename + " is empty or could not be read.");
     }
 
     Lexer lexer{source_code};
