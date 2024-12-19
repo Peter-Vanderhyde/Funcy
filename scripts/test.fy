@@ -1,15 +1,7 @@
-nums = {
-    1:"one",
-    2:"two",
-    3:"three"
-};
+func give(a, b) {
+    return [b, a];
+}
 
-dicts = {
-    "name" : {
-        "first":"Peter"
-        "last":"Vanderhyde"
-    }
-};
-
-dicts.update(nums);
-print(dicts.pop(-1, "Nope"));
+[x, y] = [2, 5];
+[x, y] = give(x, y);
+print(x, y);

@@ -467,17 +467,40 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
 std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
     if (op == TokenType::_Equals) {
-        std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
-        if (!right_opt) {
-            runtimeError("Unable to evaluate right side of equals", line, column);
+        // An equals is a special case
+        std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
+        if (!right_value.has_value()) {
+            runtimeError("Failed to set variable. Operand could not be computed", line, column);
         }
-        
-        auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(left);
-        if (ident_node) {
-            env.set(ident_node->name, right_opt.value());
-            return std::nullopt;
-        } else {
-            runtimeError("Invalid value assignment", line, column);
+
+        // Give it the actual left string, not the value of the variable
+        if (auto identifier_node = dynamic_cast<IdentifierNode*>(left.get())) {
+            env.set(identifier_node->name, right_value.value());
+        } else if (auto index_node = dynamic_cast<IndexNode*>(left.get())) {
+            index_node->assignIndex(env, right_value.value());
+        } else if (auto list_node = std::dynamic_pointer_cast<ListNode>(left)) {
+            if (right_value.value()->getType() != ValueType::List) {
+                runtimeError("Expected list. Cannot unpack " + getValueStr(right_value.value()), line, column);
+            }
+
+            auto right_list = right_value.value()->get<std::shared_ptr<List>>();
+            if (right_list->size() > list_node->list.size()) {
+                runtimeError("Too many values to unpack", line, column);
+            } else if (right_list->size() < list_node->list.size()) {
+                runtimeError("Too few values to unpack", line, column);
+            }
+
+            for (int i = 0; i < right_list->size(); i++) {
+                if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(i))) {
+                    env.set(identifier_node->name, right_list->at(i));
+                }
+                else {
+                    runtimeError("Cannot assign value to literal", line, column);
+                }
+            }
+        }
+        else {
+            runtimeError("The operator '=' can only be used with variables", line, column);
         }
     } else if (op == TokenType::_Dot) {
         // Handle member functions of types

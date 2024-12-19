@@ -281,12 +281,41 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
     if (debug) std::cout << "Parse Statement " << getTokenStr() << std::endl;
     if (tokenIs("identifier") && peekToken() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
         auto left = parseIdentifier(varString);
+
         const Token& op = consumeToken();
         auto right = parseLogicalOr();
         return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
-    } else {
+    } else if (tokenIs("identifier") && peekToken() && nextTokenIs("[")) {
+        int i = 1;
+        while (!nextTokenIs(";", i)) {
+            if (nextTokenIs("=", i) || nextTokenIs("+=", i) || nextTokenIs("-=", i) || nextTokenIs("*=", i) || nextTokenIs("/=", i)) {
+                break;
+            }
+            i++;
+        }
+        if (nextTokenIs(";", i)) {
+            return parseLogicalOr();
+        } else {
+            auto left = parseIndexing();
+            const Token& op = consumeToken();
+            auto right = parseLogicalOr();
+            return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+        }
+    }
+    else {
         auto left = parseLogicalOr();
-        return left;
+        if (auto left_list = std::dynamic_pointer_cast<ListNode>(left)) {
+            if (tokenIs("=")) {
+                const Token& op = consumeToken();
+                auto right = parseLogicalOr();
+                return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+            } else {
+                return left;
+            }
+        }
+        else {
+            return left;
+        }
     }
 }
 
