@@ -31,6 +31,7 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
 BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 
 

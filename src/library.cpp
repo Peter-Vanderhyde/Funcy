@@ -324,6 +324,12 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
         }
         case ValueType::List:
             return arg; // Already a list
+        case ValueType::Dictionary: {
+            auto dict = arg->get<std::shared_ptr<Dictionary>>();
+            std::vector<std::shared_ptr<Value>> values;
+            values.push_back(std::make_shared<Value>(dict));
+            return dictKeys(values, env);
+        }
         default: {
             for (const auto& element : args) {
                 list->push_back(element);
@@ -492,6 +498,29 @@ BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Envi
     //std::string new_path = path.substr(0, path.find_last_of('/'));
     //return std::make_shared<Value>(readSourceCodeFromFile(new_path + "/" + filename));
     return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() > 1) {
+        throw std::runtime_error("input() takes 0-1 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args.size() == 1) {
+        if (args[0]->getType() != ValueType::String) {
+            printValue(args[0]);
+        }
+        else {
+            std::string s = args[0]->get<std::string>();
+            std::cout << s;
+        }
+    }
+    if (args[0]->getType() == ValueType::String) {
+        std::string in;
+        std::getline(std::cin, in);
+        return std::make_shared<Value>(in);
+    } else {
+        throw std::runtime_error("input() expected a string argument");
+    }
 }
 
 

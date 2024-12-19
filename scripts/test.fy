@@ -1,8 +1,4 @@
-dict = {
-    1:"one",
-    2:"two"
-};
+[first, last] = input("What is your full name? ->").split(" ");
 
-for [x, y] in dict {
-    print(x, y);
-}
+print("First: " + first);
+print("Last: " + last);
