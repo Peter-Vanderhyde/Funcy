@@ -567,6 +567,129 @@ BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, E
 }
 
 
+BuiltInFunctionReturn dictGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() < 2 || args.size() > 3) {
+        throw std::runtime_error("get() takes 2-3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    auto key = args[1];
+    std::shared_ptr<Value> default_return;
+    if (args.size() == 3) {
+        default_return = args[2];
+    }
+
+    auto it = dict->find(key);
+    if (it != dict->end()) {
+        return it->second;
+    } else {
+        if (default_return) {
+            return default_return;
+        } else {
+            return std::make_shared<Value>();
+        }
+    }
+}
+
+BuiltInFunctionReturn dictItems(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("items() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    auto result = std::make_shared<List>();
+
+    for (const auto& pair : *dict) {
+        auto key_value_pair = std::make_shared<List>();
+        key_value_pair->push_back(pair.first);
+        key_value_pair->push_back(pair.second);
+        result->push_back(std::make_shared<Value>(key_value_pair));
+    }
+
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn dictKeys(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("keys() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    auto result = std::make_shared<List>();
+
+    for (const auto& pair : *dict) {
+        result->push_back(pair.first);
+    }
+
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("values() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    auto result = std::make_shared<List>();
+
+    for (const auto& pair : *dict) {
+        result->push_back(pair.second);
+    }
+
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn dictPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() < 2 || args.size() > 3) {
+        throw std::runtime_error("pop() takes 2-3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    auto key = args[1];
+
+    auto it = dict->find(key);
+    if (it != dict->end()) {
+        auto value = it->second;
+        dict->erase(it);
+        return value;
+    } else {
+        if (args.size() == 3) {
+            return args[2];
+        } else {
+            throw std::runtime_error("Key not found in dictionary");
+        }
+    }
+}
+
+BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("update() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    std::shared_ptr<Dictionary> other_dict;
+    if (args[1]->getType() != ValueType::Dictionary) {
+        throw std::runtime_error("update() expected a dictionary, but got " + getValueStr(args[1]));
+    }
+    other_dict = args[1]->get<std::shared_ptr<Dictionary>>();
+
+    for (const auto& pair : *other_dict) {
+        (*dict)[pair.first] = pair.second;
+    }
+
+    return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn dictSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    int size = dict->size();
+    return std::make_shared<Value>(size);
+}
+
 
 BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {

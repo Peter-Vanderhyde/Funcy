@@ -8,8 +8,8 @@ dicts = {
     "name" : {
         "first":"Peter"
         "last":"Vanderhyde"
-    },
-    "nums" : nums
+    }
 };
 
-print(dicts["name"]["first"]);
+dicts.update(nums);
+print(dicts.pop(-1, "Nope"));

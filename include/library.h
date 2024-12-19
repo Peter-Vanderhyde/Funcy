@@ -38,6 +38,14 @@ BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, 
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
+BuiltInFunctionReturn dictGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictItems(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictKeys(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+
 BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
