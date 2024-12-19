@@ -63,10 +63,19 @@ int main(int argc, char* argv[]) {
     env.addFunction("str", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
     env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
     env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
+    env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
     env.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
+
+    env.addMember(ValueType::String, "lower", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLower)));
+    env.addMember(ValueType::String, "upper", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringUpper)));
+    env.addMember(ValueType::String, "strip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringStrip)));
+    env.addMember(ValueType::String, "split", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringSplit)));
+    env.addMember(ValueType::String, "isDigit", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsDigit)));
+    env.addMember(ValueType::String, "length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLength)));
+    env.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
 
 
     for (auto statement : statements) {

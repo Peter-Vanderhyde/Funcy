@@ -26,9 +26,18 @@ BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& a
 BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 
 
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+
+BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringLength(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

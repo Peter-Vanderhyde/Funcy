@@ -113,7 +113,7 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
             first_num = first->get<double>();
             break;
         default:
-            handleError("Unsupported type in transformNums for the first value", 0, 0, "Runtime Error");
+            runtimeError("Unsupported type in transformNums for the first value");
     }
 
     // Transform the second Value into int or double
@@ -128,7 +128,7 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
             second_num = second->get<double>();
             break;
         default:
-            handleError("Unsupported type in transformNums for the second value", 0, 0, "Runtime Error");
+            runtimeError("Unsupported type in transformNums for the second value");
     }
 
     // Check if either number is a double, promoting integers to doubles if necessary
@@ -158,7 +158,7 @@ BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Env
 
 BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        runtimeError("int() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("int() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -175,9 +175,9 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
                 int int_value = std::stoi(arg->get<std::string>());
                 return std::make_shared<Value>(int_value);
             } catch (const std::invalid_argument&) {
-                runtimeError("Cannot convert string to int");
+                throw std::runtime_error("Cannot convert string to int");
             } catch (const std::out_of_range&) {
-                runtimeError("String value out of range for int conversion");
+                throw std::runtime_error("String value out of range for int conversion");
             }
         }
         case ValueType::Boolean: {
@@ -189,13 +189,13 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
             }
         }
         default:
-            runtimeError("Unsupported type " + getValueStr(arg) + " for int conversion");
+            throw std::runtime_error("Unsupported type " + getValueStr(arg) + " for int conversion");
     }
 }
 
 BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        runtimeError("float() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("float() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -210,21 +210,21 @@ BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& 
                 double doubleValue = std::stod(arg->get<std::string>());
                 return std::make_shared<Value>(doubleValue);
             } catch (const std::invalid_argument&) {
-                runtimeError("Cannot convert string to double");
+                throw std::runtime_error("Cannot convert string to double");
             } catch (const std::out_of_range&) {
-                runtimeError("String value out of range for double conversion");
+                throw std::runtime_error("String value out of range for double conversion");
             }
         }
         case ValueType::Boolean:
             return std::make_shared<Value>(arg->get<bool>() ? 1.0 : 0.0);
         default:
-            runtimeError("Unsupported type for float conversion");
+            throw std::runtime_error("Unsupported type for float conversion");
     }
 }
 
 BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        runtimeError("bool() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("bool() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -243,7 +243,7 @@ BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& a
         case ValueType::List:
             return std::make_shared<Value>(!arg->get<std::shared_ptr<List>>()->empty());
         default:
-            runtimeError("Unsupported type for bool conversion");
+            throw std::runtime_error("Unsupported type for bool conversion");
     }
 }
 
@@ -255,7 +255,7 @@ std::string toString(double value){
 
 BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        runtimeError("string() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("string() conversion takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     auto arg = args[0];
@@ -283,7 +283,7 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
             return std::make_shared<Value>(result);
         }
         default:
-            runtimeError("Unsupported type for string conversion");
+            throw std::runtime_error("Unsupported type for string conversion");
     }
 }
 
@@ -291,7 +291,7 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
     auto list = std::make_shared<List>();
 
     if (args.size() == 0) {
-        runtimeError("list() conversion takes at least 1 argument. None were given");
+        throw std::runtime_error("list() conversion takes at least 1 argument. None were given");
     }
 
     auto arg = args[0];
@@ -324,6 +324,50 @@ BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, E
     return std::make_shared<Value>(args[0]->getType());
 }
 
+BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() < 1 || args.size() > 3) {
+        throw std::runtime_error("range() takes 1-3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    for (int i = 0; i < args.size(); i++) {
+        if (args[i]->getType() != ValueType::Integer) {
+            throw std::runtime_error("range() expected int, not " + getTypeStr(args[i]->getType()));
+        }
+    }
+
+    int start, end, step;
+
+    if (args.size() == 1) {
+        end = args[0]->get<int>();
+        start = 0;
+        step = 1;
+    } else if (args.size() == 2) {
+        start = args[0]->get<int>();
+        end = args[1]->get<int>();
+        step = 1;
+    } else if (args.size() == 3) {
+        start = args[0]->get<int>();
+        end = args[1]->get<int>();
+        step = args[2]->get<int>();
+        if (step == 0) {
+            throw std::runtime_error("range() third argument must not be zero");
+        }
+    }
+
+    std::shared_ptr<List> nums = std::make_shared<List>();
+    if (step < 0) {
+        for (int i = start; i > end; i += step) {
+            nums->push_back(std::make_shared<Value>(i));
+        }
+    } else {
+        for (int i = start; i < end; i += step) {
+            nums->push_back(std::make_shared<Value>(i));
+        }
+    }
+
+    return std::make_shared<Value>(nums);
+}
+
 
 
 ///  MEMBER FUNCTIONS  ///
@@ -331,7 +375,7 @@ BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, E
 
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
-        runtimeError("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
 
     if (args[0]->getType() == ValueType::List) {
@@ -339,14 +383,14 @@ BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, 
         int size = list->size();
         return std::make_shared<Value>(size);
     } else {
-        runtimeError("size() expected a list but got " + getValueStr(args[0]));
+        throw std::runtime_error("size() expected a list but got " + getValueStr(args[0]));
     }
     return std::nullopt;
 }
 
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 2) {
-        runtimeError("append() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("append() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
 
     if (args[0]->getType() == ValueType::List) {
@@ -362,14 +406,14 @@ BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args
         }
         return std::make_shared<Value>();
     } else {
-        runtimeError("append() expected a list but got " + getValueStr(args[0]));
+        throw std::runtime_error("append() expected a list but got " + getValueStr(args[0]));
     }
     return std::nullopt;
 }
 
 BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1 && args.size() != 2) {
-        runtimeError("pop() takes 1-2 argument. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("pop() takes 1-2 argument. " + std::to_string(args.size()) + " were given");
     }
 
     int index;
@@ -377,21 +421,163 @@ BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, E
         index = -1;
     } else {
         if (args[1]->getType() != ValueType::Integer) {
-            runtimeError("pop() expected an integer index but got " + getValueStr(args[1]));
+            throw std::runtime_error("pop() expected an integer index but got " + getValueStr(args[1]));
         }
         index = args[1]->get<int>();
     }
 
     if (args[0]->getType() != ValueType::List) {
-        runtimeError("pop() expected a list but got " + getValueStr(args[0]));
+        throw std::runtime_error("pop() expected a list but got " + getValueStr(args[0]));
     }
 
     auto list = args[0]->get<std::shared_ptr<List>>();
     int size = list->size();
 
     if (index >= size || index < size * -1) {
-        runtimeError("pop() index out of range");
+        throw std::runtime_error("pop() index out of range");
     } else {
         return list->pop(index);
     }
+}
+
+
+
+BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("lower() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    std::transform(string.begin(), string.end(), string.begin(),
+                    [](unsigned char c) { return std::tolower(c); });
+    
+    return std::make_shared<Value>(string);
+}
+
+BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("upper() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    std::transform(string.begin(), string.end(), string.begin(),
+                    [](unsigned char c) { return std::toupper(c); });
+    
+    return std::make_shared<Value>(string);
+}
+
+BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() > 2) {
+        throw std::runtime_error("strip() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    // Trim from the start (left) of the string
+    auto ltrim = [](const std::string& s, const std::string& chars) -> std::string {
+        size_t start = s.find_first_not_of(chars);
+        return (start == std::string::npos) ? "" : s.substr(start);
+    };
+
+    // Trim from the end (right) of the string
+    auto rtrim = [](const std::string& s, const std::string& chars) -> std::string {
+        size_t end = s.find_last_not_of(chars);
+        return (end == std::string::npos) ? "" : s.substr(0, end + 1);
+    };
+
+    std::string strip_chars = " \t\n\r\f\v";
+    if (args.size() == 2) {
+        if (args[1]->getType() == ValueType::String) {
+            strip_chars = args[1]->get<std::string>();
+        } else {
+            throw std::runtime_error("strip() expected an argument of type string");
+        }
+    }
+
+    return std::make_shared<Value>(ltrim(rtrim(args[0]->get<std::string>(), strip_chars), strip_chars));
+}
+
+BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() > 2) {
+        throw std::runtime_error("split() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    // Get the string to split
+    if (args[0]->getType() != ValueType::String) {
+        throw std::runtime_error("split() expected a string as the first argument");
+    }
+    std::string str = args[0]->get<std::string>();
+
+    std::string delimiter = " "; // Default delimiter is space
+    if (args.size() == 2) {
+        if (args[1]->getType() == ValueType::String) {
+            delimiter = args[1]->get<std::string>();
+        } else {
+            throw std::runtime_error("split() expected a string as the delimiter");
+        }
+    }
+
+    List result;
+    size_t pos = 0;
+    std::string token;
+    while ((pos = str.find(delimiter)) != std::string::npos) {
+        token = str.substr(0, pos);
+        result.push_back(std::make_shared<Value>(token));
+        str.erase(0, pos + delimiter.length());
+    }
+    result.push_back(std::make_shared<Value>(str)); // Add the last token
+
+    return std::make_shared<Value>(std::make_shared<List>(result));
+}
+
+BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("isDigit() requires exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    for (char c : string) {
+        if (!std::isdigit(c)) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    return std::make_shared<Value>(true);
+}
+
+BuiltInFunctionReturn stringLength(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("length() requires exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    int length = string.length();
+    return std::make_shared<Value>(length);
+}
+
+BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 3) {
+        throw std::runtime_error("replace() takes exactly 3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    // Get the string to modify
+    std::string str = args[0]->get<std::string>();
+
+    // Get the substring to replace
+    if (args[1]->getType() != ValueType::String) {
+        throw std::runtime_error("replace() expected a string as the second argument (substring to replace)");
+    }
+    std::string to_replace = args[1]->get<std::string>();
+
+    // Get the replacement substring
+    if (args[2]->getType() != ValueType::String) {
+        throw std::runtime_error("replace() expected a string as the third argument (replacement substring)");
+    }
+    std::string replacement = args[2]->get<std::string>();
+
+    // Perform the replacement
+    size_t pos = 0;
+    while ((pos = str.find(to_replace, pos)) != std::string::npos) {
+        str.replace(pos, to_replace.length(), replacement);
+        pos += replacement.length(); // Move past the last replacement
+    }
+
+    return std::make_shared<Value>(str); // Return the modified string
 }

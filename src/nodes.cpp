@@ -1038,7 +1038,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         try {
             return (*func_value)(values, env);
         }
-        catch (const std::exception e) {
+        catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
         }
     } else {
@@ -1067,7 +1067,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, V
         try {
             return (*func_value)(values, env);
         }
-        catch (const std::exception e) {
+        catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
         }
     } else {
