@@ -458,6 +458,41 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         else {
             runtimeError("Invalid syntax", line, column);
         }
+    } else if (op == TokenType::_In) {
+        auto left_value = left->evaluate(env);
+        auto right_value = right->evaluate(env);
+        if (!left_value.has_value() || !right_value.has_value()) {
+            runtimeError("Failed arguments of 'in'", line, column);
+        }
+
+        if (right_value.value()->getType() == ValueType::List) {
+            auto list = right_value.value()->get<std::shared_ptr<List>>();
+            for (int i = 0; i < list->size(); i++) {
+                const auto& item = list->at(i);
+                auto result = performOperation(left_value.value(), right_value.value());
+
+                if (result && result.value()->getType() == ValueType::Boolean && result.value()->get<bool>()) {
+                    return std::make_shared<Value>(true);
+                }
+            }
+            return std::make_shared<Value>(false);
+        }
+        else if (right_value.value()->getType() == ValueType::String) {
+            auto string = right_value.value()->get<std::string>();
+            auto left_val = *left_value.value();
+            if (left_val.getType() != ValueType::String) {
+                return std::make_shared<Value>(false);
+            }
+            std::string left = left_val.get<std::string>();
+            auto index = string.find(left);
+            if (index != std::string::npos) {
+                return std::make_shared<Value>(true);
+            }
+            return std::make_shared<Value>(false);
+        }
+        else {
+            runtimeError("Expected list or dictionary for 'in' evaluation", line, column);
+        }
     } else {
         std::optional<std::shared_ptr<Value>> left_opt = left->evaluate(env);
         std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
@@ -619,51 +654,100 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     env.addScope();
     env.addLoop();
     auto init_node = dynamic_cast<BinaryOpNode*>(initialization.get());
-    initialization->evaluate(env);
+    if (init_node->op != TokenType::_In) {
+        initialization->evaluate(env);
 
-    int variable;
-    if (env.get(*init_string)->getType() == ValueType::Integer) {
-        variable = env.get(*init_string)->get<int>();
-    }
-    else {
-        runtimeError("For loop requires int variable", line, column);
-    }
-
-    while (true) {
-        auto cond_value = condition_value->evaluate(env);
-        if (!cond_value) {
-            runtimeError("Unable to evaluate for loop condition", line, column);
-        }
-
-        if (cond_value.value()->getType() == ValueType::Boolean) {
-            auto bool_value = cond_value.value()->get<bool>();
-            if (!bool_value) break;
-        } else {
-            runtimeError("For loop requires boolean condition", line, column);
-        }
-
-        int original_variable = variable;
-
-        try {
-            for (auto statement : block) {
-                auto result = statement->evaluate(env);
-            }
-        }
-        catch (const BreakException) {
-            break;
-        }
-        catch (const ContinueException) {
-            // Does nothing but catches exception and proceeds to increment the variable
-            auto x = 1;
-        }
-
-        variable = original_variable;
-        // set variable in env
-        env.set(*init_string, std::make_shared<Value>(variable));
-        // increment them
-        increment->evaluate(env);
+        int variable;
         if (env.get(*init_string)->getType() == ValueType::Integer) {
             variable = env.get(*init_string)->get<int>();
+        }
+        else {
+            runtimeError("For loop requires int variable", line, column);
+        }
+
+        while (true) {
+            auto cond_value = condition_value->evaluate(env);
+            if (!cond_value) {
+                runtimeError("Unable to evaluate for loop condition", line, column);
+            }
+
+            if (cond_value.value()->getType() == ValueType::Boolean) {
+                auto bool_value = cond_value.value()->get<bool>();
+                if (!bool_value) break;
+            } else {
+                runtimeError("For loop requires boolean condition", line, column);
+            }
+
+            int original_variable = variable;
+
+            try {
+                for (auto statement : block) {
+                    auto result = statement->evaluate(env);
+                }
+            }
+            catch (const BreakException) {
+                break;
+            }
+            catch (const ContinueException) {
+                // Does nothing but catches exception and proceeds to increment the variable
+                auto x = 1;
+            }
+
+            variable = original_variable;
+            // set variable in env
+            env.set(*init_string, std::make_shared<Value>(variable));
+            // increment them
+            increment->evaluate(env);
+            if (env.get(*init_string)->getType() == ValueType::Integer) {
+                variable = env.get(*init_string)->get<int>();
+            }
+        }
+    } else {
+        // in was used with for loop instead of integer
+        auto container_result = init_node->right->evaluate(env);
+        if (container_result.value()->getType() == ValueType::List) {
+            auto list = container_result.value()->get<std::shared_ptr<List>>();
+            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            std::string var_string = ident_node->name;
+
+            for (int i = 0; i < list->size(); i++) {
+                auto item = list->at(i);
+                env.set(var_string, item);
+                try {
+                    for (auto statement : block) {
+                        auto result = statement->evaluate(env);
+                    }
+                }
+                catch (const BreakException) {
+                    break;
+                }
+                catch (const ContinueException) {
+                    continue;
+                }
+            }
+        }
+        else if (container_result.value()->getType() == ValueType::String) {
+            auto string = container_result.value()->get<std::string>();
+            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            std::string var_string = ident_node->name;
+
+            for (char c : string) {
+                env.set(var_string, std::make_shared<Value>(std::string(1, c)));
+                try {
+                    for (auto statement : block) {
+                        auto result = statement->evaluate(env);
+                    }
+                }
+                catch (const BreakException) {
+                    break;
+                }
+                catch (const ContinueException) {
+                    continue;
+                }
+            }
+        }
+        else {
+            runtimeError("For loop expected iterable container", line, column);
         }
     }
 

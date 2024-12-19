@@ -123,19 +123,21 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             }
             for_initialization = parseStatement(variable_str);
             auto in_node = dynamic_cast<BinaryOpNode*>(for_initialization.get());
-            if (!tokenIs(",")) {
-                parsingError("Invalid for loop syntax", getToken().line, getToken().column);
-            }
-            consumeToken();
-            comparison_expr = parseRelation();
-            if (!tokenIs(",")) {
-                parsingError("Invalid for loop syntax", getToken().line, getToken().column);
-            }
-            consumeToken();
-            auto var_test = std::make_shared<std::string>("");
-            for_increment = parseStatement(var_test);
-            if (*var_test != *variable_str) {
-                parsingError("For loop requires manipulation of the initialized variable", getToken().line, getToken().column);
+            if (in_node->op != TokenType::_In) {
+                if (!tokenIs(",")) {
+                    parsingError("Invalid for loop syntax", getToken().line, getToken().column);
+                }
+                consumeToken();
+                comparison_expr = parseRelation();
+                if (!tokenIs(",")) {
+                    parsingError("Invalid for loop syntax", getToken().line, getToken().column);
+                }
+                consumeToken();
+                auto var_test = std::make_shared<std::string>("");
+                for_increment = parseStatement(var_test);
+                if (*var_test != *variable_str) {
+                    parsingError("For loop requires manipulation of the initialized variable", getToken().line, getToken().column);
+                }
             }
         } else if (t_str == "func") {
             if (!tokenIs("identifier")) {
@@ -320,10 +322,18 @@ std::shared_ptr<ASTNode> Parser::parseRelation() {
     if (debug) std::cout << "Parse Relation " << getTokenStr() << std::endl;
     auto left = parseExpression();
 
-    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=")) {
-        const Token& op = consumeToken();
-        auto right = parseExpression();
-        left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+    while (tokenIs("<") || tokenIs("<=") || tokenIs(">") || tokenIs(">=") || tokenIs("in") || (tokenIs("not") && nextTokenIs("in"))) {
+        if (tokenIs("not")) {
+            const Token& token = consumeToken();
+            const Token& op = consumeToken();
+            auto right = parseExpression();
+            left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+            left = std::make_shared<UnaryOpNode>(TokenType::_Not, left, token.line, token.column);
+        } else {
+            const Token& op = consumeToken();
+            auto right = parseExpression();
+            left = std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+        }
     }
 
     return left;

@@ -60,7 +60,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_DictType, "type:dictionary"},
     {TokenType::_FuncType, "type:function"},
     {TokenType::_BuiltInType, "type:builtin function"},
-    {TokenType::_Mod, "%"}
+    {TokenType::_Mod, "%"},
+    {TokenType::_In, "in"}
     //{TokenType::, ""}
 };
 
@@ -117,7 +118,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"Dictionary", TokenType::_DictType},
     {"Function", TokenType::_FuncType},
     {"BuiltInFunction", TokenType::_BuiltInType},
-    {"Null", TokenType::_NullType}
+    {"Null", TokenType::_NullType},
+    {"in", TokenType::_In}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
