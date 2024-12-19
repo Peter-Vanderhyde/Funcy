@@ -787,44 +787,114 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         if (container_result.value()->getType() == ValueType::List) {
             auto list = container_result.value()->get<std::shared_ptr<List>>();
             auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
-            std::string var_string = ident_node->name;
+            if (ident_node) {
+                std::string var_string = ident_node->name;
 
-            for (int i = 0; i < list->size(); i++) {
-                auto item = list->at(i);
-                env.set(var_string, item);
-                try {
-                    for (auto statement : block) {
-                        auto result = statement->evaluate(env);
+                for (int i = 0; i < list->size(); i++) {
+                    auto item = list->at(i);
+                    env.set(var_string, item);
+                    try {
+                        for (auto statement : block) {
+                            auto result = statement->evaluate(env);
+                        }
+                    }
+                    catch (const BreakException) {
+                        break;
+                    }
+                    catch (const ContinueException) {
+                        continue;
                     }
                 }
-                catch (const BreakException) {
-                    break;
+            } else {
+                auto list_node = std::dynamic_pointer_cast<ListNode>(init_node->left);
+                if (!list_node) {
+                    runtimeError("For loop expected identifier or list", line, column);
                 }
-                catch (const ContinueException) {
-                    continue;
+
+                for (int i = 0; i < list->size(); i++) {
+                    auto list_result = list->at(i);
+                    if (list_result->getType() != ValueType::List) {
+                        runtimeError("Expected a list, but got " + getTypeStr(list_result->getType()), line, column);
+                    }
+                    auto list = list_result->get<std::shared_ptr<List>>();
+                    if (list->size() > list_node->list.size()) {
+                        runtimeError("Too many arguments to unpack", line, column);
+                    } else if (list->size() < list_node->list.size()) {
+                        runtimeError("Too few arguments to unpack", line, column);
+                    }
+
+                    for (int index = 0; index < list->size(); index++) {
+                        auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(index));
+                        if (!ident_node) {
+                            runtimeError("Can only assign values to identifiers", line, column);
+                        }
+                        env.set(ident_node->name, list->at(index));
+                    }
+                    
+                    try {
+                        for (auto statement : block) {
+                            auto result = statement->evaluate(env);
+                        }
+                    }
+                    catch (const BreakException) {
+                        break;
+                    }
+                    catch (const ContinueException) {
+                        continue;
+                    }
                 }
             }
         }
         else if (container_result.value()->getType() == ValueType::Dictionary) {
             auto dict = container_result.value()->get<std::shared_ptr<Dictionary>>();
             auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
-            std::string var_string = ident_node->name;
+            if (ident_node) {
+                std::string var_string = ident_node->name;
 
-            for (const auto& pair : *dict) {
-                std::shared_ptr<List> arg_list = std::make_shared<List>();
-                arg_list->push_back(pair.first);
-                arg_list->push_back(pair.second);
-                env.set(var_string, std::make_shared<Value>(arg_list));
-                try {
-                    for (auto statement : block) {
-                        auto result = statement->evaluate(env);
+                for (const auto& pair : *dict) {
+                    std::shared_ptr<List> arg_list = std::make_shared<List>();
+                    arg_list->push_back(pair.first);
+                    arg_list->push_back(pair.second);
+                    env.set(var_string, std::make_shared<Value>(arg_list));
+                    try {
+                        for (auto statement : block) {
+                            auto result = statement->evaluate(env);
+                        }
+                    }
+                    catch (const BreakException) {
+                        break;
+                    }
+                    catch (const ContinueException) {
+                        continue;
                     }
                 }
-                catch (const BreakException) {
-                    break;
+            } else {
+                auto list_node = std::dynamic_pointer_cast<ListNode>(init_node->left);
+                if (!list_node) {
+                    runtimeError("For loop expected identifier or list", line, column);
                 }
-                catch (const ContinueException) {
-                    continue;
+                if (list_node->list.size() < 2) {
+                    runtimeError("Too many arguments to unpack", line, column);
+                } else if (list_node->list.size() > 2) {
+                    runtimeError("Too few arguments to unpack", line, column);
+                }
+                auto first_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(0));
+                auto second_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(1));
+
+                for (const auto& pair : *dict) {
+                    env.set(first_node->name, pair.first);
+                    env.set(second_node->name, pair.second);
+                    try {
+                        for (auto statement : block) {
+                            auto result = statement->evaluate(env);
+                        }
+                    }
+                    catch (const BreakException) {
+                        break;
+                    }
+                    catch (const ContinueException) {
+                        continue;
+                    }
                 }
             }
         }

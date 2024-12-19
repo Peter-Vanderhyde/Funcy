@@ -1,7 +1,8 @@
-func give(a, b) {
-    return [b, a];
-}
+dict = {
+    1:"one",
+    2:"two"
+};
 
-[x, y] = [2, 5];
-[x, y] = give(x, y);
-print(x, y);
+for [x, y] in dict {
+    print(x, y);
+}

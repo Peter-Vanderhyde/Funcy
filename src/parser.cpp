@@ -118,7 +118,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
 
             comparison_expr = parseLogicalOr();
         } else if (t_str == "for") {
-            if (tokenIs("{") || !tokenIs("identifier")) {
+            if (tokenIs("{") || (!tokenIs("identifier") && !tokenIs("["))) {
                 parsingError("Missing for loop expression", getToken().line, getToken().column);
             }
             for_initialization = parseStatement(variable_str);
@@ -144,7 +144,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             }
             else {
                 if (tokenIs(",")) {
-                    parsingError("For loop does not support unpacking", getToken().line, getToken().column);
+                    parsingError("For loop requires [] surrounding unpacking variables", getToken().line, getToken().column);
                 }
             }
         } else if (t_str == "func") {
