@@ -347,6 +347,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
         else if (op == TokenType::_Caret) {op_result = pow(new_left, new_right);}
         else if (op == TokenType::_DoubleMultiply) {op_result = pow(new_left, new_right);}
+        else if (op == TokenType::_Mod) {op_result = fmod(new_left, new_right);}
         else if (op == TokenType::_LessThan) {return std::make_shared<Value>(new_left < new_right);}
         else if (op == TokenType::_LessEquals) {return std::make_shared<Value>(new_left <= new_right);}
         else if (op == TokenType::_GreaterThan) {return std::make_shared<Value>(new_left > new_right);}

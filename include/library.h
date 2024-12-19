@@ -27,6 +27,10 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
 BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 
 

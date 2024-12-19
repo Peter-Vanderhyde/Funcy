@@ -59,7 +59,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_ListType, "type:list"},
     {TokenType::_DictType, "type:dictionary"},
     {TokenType::_FuncType, "type:function"},
-    {TokenType::_BuiltInType, "type:builtin function"}
+    {TokenType::_BuiltInType, "type:builtin function"},
+    {TokenType::_Mod, "%"}
     //{TokenType::, ""}
 };
 
@@ -91,7 +92,8 @@ std::unordered_map<char, TokenType> char_tokens {
     {'[', TokenType::_SquareOpen},
     {']', TokenType::_SquareClose},
     {':', TokenType::_Colon},
-    {'.', TokenType::_Dot}
+    {'.', TokenType::_Dot},
+    {'%', TokenType::_Mod}
 };
 
 std::unordered_map<std::string, TokenType> keyword_tokens {

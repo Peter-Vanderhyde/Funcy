@@ -62,7 +62,8 @@ enum class TokenType{
     _ListType,
     _DictType,
     _FuncType,
-    _BuiltInType
+    _BuiltInType,
+    _Mod
 };
 
 std::string getTokenTypeLabel(TokenType type);

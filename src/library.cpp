@@ -8,6 +8,7 @@
 #include <memory>
 #include "errorDefs.h"
 #include "values.h"
+#include "nodes.h"
 
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
@@ -366,6 +367,114 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Env
     }
 
     return std::make_shared<Value>(nums);
+}
+
+BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("map() requires exactly 2 arguments: a function and a list");
+    }
+
+    auto func = args[0];
+    auto list_value = args[1];
+
+    if (list_value->getType() != ValueType::List) {
+        throw std::runtime_error("Second argument to map() must be a list");
+    }
+
+    auto list = list_value->get<std::shared_ptr<List>>();
+    std::shared_ptr<List> result_list = std::make_shared<List>();
+
+    for (int i = 0; i < list->size(); i++) {
+        const auto& element = list->at(i);
+        // Prepare the argument list for the function call
+        std::vector<std::shared_ptr<Value>> func_args = { element };
+
+        // Check if the function is a built-in function
+        if (func->getType() == ValueType::BuiltInFunction) {
+            auto built_in_func = func->get<std::shared_ptr<BuiltInFunction>>();
+            auto result = (*built_in_func)(func_args, env);
+            if (result) {
+                result_list->push_back(result.value());
+            }
+        } else if (func->getType() == ValueType::Function) {
+            auto func_node = dynamic_cast<FuncNode*>(func->get<std::shared_ptr<ASTNode>>().get());
+
+            if (func_node) {
+                auto result = func_node->callFunc(func_args);
+                if (result) {
+                    result_list->push_back(result.value());
+                }
+            } else {
+                throw std::runtime_error("map() function argument must be a callable function");
+            }
+        } else {
+            throw std::runtime_error("First argument to map() must be a function");
+        }
+    }
+
+    return std::make_shared<Value>(result_list);
+}
+
+BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("all() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        throw std::runtime_error("all() expected argument 1 to be a list");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    for (int i = 0; i < list->size(); i++) {
+        auto item = list->at(i);
+        auto result = boolConverter(std::vector<std::shared_ptr<Value>>{item}, env);
+        if (result.has_value()) {
+            bool bool_result = result.value()->get<bool>();
+            if (!bool_result) {
+                return std::make_shared<Value>(false);
+            }
+        }
+    }
+    return std::make_shared<Value>(true);
+}
+
+BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("any() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        throw std::runtime_error("any() expected argument 1 to be a list");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    for (int i = 0; i < list->size(); i++) {
+        auto item = list->at(i);
+        auto result = boolConverter(std::vector<std::shared_ptr<Value>>{item}, env);
+        if (result.has_value()) {
+            bool bool_result = result.value()->get<bool>();
+            if (bool_result) {
+                return std::make_shared<Value>(true);
+            }
+        }
+    }
+    return std::make_shared<Value>(false);
+}
+
+BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("read() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::String) {
+        throw std::runtime_error("read() expected argument 1 to be a string");
+    }
+
+    std::string filename = args[0]->get<std::string>();
+    //std::string path = GlobalContext::instance().getFilename();
+    //std::string new_path = path.substr(0, path.find_last_of('/'));
+    //return std::make_shared<Value>(readSourceCodeFromFile(new_path + "/" + filename));
+    return std::make_shared<Value>();
 }
 
 
