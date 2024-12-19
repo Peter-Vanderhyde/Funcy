@@ -86,6 +86,7 @@ void printValue(const std::shared_ptr<Value> value) {
                 printValue(pair.second);
             }
             std::cout << "}";
+            return;
         }
         case ValueType::None: {
             std::cout << style.blue << "Null" << style.reset;

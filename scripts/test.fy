@@ -4,6 +4,12 @@ nums = {
     3:"three"
 };
 
-for i = 0, i < 5, i += 1 {
-    print(i);
-}
+dicts = {
+    "name" : {
+        "first":"Peter"
+        "last":"Vanderhyde"
+    },
+    "nums" : nums
+};
+
+print(dicts["name"]["first"]);
