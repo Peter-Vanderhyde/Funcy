@@ -3,6 +3,93 @@
 #include "errorDefs.h"
 
 
+bool ValueCompare::operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const {
+    // Handle null pointers
+    if (!lhs || !rhs) {
+        return lhs < rhs; // Compare pointers directly if either is null
+    }
+
+    // Compare ValueTypes first to establish ordering based on type
+    if (lhs->getType() != rhs->getType()) {
+        return lhs->getType() < rhs->getType();
+    }
+
+    // If the types are the same, compare the actual values
+    switch (lhs->getType()) {
+        case ValueType::Integer:
+            return lhs->get<int>() < rhs->get<int>();
+        case ValueType::Float:
+            return lhs->get<double>() < rhs->get<double>();
+        case ValueType::Boolean:
+            return lhs->get<bool>() < rhs->get<bool>();
+        case ValueType::String:
+            return lhs->get<std::string>() < rhs->get<std::string>();
+        case ValueType::List: {
+            auto lhs_list = lhs->get<std::shared_ptr<List>>();
+            auto rhs_list = rhs->get<std::shared_ptr<List>>();
+
+            // Compare sizes first
+            if (lhs_list->size() != rhs_list->size()) {
+                return lhs_list->size() < rhs_list->size();
+            }
+
+            // Compare element-by-element if sizes are equal
+            for (size_t i = 0; i < lhs_list->size(); ++i) {
+                if (ValueCompare{}(lhs_list->at(i), rhs_list->at(i))) {
+                    return true; // lhs[i] < rhs[i]
+                }
+                if (ValueCompare{}(rhs_list->at(i), lhs_list->at(i))) {
+                    return false; // rhs[i] < lhs[i]
+                }
+            }
+
+            // Lists are equal if all elements are equal
+            return false;
+        }
+        case ValueType::Dictionary: {
+            auto lhs_dict = lhs->get<std::shared_ptr<Dictionary>>();
+            auto rhs_dict = rhs->get<std::shared_ptr<Dictionary>>();
+
+            // Compare sizes first
+            if (lhs_dict->size() != rhs_dict->size()) {
+                return lhs_dict->size() < rhs_dict->size();
+            }
+
+            // Compare key-value pairs lexicographically
+            auto lhs_iter = lhs_dict->begin();
+            auto rhs_iter = rhs_dict->begin();
+            while (lhs_iter != lhs_dict->end() && rhs_iter != rhs_dict->end()) {
+                // Compare keys
+                if (ValueCompare{}(lhs_iter->first, rhs_iter->first)) {
+                    return true; // lhs_key < rhs_key
+                }
+                if (ValueCompare{}(rhs_iter->first, lhs_iter->first)) {
+                    return false; // rhs_key < lhs_key
+                }
+
+                // Compare values
+                if (ValueCompare{}(lhs_iter->second, rhs_iter->second)) {
+                    return true; // lhs_value < rhs_value
+                }
+                if (ValueCompare{}(rhs_iter->second, lhs_iter->second)) {
+                    return false; // rhs_value < lhs_value
+                }
+
+                ++lhs_iter;
+                ++rhs_iter;
+            }
+
+            // Dictionaries are equal if all key-value pairs are equal
+            return false;
+        }
+        default:
+            // For unsupported types, use address comparison as a fallback
+            return lhs < rhs;
+    }
+}
+
+
+
 void List::push_back(std::shared_ptr<Value> value) {
         elements.push_back(value);
     }
@@ -80,6 +167,9 @@ Value::Value(std::shared_ptr<BuiltInFunction> v)
 Value::Value(ValueType v)
     : value{v}, value_type{ValueType::Type} {}
 
+Value::Value(std::shared_ptr<Dictionary> v)
+    : value{v}, value_type{ValueType::Dictionary} {}
+
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;
@@ -104,6 +194,8 @@ std::string getValueStr(std::shared_ptr<Value> value) {
             return "builtin function";
         case ValueType::Type:
             return "type";
+        case ValueType::Dictionary:
+            return "dictionary";
         case ValueType::None:
             return "null";
         default:
@@ -129,6 +221,8 @@ std::string getValueStr(Value value) {
             return "builtin function";
         case ValueType::Type:
             return "type";
+        case ValueType::Dictionary:
+            return "dictionary";
         case ValueType::None:
             return "null";
         default:
@@ -146,6 +240,7 @@ std::string getTypeStr(ValueType type) {
         {ValueType::List, "Type:List"},
         {ValueType::BuiltInFunction, "Type:BuiltInFunction"},
         {ValueType::Type, "Type:Type"},
+        {ValueType::Dictionary, "Type:Dictionary"},
         {ValueType::None, "Null"}
     };
     if (types.count(type) != 0) {

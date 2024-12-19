@@ -10,6 +10,7 @@
 
 class ASTNode;
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
+using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>>;
 
 [[noreturn]] void runtimeError(std::string message, int line, int column);
 [[noreturn]] void runtimeError(std::string message);
@@ -159,7 +160,8 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     std::optional<std::shared_ptr<Value>> getIndex(Environment& env,
                                                     std::variant<std::shared_ptr<std::string>,
-                                                                std::shared_ptr<List>> listr);
+                                                                std::shared_ptr<List>,
+                                                                std::shared_ptr<Dictionary>> distr);
     void assignIndex(Environment& env, std::shared_ptr<Value> value);
 
     std::shared_ptr<ASTNode> container;
@@ -200,4 +202,15 @@ public:
     std::vector<std::shared_ptr<ASTNode>> values;
     std::shared_ptr<Value> member_value;
     std::shared_ptr<Environment> parent_env = nullptr;
+};
+
+class DictionaryNode : public ASTNode {
+public:
+    DictionaryNode(ASTDictionary dictionary, int line, int column)
+        : ASTNode{line, column}, dictionary{dictionary} {}
+    ~DictionaryNode() noexcept override = default;
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    ASTDictionary dictionary;
 };

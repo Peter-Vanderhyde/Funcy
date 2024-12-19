@@ -7,6 +7,7 @@
 #include <vector>
 #include <functional>
 #include <optional>
+#include <map>
 
 enum class SpecialIndex {
     Begin,
@@ -17,6 +18,11 @@ class Value;
 class ASTNode;
 class Environment;
 
+struct ValueCompare {
+    bool operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const;
+};
+
+using Dictionary = std::map<std::shared_ptr<Value>, std::shared_ptr<Value>, ValueCompare>;
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
     const std::vector<std::shared_ptr<Value>>& args, Environment& env
 )>;
@@ -43,6 +49,7 @@ enum class ValueType {
     String,
     Float,
     List,
+    Dictionary,
     None,
     Function,
     Index,
@@ -53,7 +60,8 @@ enum class ValueType {
 class Value {
 private:
     std::variant<std::monostate, int, double, bool, std::string, std::shared_ptr<List>,
-                SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>, ValueType> value;
+                SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>, ValueType,
+                std::shared_ptr<Dictionary>> value;
     ValueType value_type;
 
 public:
@@ -67,6 +75,7 @@ public:
     Value(std::shared_ptr<ASTNode> v);
     Value(std::shared_ptr<BuiltInFunction> v);
     Value(ValueType v);
+    Value(std::shared_ptr<Dictionary> v);
 
     ValueType getType() const;
 

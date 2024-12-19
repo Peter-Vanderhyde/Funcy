@@ -71,6 +71,22 @@ void printValue(const std::shared_ptr<Value> value) {
             std::cout << "]";
             return;
         }
+        case ValueType::Dictionary: {
+            auto dict_value = value->get<std::shared_ptr<Dictionary>>();
+            std::cout << "{";
+            bool first = true;
+            for (const auto pair : *dict_value) {
+                if (!first) {
+                    std::cout << ", ";
+                } else {
+                    first = false;
+                }
+                printValue(pair.first);
+                std::cout << ":";
+                printValue(pair.second);
+            }
+            std::cout << "}";
+        }
         case ValueType::None: {
             std::cout << style.blue << "Null" << style.reset;
             return;

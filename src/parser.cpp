@@ -123,7 +123,10 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             }
             for_initialization = parseStatement(variable_str);
             auto in_node = dynamic_cast<BinaryOpNode*>(for_initialization.get());
-            if (in_node->op != TokenType::_In) {
+            if (in_node && in_node->op != TokenType::_In) {
+                if (in_node->op != TokenType::_Equals) {
+                    parsingError("Invalid for loop syntax", getToken().line, getToken().column);
+                }
                 if (!tokenIs(",")) {
                     parsingError("Invalid for loop syntax", getToken().line, getToken().column);
                 }
@@ -137,6 +140,11 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 for_increment = parseStatement(var_test);
                 if (*var_test != *variable_str) {
                     parsingError("For loop requires manipulation of the initialized variable", getToken().line, getToken().column);
+                }
+            }
+            else {
+                if (tokenIs(",")) {
+                    parsingError("For loop does not support unpacking", getToken().line, getToken().column);
                 }
             }
         } else if (t_str == "func") {
@@ -488,6 +496,29 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
         }
         consumeToken();
         return std::make_shared<ListNode>(list, token.line, token.column);
+    }
+    else if (tokenIs("{")) {
+        const Token& token = consumeToken();
+        ASTDictionary dict;
+        while (!tokenIs("}") && !tokenIs("eof") && !tokenIs(";")) {
+            auto key = parseLogicalOr();
+            if (!tokenIs(":")) {
+                parsingError("Expected ':'", getToken().line, getToken().column);
+            }
+            consumeToken();
+            auto value = parseLogicalOr();
+            dict.push_back(std::make_pair(key, value));
+            if (tokenIs(",") && !nextTokenIs("}")) {
+                consumeToken();
+            } else if (tokenIs(",")) {
+                parsingError("Expected more values", getToken().line, getToken().column);
+            }
+        }
+        if (tokenIs("eof") || tokenIs(";")) {
+            parsingError("Expected '}'", getToken().line, getToken().column);
+        }
+        consumeToken();
+        return std::make_shared<DictionaryNode>(dict, token.line, token.column);
     }
     else if (tokenIs("(")) {
         const Token& token = consumeToken();
