@@ -161,9 +161,17 @@ BinaryOpNode::BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::sha
     : ASTNode{line, column}, left{left}, op{op}, right{right} {}
 
 std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared_ptr<Value> left_value,
-                                                                    std::shared_ptr<Value>(right_value)) {
+                                                                    std::shared_ptr<Value>(right_value),
+                                                                    TokenType* custom_op) {
     std::string left_str = getValueStr(left_value);
     std::string right_str = getValueStr(right_value);
+
+    TokenType operation;
+    if (!custom_op) {
+        operation = op;
+    } else {
+        operation = *custom_op;
+    }
 
     // Helper function to determine the truthiness of a Value object
     auto check_truthy = [](const Value& value) -> bool {
@@ -270,7 +278,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
             auto rhs_value = rhs_iter->second;
 
             // Compare values
-            auto result = performOperation(lhs_value, rhs_value);
+            auto result = performOperation(lhs_value, rhs_value, &operation);
 
             if (!result) {
                 return false;
@@ -280,7 +288,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         return true;
     };
 
-    if (op == TokenType::_And) {
+    if (operation == TokenType::_And) {
         if (check_truthy(*left_value)) {
             if (check_truthy(*right_value)) {
                 return std::make_shared<Value>(true);
@@ -288,7 +296,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
         return std::make_shared<Value>(false);
     }
-    else if (op == TokenType::_Or) {
+    else if (operation == TokenType::_Or) {
         if (check_truthy(*left_value)) {
             return std::make_shared<Value>(true);
         } else if (check_truthy(*right_value)) {
@@ -300,23 +308,34 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
     if (left_str == "list" && right_str == "list") {
         // BOTH ARE LISTS
-        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
+        if (operation == TokenType::_Plus || operation == TokenType::_PlusEquals) {
             std::shared_ptr<List> new_list = std::make_shared<List>();
             new_list->insert(left_value->get<std::shared_ptr<List>>()); // push_back the second list
             new_list->insert(right_value->get<std::shared_ptr<List>>()); // push_back the second list
             return std::make_shared<Value>(new_list);
         }
-        else if (op == TokenType::_Compare) return std::make_shared<Value>(deepCompareLists(left_value->get<std::shared_ptr<List>>(),
+        else if (operation == TokenType::_In) {
+            auto list = right_value->get<std::shared_ptr<List>>();
+            for (int i = 0; i < list->size(); i++) {
+                if (list->at(i)->getType() == ValueType::List) {
+                    if (deepCompareLists(left_value->get<std::shared_ptr<List>>(), list->at(i)->get<std::shared_ptr<List>>())) {
+                        return std::make_shared<Value>(true);
+                    }
+                }
+            }
+            return std::make_shared<Value>(false);
+        }
+        else if (operation == TokenType::_Compare) return std::make_shared<Value>(deepCompareLists(left_value->get<std::shared_ptr<List>>(),
                                                                                             right_value->get<std::shared_ptr<List>>()));
-        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareLists(left_value->get<std::shared_ptr<List>>(), 
+        else if (operation == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareLists(left_value->get<std::shared_ptr<List>>(), 
                                                                                             right_value->get<std::shared_ptr<List>>()));
     }
 
     else if (left_str == "dictionary" && right_str == "dictionary") {
         // BOTH ARE DICTIONARIES
-        if (op == TokenType::_Compare) return std::make_shared<Value>(deepCompareDictionaries(left_value->get<std::shared_ptr<Dictionary>>(),
+        if (operation == TokenType::_Compare) return std::make_shared<Value>(deepCompareDictionaries(left_value->get<std::shared_ptr<Dictionary>>(),
                                                                                             right_value->get<std::shared_ptr<Dictionary>>()));
-        else if (op == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareDictionaries(left_value->get<std::shared_ptr<Dictionary>>(),
+        else if (operation == TokenType::_NotEqual) return std::make_shared<Value>(!deepCompareDictionaries(left_value->get<std::shared_ptr<Dictionary>>(),
                                                                                             right_value->get<std::shared_ptr<Dictionary>>()));
     }
 
@@ -324,20 +343,20 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         // BOTH STRINGS
         std::string lhs = left_value->get<std::string>();
         std::string rhs = right_value->get<std::string>();
-        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {
+        if (operation == TokenType::_Plus || operation == TokenType::_PlusEquals) {
             return std::make_shared<Value>(lhs + rhs);
         }
-        else if (op == TokenType::_Compare) {
+        else if (operation == TokenType::_Compare) {
             return std::make_shared<Value>(lhs == rhs);
         }
-        else if (op == TokenType::_NotEqual) {
+        else if (operation == TokenType::_NotEqual) {
             return std::make_shared<Value>(lhs != rhs);
         }
     }
 
     else if (left_str == "string" && right_str == "integer") {
         // STRING AND INT
-        if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) {
+        if (operation == TokenType::_Multiply || operation == TokenType::_MultiplyEquals) {
             std::string new_str = "";
             std::string copying = left_value->get<std::string>();
             for (int i = 0; i < right_value->get<int>(); i++) {
@@ -345,10 +364,10 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
             }
             return std::make_shared<Value>(new_str);
         }
-        else if (op == TokenType::_Compare) {
+        else if (operation == TokenType::_Compare) {
             return std::make_shared<Value>(false);
         }
-        else if (op == TokenType::_NotEqual) {
+        else if (operation == TokenType::_NotEqual) {
             return std::make_shared<Value>(true);
         }
     }
@@ -372,33 +391,33 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         }
 
         double op_result;
-        if (op == TokenType::_Plus || op == TokenType::_PlusEquals) {op_result = new_left + new_right;}
-        else if (op == TokenType::_Minus || op == TokenType::_MinusEquals) {op_result = new_left - new_right;}
-        else if (op == TokenType::_Multiply || op == TokenType::_MultiplyEquals) {op_result = new_left * new_right;}
-        else if (op == TokenType::_Divide || op == TokenType::_DivideEquals) {
+        if (operation == TokenType::_Plus || operation == TokenType::_PlusEquals) {op_result = new_left + new_right;}
+        else if (operation == TokenType::_Minus || operation == TokenType::_MinusEquals) {op_result = new_left - new_right;}
+        else if (operation == TokenType::_Multiply || operation == TokenType::_MultiplyEquals) {op_result = new_left * new_right;}
+        else if (operation == TokenType::_Divide || operation == TokenType::_DivideEquals) {
             if (new_right == 0.0) {
                 handleError("Attempted division by zero", line, column, "Zero Division Error");
             }
             return std::make_shared<Value>(new_left / new_right);
         }
-        else if (op == TokenType::_DoubleDivide) {
+        else if (operation == TokenType::_DoubleDivide) {
             if (new_right == 0.0) {
                 handleError("Attempted division by zero", line, column, "Zero Division Error");
             }
             int result = static_cast<int>(new_left / new_right);
             return std::make_shared<Value>(result);
         }
-        else if (op == TokenType::_Caret) {op_result = pow(new_left, new_right);}
-        else if (op == TokenType::_DoubleMultiply) {op_result = pow(new_left, new_right);}
-        else if (op == TokenType::_Mod) {op_result = fmod(new_left, new_right);}
-        else if (op == TokenType::_LessThan) {return std::make_shared<Value>(new_left < new_right);}
-        else if (op == TokenType::_LessEquals) {return std::make_shared<Value>(new_left <= new_right);}
-        else if (op == TokenType::_GreaterThan) {return std::make_shared<Value>(new_left > new_right);}
-        else if (op == TokenType::_GreaterEquals) {return std::make_shared<Value>(new_left >= new_right);}
-        else if (op == TokenType::_Compare) {
+        else if (operation == TokenType::_Caret) {op_result = pow(new_left, new_right);}
+        else if (operation == TokenType::_DoubleMultiply) {op_result = pow(new_left, new_right);}
+        else if (operation == TokenType::_Mod) {op_result = fmod(new_left, new_right);}
+        else if (operation == TokenType::_LessThan) {return std::make_shared<Value>(new_left < new_right);}
+        else if (operation == TokenType::_LessEquals) {return std::make_shared<Value>(new_left <= new_right);}
+        else if (operation == TokenType::_GreaterThan) {return std::make_shared<Value>(new_left > new_right);}
+        else if (operation == TokenType::_GreaterEquals) {return std::make_shared<Value>(new_left >= new_right);}
+        else if (operation == TokenType::_Compare) {
             return std::make_shared<Value>(new_left == new_right);
         }
-        else if (op == TokenType::_NotEqual) {
+        else if (operation == TokenType::_NotEqual) {
             return std::make_shared<Value>(new_left != new_right);
         }
         else {
@@ -414,7 +433,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
     else {
         // Unknown Type Combination
-        if (op == TokenType::_Compare || op == TokenType::_NotEqual) {
+        if (operation == TokenType::_Compare || operation == TokenType::_NotEqual) {
             // Lambda to compare values of the same type
             auto equalityCheck = [](const Value& lhs, const Value& rhs) -> bool {
                 // Compare based on type
@@ -449,9 +468,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
                 // Perform equality comparison
                 bool result = equalityCheck(*left_value, *right_value);
 
-                if (op == TokenType::_Compare) {
+                if (operation == TokenType::_Compare) {
                     return std::make_shared<Value>(result); // Return true/false
-                } else if (op == TokenType::_NotEqual) {
+                } else if (operation == TokenType::_NotEqual) {
                     return std::make_shared<Value>(!result); // Negate result for "NotEqual"
                 }
             } catch (const std::runtime_error& e) {
@@ -535,7 +554,8 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             auto list = right_value.value()->get<std::shared_ptr<List>>();
             for (int i = 0; i < list->size(); i++) {
                 const auto& item = list->at(i);
-                auto result = performOperation(left_value.value(), right_value.value());
+                TokenType compare = TokenType::_Compare;
+                auto result = performOperation(left_value.value(), item, &compare);
 
                 if (result && result.value()->getType() == ValueType::Boolean && result.value()->get<bool>()) {
                     return std::make_shared<Value>(true);
@@ -546,7 +566,8 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         else if (right_value.value()->getType() == ValueType::Dictionary) {
             auto dict = right_value.value()->get<std::shared_ptr<Dictionary>>();
             for (const auto& pair : *dict) {
-                auto result = performOperation(left_value.value(), right_value.value());
+                TokenType compare = TokenType::_Compare;
+                auto result = performOperation(left_value.value(), pair.first, &compare);
 
                 if (result && result.value()->getType() == ValueType::Boolean && result.value()->get<bool>()) {
                     return std::make_shared<Value>(true);

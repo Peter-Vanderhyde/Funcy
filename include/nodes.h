@@ -69,7 +69,7 @@ public:
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
     std::optional<std::shared_ptr<Value>> performOperation(std::shared_ptr<Value> left_value,
-                                                            std::shared_ptr<Value>(right_value));
+                                                            std::shared_ptr<Value>(right_value), TokenType* custom_op = nullptr);
 };
 
 class ParenthesisOpNode : public ASTNode {

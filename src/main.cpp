@@ -10,7 +10,7 @@
 
 
 int main(int argc, char* argv[]) {
-    bool TESTING = true;
+    bool TESTING = false;
     if (!TESTING && argc < 2) {
         runtimeError("Program usage: Funcy <program_path>");
         return 0;

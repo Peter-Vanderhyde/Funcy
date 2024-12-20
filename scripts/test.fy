@@ -1,8 +1,7 @@
-print(enumerate(list("Test")));
-print(enumerate(list("Test"), 6));
+d = {1:"one",
+    2:"two"};
 
-func enumerate(l, start) {
-    return zip(range(start, start + l.size()), l);
-}
+print(d in [1, [1, 2], d]);
 
-print(enumerate(list("Test"), 4));
+print(1 in [1, [1, 2], d]);
+print([1, 2] in [1, [1, 2], d]);
