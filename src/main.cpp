@@ -70,6 +70,7 @@ int main(int argc, char* argv[]) {
     env.addFunction("read", std::make_shared<Value>(std::make_shared<BuiltInFunction>(read)));
     env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
     env.addFunction("zip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(zip)));
+    env.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));

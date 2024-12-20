@@ -551,6 +551,34 @@ BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Envir
     return std::make_shared<Value>(result);
 }
 
+BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() < 1 || args.size() > 2) {
+        throw std::runtime_error("enumerate() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        throw std::runtime_error("enumerate() expected a list for argument 1");
+    }
+    int start = 0;
+    if (args.size() == 2) {
+        if (args[1]->getType() != ValueType::Integer) {
+            throw std::runtime_error("enumerate() expected an integer for argument 2");
+        }
+        start = args[1]->get<int>();
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+
+    auto result = std::make_shared<List>();
+    for (int i = 0; i < list->size(); i++) {
+        auto group = std::make_shared<List>();
+        group->push_back(std::make_shared<Value>(i + start));
+        group->push_back(list->at(i));
+        result->push_back(std::make_shared<Value>(group));
+    }
+    return std::make_shared<Value>(result);
+}
+
 
 
 ///  MEMBER FUNCTIONS  ///

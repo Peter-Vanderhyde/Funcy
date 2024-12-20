@@ -1,5 +1,8 @@
-a = [1, 2, 3, 4, 5];
-b = ["one", "two", "three"];
-c = [true, false, true, false, true, false];
+print(enumerate(list("Test")));
+print(enumerate(list("Test"), 6));
 
-print(zip(a, b, c));
+func enumerate(l, start) {
+    return zip(range(start, start + l.size()), l);
+}
+
+print(enumerate(list("Test"), 4));
