@@ -523,6 +523,34 @@ BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Env
     }
 }
 
+BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() < 2) {
+        throw std::runtime_error("input() takes 2 or more arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    int min_size = args[0]->get<std::shared_ptr<List>>()->size();
+
+    for (auto arg : args) {
+        if (arg->getType() != ValueType::List) {
+            throw std::runtime_error("zip() only accepts list arguments");
+        }
+        int size = arg->get<std::shared_ptr<List>>()->size();
+        if (size < min_size) {
+            min_size = size;
+        }
+    }
+
+    std::shared_ptr<List> result = std::make_shared<List>();
+    for (int i = 0; i < min_size; i++) {
+        std::shared_ptr<List> group = std::make_shared<List>();
+        for (auto arg : args) {
+            group->push_back(arg->get<std::shared_ptr<List>>()->at(i));
+        }
+        result->push_back(std::make_shared<Value>(group));
+    }
+    return std::make_shared<Value>(result);
+}
+
 
 
 ///  MEMBER FUNCTIONS  ///

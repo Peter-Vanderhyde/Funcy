@@ -1,4 +1,5 @@
-[first, last] = input("What is your full name? ->").split(" ");
+a = [1, 2, 3, 4, 5];
+b = ["one", "two", "three"];
+c = [true, false, true, false, true, false];
 
-print("First: " + first);
-print("Last: " + last);
+print(zip(a, b, c));
