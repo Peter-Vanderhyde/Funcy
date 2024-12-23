@@ -374,7 +374,7 @@ BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& a
                     if (k_v->size() == 2) {
                         dict->insert(std::make_pair(k_v->at(0), k_v->at(1)));
                     } else {
-                        throw std::runtime_error("Dictionary update sequence element " + std::to_string(i + 1) + " has length "\
+                        throw std::runtime_error("Dictionary update sequence element #" + std::to_string(i + 1) + " has length "\
  + std::to_string(k_v->size()) + "; 2 is required");
                     }
                 } else {
