@@ -179,7 +179,7 @@ public:
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     void setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_scope);
-    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values);
+    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env);
     
     Environment local_env;
     std::shared_ptr<std::string> func_name;

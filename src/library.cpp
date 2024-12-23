@@ -473,7 +473,7 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
             auto func_node = dynamic_cast<FuncNode*>(func->get<std::shared_ptr<ASTNode>>().get());
 
             if (func_node) {
-                auto result = func_node->callFunc(func_args);
+                auto result = func_node->callFunc(func_args, env);
                 if (result) {
                     result_list->push_back(result.value());
                 }

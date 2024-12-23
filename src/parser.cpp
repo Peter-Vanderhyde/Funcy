@@ -271,6 +271,11 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
             auto right = parseAtom();
             node = std::make_shared<KeywordNode>(TokenType::_Import, right, token.line, token.column);
         }
+        else if (tokenIs("global")) {
+            consumeToken();
+            auto right = parseIdentifier();
+            node = std::make_shared<KeywordNode>(TokenType::_Global, right, token.line, token.column);
+        }
 
         else {
             node = std::make_shared<KeywordNode>(getToken().type, nullptr, token.line, token.column);

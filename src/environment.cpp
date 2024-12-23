@@ -15,6 +15,14 @@ bool Scope::contains(std::string name) const {
     return static_cast<bool>(variables.count(name));
 }
 
+const std::vector<std::pair<std::string, std::shared_ptr<Value>>> Scope::getPairs() const {
+    std::vector<std::pair<std::string, std::shared_ptr<Value>>> pairs;
+    for (const auto& pair : variables) {
+        pairs.push_back(pair);
+    }
+    return pairs;
+}
+
 std::shared_ptr<Value> Scope::get(std::string name) const {
     if (contains(name)) {
         return variables.at(name);
@@ -41,6 +49,10 @@ void Environment::set(std::string name, std::shared_ptr<Value> value) {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");
     } else {
+        if (isGlobal(name)) {
+            scopes.front().set(name, value);
+            return;
+        }
         for (int i = scopes.size() - 1; i > -1; i--) {
             if (scopes.at(i).contains(name)) {
                 scopes.at(i).set(name, value);
@@ -56,8 +68,17 @@ std::shared_ptr<Value> Environment::get(std::string name) const {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");
     }
+
+    if (isGlobal(name)) {
+        if (scopes.front().contains(name)) {
+            return scopes.front().get(name);
+        } else {
+            handleError(std::format("Unrecognized variable {}.", name), 0, 0, "Runtime Error");
+        }
+    }
+    
     for (int i = scopes.size() - 1; i >= 0; i--) {
-        const auto scope = scopes.at(i);
+        const auto& scope = scopes.at(i);
         if (scope.contains(name)) {
             return scope.get(name);
         }
@@ -65,6 +86,7 @@ std::shared_ptr<Value> Environment::get(std::string name) const {
 
     handleError(std::format("Unrecognized variable {}.", name), 0, 0, "Runtime Error");
 }
+
 
 bool Environment::contains(std::string name) const {
     if (scopes.empty()) {
@@ -101,14 +123,17 @@ void Environment::resetLoop() {
 
 void Environment::addScope() {
     scopes.push_back(Scope());
+    resetGlobals();
 }
 
 void Environment::addScope(Scope& scope) {
     scopes.push_back(scope);
+    resetGlobals();
 }
 
 void Environment::removeScope() {
     scopes.pop_back();
+    removeGlobalScope();
 }
 
 std::vector<Scope> Environment::copyScopes() const {
@@ -117,7 +142,6 @@ std::vector<Scope> Environment::copyScopes() const {
 
 void Environment::addFunction(const std::string& name, std::shared_ptr<Value> func) {
     built_in_functions[name] = func;
-    built_in_names[func] = name;
 }
 
 std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
@@ -129,15 +153,6 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
     runtimeError("Unrecognized built-in function: " + name);
 }
 
-std::string Environment::getName(const std::shared_ptr<Value> func) const {
-    auto name = built_in_names.find(func);
-    if (name != built_in_names.end()) {
-        return name->second;
-    }
-
-    runtimeError("Unrecognized built-in name.");
-}
-
 bool Environment::hasFunction(const std::string& name) const {
     auto func = built_in_functions.find(name);
     return func != built_in_functions.end();
@@ -145,7 +160,6 @@ bool Environment::hasFunction(const std::string& name) const {
 
 void Environment::addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func) {
     member_functions[type][name] = func;
-    built_in_names[func] = getTypeStr(type) + "." + name;
 }
 
 std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string& name) const {
@@ -167,6 +181,35 @@ bool Environment::hasMember(ValueType type, const std::string& name) const {
         return func != members->second.end();
     }
     return false;
+}
+
+void Environment::addGlobal(std::string name) {
+    scoped_globals[scopeDepth()].push_back(name);
+}
+
+void Environment::resetGlobals() {
+    scoped_globals[scopeDepth()].clear();
+}
+
+void Environment::removeGlobalScope() {
+    scoped_globals.erase(scopeDepth() + 1);
+}
+
+bool Environment::isGlobal(std::string name) const {
+    for (int i = scopeDepth(); i > 0; i--) {
+        if (scoped_globals.find(i) != scoped_globals.end()) {
+            for (const auto& str : scoped_globals.at(i)) {
+                if (str == name) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void Environment::setGlobalValue(std::string name, std::shared_ptr<Value> value) {
+    scopes.at(0).set(name, value);
 }
 
 void Environment::display() const {

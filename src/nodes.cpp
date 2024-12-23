@@ -643,6 +643,8 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
         return env.get(name);
     } else if (env.hasFunction(name)) {
         return env.getFunction(name);
+    } else if (env.isGlobal(name)) {
+        return std::nullopt;
     } else {
         runtimeError(std::format("Name '{}' is not defined", name), line, column);
     }
@@ -973,6 +975,12 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
             throw ReturnException(right->evaluate(env));
         } else {
             throw ReturnException(std::nullopt);
+        }
+    } else if (keyword == TokenType::_Global) {
+        if (auto ident = std::dynamic_pointer_cast<IdentifierNode>(right)) {
+            env.addGlobal(ident->name);
+        } else {
+            runtimeError("global expected an identifier", line, column);
         }
     } else if (keyword == TokenType::_Import) {
         std::string path = currentExecutionContext();
@@ -1384,21 +1392,22 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_
     return;
 }
 
-std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values) {
+std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env) {
     Scope local_scope;
     setArgs(values, local_scope);
     local_env.addScope(local_scope);
     for (auto statement : block) {
         try {
-            if (auto func_statement = dynamic_cast<FuncCallNode*>(statement.get())) {
-                auto result = func_statement->evaluate(local_env);
-            } else {
-                auto result = statement->evaluate(local_env);
-            }
+            auto result = statement->evaluate(local_env);
         }
         catch (const ReturnException& e) {
             return e.value;
         }
+    }
+
+    auto scopes = local_env.copyScopes();
+    for (const auto& pair : scopes.at(0).getPairs()) {
+        global_env.setGlobalValue(pair.first, pair.second);
     }
 
     return std::nullopt;
@@ -1410,7 +1419,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
-            return func->callFunc(evaluateArgs(env));
+            return func->callFunc(evaluateArgs(env), env);
         } else {
             runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
         }
@@ -1438,7 +1447,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, V
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
             auto values = evaluateArgs(env);
             values.insert(values.begin(), member_value);
-            return func->callFunc(values);
+            return func->callFunc(values, env);
         } else {
             runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
         }

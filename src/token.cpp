@@ -62,7 +62,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_BuiltInType, "type:builtin function"},
     {TokenType::_Mod, "%"},
     {TokenType::_In, "in"},
-    {TokenType::_Import, "import"}
+    {TokenType::_Import, "import"},
+    {TokenType::_Global, "global"}
     //{TokenType::, ""}
 };
 
@@ -121,7 +122,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"BuiltInFunction", TokenType::_BuiltInType},
     {"Null", TokenType::_NullType},
     {"in", TokenType::_In},
-    {"import", TokenType::_Import}
+    {"import", TokenType::_Import},
+    {"global", TokenType::_Global}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {

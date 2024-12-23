@@ -1,6 +1,14 @@
-import "tic_tac_toe";
+x = 20;
 
 
-main();
+func try() {
+    global x;
+    global y;
+    print(x);
+    x = 10;
+    y = 30;
+}
 
-print("FINALLY! I made that so much harder than it needed to be :)");
+try();
+print(x);
+print(y);
