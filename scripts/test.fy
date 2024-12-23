@@ -1,14 +1,7 @@
-x = 20;
+original = "one two three four";
 
+# first method
+print(original.replace(" ", ", "));
 
-func try() {
-    global x;
-    global y;
-    print(x);
-    x = 10;
-    y = 30;
-}
-
-try();
-print(x);
-print(y);
+# second join method
+print(', '.join(original.split(' ')));

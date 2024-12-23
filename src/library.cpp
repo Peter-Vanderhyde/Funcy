@@ -965,3 +965,28 @@ BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& a
 
     return std::make_shared<Value>(str); // Return the modified string
 }
+
+BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("join() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string joiner = args[0]->get<std::string>();
+
+    if (args[1]->getType() != ValueType::List) {
+        throw std::runtime_error("join() expected a list as the second argument");
+    }
+    auto segments = args[1]->get<std::shared_ptr<List>>();
+    std::string combined = "";
+    for (int i = 0; i < segments->size(); i++) {
+        if (i != 0) {
+            combined += joiner;
+        }
+        if (segments->at(i)->getType() != ValueType::String) {
+            throw std::runtime_error("join() expected list of string elements, but got " + getValueStr(segments->at(i)));
+        }
+        combined += segments->at(i)->get<std::string>();
+    }
+
+    return std::make_shared<Value>(combined);
+}
