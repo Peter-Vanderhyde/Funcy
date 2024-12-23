@@ -1,18 +1,18 @@
-#include <thread>
-#include <stack>
-#include <string>
 #include "context.h"
 
+// Thread-local storage for execution context
+thread_local std::stack<std::string> execution_context;
+
 void pushExecutionContext(const std::string& filename) {
-    executionContext.push(filename);
+    execution_context.push(filename);
 }
 
 void popExecutionContext() {
-    if (!executionContext.empty()) {
-        executionContext.pop();
+    if (!execution_context.empty()) {
+        execution_context.pop();
     }
 }
 
 std::string currentExecutionContext() {
-    return executionContext.empty() ? "<unknown file>" : executionContext.top();
+    return execution_context.empty() ? "<unknown file>" : execution_context.top();
 }
