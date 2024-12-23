@@ -27,7 +27,7 @@ std::string getLine(const std::string& filename, int line) {
     return "";
 }
 
-void handleError(const std::string& message, int line, int column, std::string prefix) {
+void handleError(std::string message, int line, int column, std::string prefix) {
     std::string filename = currentExecutionContext();
     Style style{};
     std::string error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",

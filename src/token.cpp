@@ -20,7 +20,7 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Caret, "^"},
     {TokenType::_Dot, "."},
     {TokenType::_Equals, "="},
-    {TokenType::_EOF, "eof"},
+    {TokenType::_EOF, "EndOfFile"},
     {TokenType::_Compare, "=="},
     {TokenType::_And, "and"},
     {TokenType::_Or, "or"},
@@ -61,7 +61,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_FuncType, "type:function"},
     {TokenType::_BuiltInType, "type:builtin function"},
     {TokenType::_Mod, "%"},
-    {TokenType::_In, "in"}
+    {TokenType::_In, "in"},
+    {TokenType::_Import, "import"}
     //{TokenType::, ""}
 };
 
@@ -119,7 +120,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"Function", TokenType::_FuncType},
     {"BuiltInFunction", TokenType::_BuiltInType},
     {"Null", TokenType::_NullType},
-    {"in", TokenType::_In}
+    {"in", TokenType::_In},
+    {"import", TokenType::_Import}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {

@@ -1,10 +1,10 @@
 #pragma once
-#include <thread>
-#include <stack>
 #include <string>
+#include <stack>
+#include <thread>
 
 // Thread-local storage for execution context
-thread_local std::stack<std::string> executionContext;
+extern thread_local std::stack<std::string> execution_context;
 
 void pushExecutionContext(const std::string& filename);
 
