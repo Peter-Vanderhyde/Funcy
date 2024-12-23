@@ -2,7 +2,6 @@
 func getInput(prompt, possible_responses) {
     response = input(prompt);
     while response.lower() not in possible_responses {
-        print("Try Again.");
         response = input(prompt);
     }
     return response.lower();

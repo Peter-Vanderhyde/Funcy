@@ -1243,9 +1243,9 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
                 if (index_eval.value()->getType() == ValueType::Integer) {
                     int index = index_eval.value()->get<int>();
                     if (index >= 0 && index < env_list->size()) {
-                        env_list->at(index) = value;
+                        env_list->set(index, value);
                     } else if (index < 0 && index >= env_list->size() * -1) {
-                        env_list->at(env_list->size() - index) = value;
+                        env_list->set(env_list->size() - index, value);
                     } else {
                         runtimeError("Index assignment out of range", line, column);
                     }

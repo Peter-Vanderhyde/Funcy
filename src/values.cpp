@@ -121,6 +121,13 @@ void List::insert(const std::shared_ptr<List>& other) {
     elements.insert(elements.end(), other->elements.begin(), other->elements.end());
 }
 
+void List::set(size_t index, std::shared_ptr<Value> value) {
+    if (index >= elements.size()) {
+        throw std::out_of_range("Index out of range");
+    }
+    elements[index] = value;
+}
+
 std::shared_ptr<Value> List::at(size_t index) const {
     if (index >= elements.size() || index < 0) {
         throw std::out_of_range("Index out of range");
