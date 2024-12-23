@@ -266,6 +266,11 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
             auto right = parseLogicalOr();
             node = std::make_shared<KeywordNode>(TokenType::_Return, right, token.line, token.column);
         }
+        else if (tokenIs("import")) {
+            consumeToken();
+            auto right = parseAtom();
+            node = std::make_shared<KeywordNode>(TokenType::_Import, right, token.line, token.column);
+        }
 
         else {
             node = std::make_shared<KeywordNode>(getToken().type, nullptr, token.line, token.column);

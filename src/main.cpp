@@ -7,6 +7,7 @@
 #include "library.h"
 #include "lexer.h"
 #include "parser.h"
+#include "context.h"
 
 
 int main(int argc, char* argv[]) {
@@ -27,6 +28,8 @@ int main(int argc, char* argv[]) {
     if (source_code.empty()) {
         runtimeError("File " + filename + " is empty or could not be read.");
     }
+
+    pushExecutionContext(filename);
 
     Lexer lexer{source_code};
     std::vector<Token> tokens;
@@ -112,6 +115,8 @@ int main(int argc, char* argv[]) {
             return 1;
         }
     }
+
+    popExecutionContext();
 
     return 0;
 }

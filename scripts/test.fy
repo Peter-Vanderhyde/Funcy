@@ -1,7 +1,6 @@
-l = [1, 2, 3];
-a = [[1, l], [2, "two"]];
+import "tic_tac_toe";
 
-f = dict(a);
-print(f);
-l.pop();
-print(f);
+
+main();
+
+print("FINALLY! I made that so much harder than it needed to be :)");

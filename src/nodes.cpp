@@ -8,6 +8,9 @@
 #include "errorDefs.h"
 #include <functional>
 #include <algorithm>
+#include "parser.h"
+#include "context.h"
+#include "lexer.h"
 
 std::unordered_map<TokenType, ValueType> type_map{
     {TokenType::_IntType, ValueType::Integer},
@@ -971,6 +974,59 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         } else {
             throw ReturnException(std::nullopt);
         }
+    } else if (keyword == TokenType::_Import) {
+        std::string path = currentExecutionContext();
+        std::string new_path = path.substr(0, path.find_last_of('/'));
+        auto right_value = right->evaluate(env);
+        if (!right_value.has_value() || right_value.value()->getType() != ValueType::String) {
+            runtimeError("Import expected filename string", line, column);
+        }
+        new_path = new_path + "/" + right_value.value()->get<std::string>() + ".fy";
+        if (new_path == path) {
+            runtimeError("A file cannot import itself", line, column);
+        }
+
+        std::string source_code = readSourceCodeFromFile(new_path);
+
+        if (source_code.empty()) {
+            runtimeError("File " + new_path + " is empty or could not be read", line, column);
+        }
+
+        pushExecutionContext(new_path);
+
+        Lexer lexer{source_code};
+        auto tokens = lexer.tokenize();
+
+        // std::cout << "TOKENS:\n";
+        // for (Token t : tokens) {
+        //     std::cout << getTokenTypeLabel(t.type) << std::endl;
+        // }
+
+        Parser parser{tokens};
+        std::vector<std::shared_ptr<ASTNode>> statements;
+        statements = parser.parse();
+
+
+        for (auto statement : statements) {
+            try {
+                auto result = statement->evaluate(env);
+            }
+            catch (const ReturnException) {
+                throw std::runtime_error("Return was used outside of function.");
+            }
+            catch (const BreakException) {
+                throw std::runtime_error("Break was used outside of loop.");
+            }
+            catch (const ContinueException) {
+                throw std::runtime_error("Continue was used outside of loop.");
+            }
+            catch (const std::exception& e) {
+                std::cerr << e.what() << std::endl;
+            }
+        }
+
+        popExecutionContext();
+        return std::nullopt;
     } else if (type_map.contains(keyword)) {
         if (keyword == TokenType::_NullType) {
             return std::make_shared<Value>();

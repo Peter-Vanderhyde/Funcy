@@ -125,10 +125,12 @@ func main() {
     return answer in ['yes', 'y'];
 }
 
-print("Welcome to Tic-Tac-Toe!");
-replay = true;
-while replay {
-    replay = main();
-}
+func main() {
+    print("Welcome to Tic-Tac-Toe!");
+    replay = true;
+    while replay {
+        replay = main();
+    }
 
-print("Thanks for playing!");
+    print("Thanks for playing!");
+}
