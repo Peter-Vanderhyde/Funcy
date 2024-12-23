@@ -62,6 +62,7 @@ int main(int argc, char* argv[]) {
     env.addFunction("bool", std::make_shared<Value>(std::make_shared<BuiltInFunction>(boolConverter)));
     env.addFunction("str", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
     env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
+    env.addFunction("dict", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictConverter)));
     env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
     env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
     env.addFunction("map", std::make_shared<Value>(std::make_shared<BuiltInFunction>(map)));

@@ -322,8 +322,13 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
             }
             break;
         }
-        case ValueType::List:
-            return arg; // Already a list
+        case ValueType::List: {
+            auto orig_l = arg->get<std::shared_ptr<List>>();
+            for (int i = 0; i < orig_l->size(); i++) {
+                list->push_back(orig_l->at(i));
+            }
+            return std::make_shared<Value>(list); // Already a list
+        }
         case ValueType::Dictionary: {
             auto dict = arg->get<std::shared_ptr<Dictionary>>();
             std::vector<std::shared_ptr<Value>> values;
@@ -338,6 +343,51 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
         }
     }
     return std::make_shared<Value>(list);
+}
+
+BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    auto dict = std::make_shared<Dictionary>();
+
+    if (args.size() != 1 && args.size() != 0) {
+        throw std::runtime_error("dict() conversion takes 0-1 argument" + std::to_string(args.size()) + " were given");
+    }
+
+    if (args.size() == 0) {
+        return std::make_shared<Value>(dict);
+    }
+
+    auto arg = args[0];
+    switch (arg->getType()) {
+        case ValueType::Dictionary: {
+            auto orig_dict = arg->get<std::shared_ptr<Dictionary>>();
+            for (const auto& pair : *orig_dict) {
+                dict->insert(pair);
+            }
+            return std::make_shared<Value>(dict); // Already a dictionary
+        }
+        case ValueType::List: {
+            auto list = arg->get<std::shared_ptr<List>>();
+            for (int i = 0; i < list->size(); i++) {
+                auto element = list->at(i);
+                if (element->getType() == ValueType::List) {
+                    auto k_v = element->get<std::shared_ptr<List>>();
+                    if (k_v->size() == 2) {
+                        dict->insert(std::make_pair(k_v->at(0), k_v->at(1)));
+                    } else {
+                        throw std::runtime_error("Dictionary update sequence element " + std::to_string(i + 1) + " has length "\
+ + std::to_string(k_v->size()) + "; 2 is required");
+                    }
+                } else {
+                    throw std::runtime_error("Dictionary conversion requires the list to contain "\
+"lists holding exactly 2 elements each.");
+                }
+            }
+        }
+        default: {
+            break;
+        }
+    }
+    return std::make_shared<Value>(dict);
 }
 
 BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
