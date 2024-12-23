@@ -158,7 +158,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             consumeToken();
             auto arg_name = std::make_shared<std::string>("");
             std::vector<std::string> arg_strings;
-            while (!tokenIs(")") && !tokenIs("eof") && !tokenIs("{")) {
+            while (!tokenIs(")") && !tokenIs("EndOfFile") && !tokenIs("{")) {
                 if (!tokenIs("identifier")) {
                     parsingError("Expected argument but got " + getTokenStr(), getToken().line, getToken().column);
                 }
@@ -179,7 +179,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                     }
                 }
             }
-            if (tokenIs("eof")) {
+            if (tokenIs("EndOfFile")) {
                 parsingError("Missing ')'", getToken().line, getToken().column);
             } else if (tokenIs("{")) {
                 parsingError("Missing ')' before '{'", getToken().line, getToken().column);
@@ -197,11 +197,11 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         addIfElseScope();
 
         std::vector<std::shared_ptr<ASTNode>> block;
-        while (!tokenIs("eof") && !tokenIs("}")) {
+        while (!tokenIs("EndOfFile") && !tokenIs("}")) {
             block.push_back(parseFoundation());
         }
 
-        if (tokenIs("eof")) {
+        if (tokenIs("EndOfFile")) {
             parsingError("Expected '}'", getToken().line, getToken().column);
         }
         consumeToken();
@@ -516,7 +516,7 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
     if (tokenIs("[")) {
         const Token& token = consumeToken();
         ASTList list;
-        while (!tokenIs("]") && !tokenIs("eof") && !tokenIs(";")) {
+        while (!tokenIs("]") && !tokenIs("EndOfFile") && !tokenIs(";")) {
             auto element = parseLogicalOr();
             list.push_back(element);
             if (tokenIs(",") && !nextTokenIs("]")) {
@@ -525,7 +525,7 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
                 parsingError("Expected more values", getToken().line, getToken().column);
             }
         }
-        if (tokenIs("eof") || tokenIs(";")) {
+        if (tokenIs("EndOfFile") || tokenIs(";")) {
             parsingError("Expected ']'", getToken().line, getToken().column);
         }
         consumeToken();
@@ -534,7 +534,7 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
     else if (tokenIs("{")) {
         const Token& token = consumeToken();
         ASTDictionary dict;
-        while (!tokenIs("}") && !tokenIs("eof") && !tokenIs(";")) {
+        while (!tokenIs("}") && !tokenIs("EndOfFile") && !tokenIs(";")) {
             auto key = parseLogicalOr();
             if (!tokenIs(":")) {
                 parsingError("Expected ':'", getToken().line, getToken().column);
@@ -548,7 +548,7 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
                 parsingError("Expected more values", getToken().line, getToken().column);
             }
         }
-        if (tokenIs("eof") || tokenIs(";")) {
+        if (tokenIs("EndOfFile") || tokenIs(";")) {
             parsingError("Expected '}'", getToken().line, getToken().column);
         }
         consumeToken();
@@ -614,7 +614,7 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifi
     }
     consumeToken();
     std::vector<std::shared_ptr<ASTNode>> arguments;
-    while (!tokenIs(")") && !tokenIs("eof") && !tokenIs(";")) {
+    while (!tokenIs(")") && !tokenIs("EndOfFile") && !tokenIs(";")) {
         arguments.push_back(parseLogicalOr());
         if (!tokenIs(")") && !tokenIs(",")) {
             parsingError("Expected ','", getToken().line, getToken().column);
@@ -625,7 +625,7 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifi
             }
         }
     }
-    if (tokenIs("eof") || tokenIs(";")) {
+    if (tokenIs("EndOfFile") || tokenIs(";")) {
         parsingError("Expected ')'", getToken().line, getToken().column);
     }
     consumeToken();

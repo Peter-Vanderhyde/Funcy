@@ -20,7 +20,7 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Caret, "^"},
     {TokenType::_Dot, "."},
     {TokenType::_Equals, "="},
-    {TokenType::_EOF, "eof"},
+    {TokenType::_EOF, "EndOfFile"},
     {TokenType::_Compare, "=="},
     {TokenType::_And, "and"},
     {TokenType::_Or, "or"},
