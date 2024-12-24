@@ -63,7 +63,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Mod, "%"},
     {TokenType::_In, "in"},
     {TokenType::_Import, "import"},
-    {TokenType::_Global, "global"}
+    {TokenType::_Global, "global"},
+    {TokenType::_Class, "class"}
     //{TokenType::, ""}
 };
 
@@ -123,7 +124,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"Null", TokenType::_NullType},
     {"in", TokenType::_In},
     {"import", TokenType::_Import},
-    {"global", TokenType::_Global}
+    {"global", TokenType::_Global},
+    {"class", TokenType::_Class}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
@@ -132,7 +134,8 @@ std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
     {"else", TokenType::_Else},
     {"while", TokenType::_While},
     {"for", TokenType::_For},
-    {"func", TokenType::_Func}
+    {"func", TokenType::_Func},
+    {"class", TokenType::_Class}
     // Also change in parser.cpp
 };
 

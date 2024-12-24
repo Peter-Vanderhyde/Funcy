@@ -98,7 +98,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         {"else", TokenType::_Else},
         {"while", TokenType::_While},
         {"for", TokenType::_For},
-        {"func", TokenType::_Func}
+        {"func", TokenType::_Func},
+        {"class", TokenType::_Class}
     };
 
     std::string t_str = getTokenStr();

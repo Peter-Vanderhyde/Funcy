@@ -214,3 +214,14 @@ public:
 
     ASTDictionary dictionary;
 };
+
+class ClassNode : public ASTNode {
+public:
+    ClassNode(std::string name, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+        : ASTNode{line, column}, name{name}, block{block} {}
+
+    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+
+    std::string name;
+    std::vector<std::shared_ptr<ASTNode>> block;
+};

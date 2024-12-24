@@ -26,6 +26,7 @@ using Dictionary = std::map<std::shared_ptr<Value>, std::shared_ptr<Value>, Valu
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
     const std::vector<std::shared_ptr<Value>>& args, Environment& env
 )>;
+using Class = Environment;
 
 class List {
 private:
@@ -55,6 +56,7 @@ enum class ValueType {
     Function,
     Index,
     BuiltInFunction,
+    Class,
     Type
 };
 
@@ -62,7 +64,7 @@ class Value {
 private:
     std::variant<std::monostate, int, double, bool, std::string, std::shared_ptr<List>,
                 SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>, ValueType,
-                std::shared_ptr<Dictionary>> value;
+                std::shared_ptr<Dictionary>, std::shared_ptr<Class>> value;
     ValueType value_type;
 
 public:
@@ -77,6 +79,7 @@ public:
     Value(std::shared_ptr<BuiltInFunction> v);
     Value(ValueType v);
     Value(std::shared_ptr<Dictionary> v);
+    Value(std::shared_ptr<Class> v);
 
     ValueType getType() const;
 

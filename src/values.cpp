@@ -177,38 +177,14 @@ Value::Value(ValueType v)
 Value::Value(std::shared_ptr<Dictionary> v)
     : value{v}, value_type{ValueType::Dictionary} {}
 
+Value::Value(std::shared_ptr<Class> v)
+    : value{v}, value_type{ValueType::Class} {}
+
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;
 }
 
-
-std::string getValueStr(std::shared_ptr<Value> value) {
-    switch(value->getType()) {
-        case ValueType::Integer:
-            return "integer";
-        case ValueType::Float:
-            return "float";
-        case ValueType::Boolean:
-            return "boolean";
-        case ValueType::String:
-            return "string";
-        case ValueType::List:
-            return "list";
-        case ValueType::Function:
-            return "function";
-        case ValueType::BuiltInFunction:
-            return "builtin function";
-        case ValueType::Type:
-            return "type";
-        case ValueType::Dictionary:
-            return "dictionary";
-        case ValueType::None:
-            return "null";
-        default:
-            runtimeError("Attempted to get string of unrecognized Value type.");
-    }
-}
 
 std::string getValueStr(Value value) {
     switch(value.getType()) {
@@ -230,11 +206,17 @@ std::string getValueStr(Value value) {
             return "type";
         case ValueType::Dictionary:
             return "dictionary";
+        case ValueType::Class:
+            return "class";
         case ValueType::None:
             return "null";
         default:
             runtimeError("Attempted to get string of unrecognized Value type.");
     }
+}
+
+std::string getValueStr(std::shared_ptr<Value> value) {
+    return getValueStr(*value);
 }
 
 std::string getTypeStr(ValueType type) {
@@ -248,6 +230,7 @@ std::string getTypeStr(ValueType type) {
         {ValueType::BuiltInFunction, "Type:BuiltInFunction"},
         {ValueType::Type, "Type:Type"},
         {ValueType::Dictionary, "Type:Dictionary"},
+        {ValueType::Class, "Type:Class"},
         {ValueType::None, "Null"}
     };
     if (types.count(type) != 0) {

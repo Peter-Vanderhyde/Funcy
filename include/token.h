@@ -66,7 +66,8 @@ enum class TokenType{
     _Mod,
     _In,
     _Import,
-    _Global
+    _Global,
+    _Class
 };
 
 std::string getTokenTypeLabel(TokenType type);
