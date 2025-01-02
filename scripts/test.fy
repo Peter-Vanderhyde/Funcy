@@ -1,6 +1,1 @@
-import "test_file";
-func go() {
-    go();
-}
-
-go();
+print(read("fibonnaci.fy"));

@@ -7,9 +7,11 @@
 #include <vector>
 #include <memory>
 #include <chrono>
+#include <filesystem>
 #include "errorDefs.h"
 #include "values.h"
 #include "nodes.h"
+#include "context.h"
 
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
@@ -541,14 +543,29 @@ BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Envi
     }
 
     if (args[0]->getType() != ValueType::String) {
-        throw std::runtime_error("read() expected argument 1 to be a string");
+        throw std::runtime_error("read() expected a string as the argument");
     }
 
-    std::string filename = args[0]->get<std::string>();
-    //std::string path = GlobalContext::instance().getFilename();
-    //std::string new_path = path.substr(0, path.find_last_of('/'));
-    //return std::make_shared<Value>(readSourceCodeFromFile(new_path + "/" + filename));
-    return std::make_shared<Value>();
+    std::string new_path;
+
+    std::string file_path = args[0]->get<std::string>();
+    if (!std::filesystem::path(file_path).is_absolute()) {
+        std::string path = currentExecutionContext();
+        new_path = path.substr(0, path.find_last_of('/')) + "/" + file_path;
+    } else {
+        new_path = file_path;
+    }
+
+    std::ifstream file(new_path);
+    if (!file) {
+        throw std::runtime_error("Failed to open file: " + new_path);
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    file.close();
+
+    return std::make_shared<Value>(buffer.str());
 }
 
 BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {

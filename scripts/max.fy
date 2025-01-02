@@ -1,64 +1,48 @@
-# Funcy Program: Simulating a Simple Number Guessing Game
+# Funcy Program: Generating a Repetitive Pattern of Characters
 
-# Define a function to generate a list of numbers within a range
-func generate_numbers(start, end) {
-    return range(start, end + 1);
+# Define a function to generate a line of repeated characters with padding
+func generate_line(char, count, max_width) {
+    func helper(current, remaining) {
+        if (remaining <= 0) {
+            return current;
+        }
+        return helper(current + char, remaining - 1);
+    }
+
+    padding = " " * ((max_width - count) // 2);
+    return padding + helper("", count) + padding;
 }
 
-# Define a function to get user input for a guess
-func get_user_guess() {
-    guess = "";
-    while not guess.isDigit() {
-        guess = input("Enter your guess: ");
-    }
-    return int(guess);
-}
-
-# Define a function to check if the guess is correct
-func check_guess(number, target) {
-    if (number == target) {
-        return true;
-    }
-    if (number < target) {
-        print("Too low!");
-    } else {
-        print("Too high!");
-    }
-    return false;
-}
-
-# Define the main game function
-func play_game() {
-    print("Welcome to the Number Guessing Game!");
-
-    # Generate a range of numbers
-    numbers = generate_numbers(1, 100);
-
-    # Randomly select a target number
-    func pick_random(numbers) {
-        return numbers[int(str(float(time()))[-8:]) % numbers.size()];
-    }
-
-    target = pick_random(numbers);
-
-    # Allow the user a limited number of attempts
-    attempts = 0;
-    max_attempts = 10;
-
-    while (attempts < max_attempts) {
-        attempts = attempts + 1;
-        print("Attempt " + str(attempts) + " of " + str(max_attempts));
-
-        guess = get_user_guess();
-
-        if (check_guess(guess, target)) {
-            print("Congratulations! You guessed the number in " + str(attempts) + " attempts.");
+# Define a function to create a pattern of increasing lines only
+func generate_pattern(char, max_width) {
+    func helper(width) {
+        if (width > max_width) {
             return;
         }
+
+        print(generate_line(char, width, max_width));
+        helper(width + 2);
     }
 
-    print("Sorry, you've used all your attempts. The number was: " + str(target));
+    helper(1);
 }
 
-# Start the game
-play_game();
+# Define a function to generate a pattern for multiple characters
+func multi_pattern(chars, max_width) {
+    func helper(index) {
+        if (index >= chars.size()) {
+            return;
+        }
+
+        print("Pattern for character: " + str(chars[index]));
+        generate_pattern(chars[index], max_width);
+        helper(index + 1);
+    }
+
+    helper(0);
+}
+
+# Call the function with a list of characters and a maximum width
+characters = ["*", "#", "$", "%"];
+max_width = 9;
+multi_pattern(characters, max_width);
