@@ -565,13 +565,9 @@ BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Env
             std::cout << s;
         }
     }
-    if (args[0]->getType() == ValueType::String) {
-        std::string in;
-        std::getline(std::cin, in);
-        return std::make_shared<Value>(in);
-    } else {
-        throw std::runtime_error("input() expected a string argument");
-    }
+    std::string in;
+    std::getline(std::cin, in);
+    return std::make_shared<Value>(in);
 }
 
 BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
@@ -931,7 +927,7 @@ BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& a
     if (string.size() == 0) {
         return std::make_shared<Value>(false);
     }
-    
+
     for (char c : string) {
         if (!std::isdigit(c)) {
             return std::make_shared<Value>(false);

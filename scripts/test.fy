@@ -1,5 +1,5 @@
 guess = "";
 while not guess.isDigit() {
-    guess = input("Help");
+    guess = input();
 }
 print(int(guess));
