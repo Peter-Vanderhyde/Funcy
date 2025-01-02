@@ -97,34 +97,28 @@ int main(int argc, char* argv[]) {
     env.addMember(ValueType::String, "join", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringJoin)));
 
 
-    for (auto statement : statements) {
-        try {
-            auto result = statement->evaluate(env);
+    try {
+        for (auto statement : statements) {
+            try {
+                auto result = statement->evaluate(env);
+            }
+            catch (const ReturnException) {
+                runtimeError("Return was used outside of function");
+            }
+            catch (const BreakException) {
+                runtimeError("Break was used outside of loop");
+            }
+            catch (const ContinueException) {
+                runtimeError("Continue was used outside of loop");
+            }
+            catch (const StackOverflowException) {
+                handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
+            }
         }
-        catch (const ReturnException) {
-            Style s;
-            std::cerr << s.orange << "RuntimeError: Return was used outside of function." << s.reset;
-            return 1;
-        }
-        catch (const BreakException) {
-            Style s;
-            std::cerr << s.orange << "RuntimeError: Break was used outside of loop." << s.reset;
-            return 1;
-        }
-        catch (const ContinueException) {
-            Style s;
-            std::cerr << s.orange << "RuntimeError: Continue was used outside of loop." << s.reset;
-            return 1;
-        }
-        catch (const StackOverflowException) {
-            Style s;
-            std::cerr << s.orange << "StackOverflowError: Maximum recursion depth exceeded." << s.reset;
-            return 1;
-        }
-        catch (const std::exception& e) {
-            std::cerr << e.what() << std::endl;
-            return 1;
-        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
     }
 
     popExecutionContext();
