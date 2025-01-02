@@ -36,7 +36,7 @@ func play_game() {
 
     # Randomly select a target number
     func pick_random(numbers) {
-        return numbers[int(time()) % numbers.size()];
+        return numbers[int(str(float(time()))[-8:]) % numbers.size()];
     }
 
     target = pick_random(numbers);

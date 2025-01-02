@@ -1,1 +1,1 @@
-print(time());
+print(int(str(float(time()))[-8:]));
