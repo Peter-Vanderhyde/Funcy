@@ -68,3 +68,4 @@ public:
 
     std::optional<std::shared_ptr<Value>> value;
 };
+class StackOverflowException : public std::exception {};

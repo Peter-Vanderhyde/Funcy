@@ -13,7 +13,7 @@
 
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
-        runtimeError("Error: File must have a .fy extension.");
+        runtimeError("File must have a .fy extension");
         return "";
     }
 

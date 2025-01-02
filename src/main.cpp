@@ -8,6 +8,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "context.h"
+#include "errorDefs.h"
 
 
 
@@ -28,7 +29,7 @@ int main(int argc, char* argv[]) {
     std::string source_code = readSourceCodeFromFile(filename);
 
     if (source_code.empty()) {
-        runtimeError("File " + filename + " is empty or could not be read.");
+        runtimeError("File " + filename + " is empty or could not be read");
     }
 
     pushExecutionContext(filename);
@@ -42,11 +43,6 @@ int main(int argc, char* argv[]) {
         std::cerr << e.what();
         return 1;
     }
-
-    // std::cout << "TOKENS:\n";
-    // for (Token t : tokens) {
-    //     std::cout << getTokenTypeLabel(t.type) << std::endl;
-    // }
 
     Parser parser{tokens};
     std::vector<std::shared_ptr<ASTNode>> statements;
@@ -106,13 +102,24 @@ int main(int argc, char* argv[]) {
             auto result = statement->evaluate(env);
         }
         catch (const ReturnException) {
-            throw std::runtime_error("Return was used outside of function.");
+            Style s;
+            std::cerr << s.orange << "RuntimeError: Return was used outside of function." << s.reset;
+            return 1;
         }
         catch (const BreakException) {
-            throw std::runtime_error("Break was used outside of loop.");
+            Style s;
+            std::cerr << s.orange << "RuntimeError: Break was used outside of loop." << s.reset;
+            return 1;
         }
         catch (const ContinueException) {
-            throw std::runtime_error("Continue was used outside of loop.");
+            Style s;
+            std::cerr << s.orange << "RuntimeError: Continue was used outside of loop." << s.reset;
+            return 1;
+        }
+        catch (const StackOverflowException) {
+            Style s;
+            std::cerr << s.orange << "StackOverflowError: Maximum recursion depth exceeded." << s.reset;
+            return 1;
         }
         catch (const std::exception& e) {
             std::cerr << e.what() << std::endl;

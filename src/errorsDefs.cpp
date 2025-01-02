@@ -30,17 +30,24 @@ std::string getLine(const std::string& filename, int line) {
 void handleError(std::string message, int line, int column, std::string prefix) {
     std::string filename = currentExecutionContext();
     Style style{};
-    std::string error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",
-                                    style.red, prefix, style.reset, style.green, filename, style.reset,
-                                    style.purple, style.underline, line, column, style.reset);
-    error += std::format("        {}\n", getLine(filename, line));
-    std::string spaces = "        ";
-    for (int i = 0; i < column - 1; i++) {
-        spaces += " ";
+    std::string error;
+    if (line == 0 && column == 0) {
+        error = std::format("{}{}:{} File {}{}{}:\n\n{}{}.{}",
+                            style.red, prefix, style.reset, style.green, filename, style.reset,
+                            style.orange, message, style.reset);
+    } else {
+        error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",
+                                        style.red, prefix, style.reset, style.green, filename, style.reset,
+                                        style.purple, style.underline, line, column, style.reset);
+        error += std::format("        {}\n", getLine(filename, line));
+        std::string spaces = "        ";
+        for (int i = 0; i < column - 1; i++) {
+            spaces += " ";
+        }
+        spaces += style.orange + "^\n";
+        error += spaces;
+        error += std::format("{}.{}", message, style.reset);
     }
-    spaces += style.orange + "^\n";
-    error += spaces;
-    error += std::format("{}.{}", message, style.reset);
     throw std::runtime_error(error);
 }
 

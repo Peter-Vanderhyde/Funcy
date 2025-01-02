@@ -99,4 +99,4 @@ func deep_recursion(n) {
     return deep_recursion(n - 1);
 }
 
-print(deep_recursion(-1000));  # Expected: Depth Reached (ensure no stack overflow)
+print(deep_recursion(1600));  # Expected: Depth Reached (ensure no stack overflow)

@@ -1,1 +1,6 @@
-print(int(str(float(time()))[-8:]));
+import "test_file";
+func go() {
+    go();
+}
+
+go();

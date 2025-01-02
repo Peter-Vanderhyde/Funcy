@@ -210,7 +210,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
                 return false; // None is always false
             }
             default: {
-                runtimeError("Check Truthy called on unknown value type.");
+                runtimeError("Check Truthy called on unknown value type");
             }
         }
     };
@@ -478,7 +478,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
                 }
             } catch (const std::runtime_error& e) {
                 // Handle unexpected errors (e.g., type mismatch or invalid access)
-                handleError(e.what(), 0, 0, "Runtime Error");
+                runtimeError(e.what());
                 return std::nullopt;
             }
         }
@@ -795,7 +795,6 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             }
             catch (const ContinueException) {
                 // Does nothing but catches exception and proceeds to increment the variable
-                auto x = 1;
             }
 
             variable = original_variable;
@@ -1005,11 +1004,6 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         Lexer lexer{source_code};
         auto tokens = lexer.tokenize();
 
-        // std::cout << "TOKENS:\n";
-        // for (Token t : tokens) {
-        //     std::cout << getTokenTypeLabel(t.type) << std::endl;
-        // }
-
         Parser parser{tokens};
         std::vector<std::shared_ptr<ASTNode>> statements;
         statements = parser.parse();
@@ -1020,13 +1014,16 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
                 auto result = statement->evaluate(env);
             }
             catch (const ReturnException) {
-                throw std::runtime_error("Return was used outside of function.");
+                runtimeError("Return was used outside of function");
             }
             catch (const BreakException) {
-                throw std::runtime_error("Break was used outside of loop.");
+                runtimeError("Break was used outside of loop");
             }
             catch (const ContinueException) {
-                throw std::runtime_error("Continue was used outside of loop.");
+                runtimeError("Continue was used outside of loop");
+            }
+            catch (const StackOverflowException) {
+                handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
             }
             catch (const std::exception& e) {
                 std::cerr << e.what() << std::endl;
@@ -1333,7 +1330,6 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
                         for (int i = 0; i < slice_size; i++) {
                             if (start_val == env_list->size()) {
                                 break;
-                                // runtimeError("Assignment index went out of range.");
                             }
                             env_list->pop(start_val);
                         }
@@ -1397,6 +1393,10 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     setArgs(values, local_scope);
     local_env.addScope(local_scope);
     local_env.set(*func_name, global_env.get(*func_name));
+    recursion += 1;
+    if (recursion > 500) {
+        throw StackOverflowException();
+    }
     for (auto statement : block) {
         try {
             auto result = statement->evaluate(local_env);
@@ -1410,6 +1410,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     for (const auto& pair : scopes.at(0).getPairs()) {
         global_env.setGlobalValue(pair.first, pair.second);
     }
+    recursion -= 1;
 
     return std::nullopt;
 }
