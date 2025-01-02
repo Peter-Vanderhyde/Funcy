@@ -41,7 +41,7 @@ std::string Parser::getTokenStr() const {
 
 bool Parser::tokenIs(std::string str) const {
     if (str == "ident") {
-        runtimeError("Found ident instead of identifier.");
+        runtimeError("Found ident instead of identifier");
     }
     return str == getTokenStr();
 }

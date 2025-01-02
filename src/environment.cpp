@@ -27,7 +27,7 @@ std::shared_ptr<Value> Scope::get(std::string name) const {
     if (contains(name)) {
         return variables.at(name);
     } else {
-        handleError(std::format("Bad environment access with key '{}'.", name), 0, 0, "Runtime Error");
+        handleError(std::format("Bad environment access with key '{}'", name), 0, 0, "Runtime Error");
     }
 }
 
@@ -47,7 +47,7 @@ Environment::Environment() {}
 
 void Environment::set(std::string name, std::shared_ptr<Value> value) {
     if (scopes.empty()) {
-        handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");
+        handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     } else {
         if (isGlobal(name)) {
             scopes.front().set(name, value);
@@ -66,14 +66,14 @@ void Environment::set(std::string name, std::shared_ptr<Value> value) {
 
 std::shared_ptr<Value> Environment::get(std::string name) const {
     if (scopes.empty()) {
-        handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");
+        handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     }
 
     if (isGlobal(name)) {
         if (scopes.front().contains(name)) {
             return scopes.front().get(name);
         } else {
-            handleError(std::format("Unrecognized variable {}.", name), 0, 0, "Runtime Error");
+            handleError(std::format("Unrecognized variable {}", name), 0, 0, "Runtime Error");
         }
     }
     
@@ -84,13 +84,13 @@ std::shared_ptr<Value> Environment::get(std::string name) const {
         }
     }
 
-    handleError(std::format("Unrecognized variable {}.", name), 0, 0, "Runtime Error");
+    handleError(std::format("Unrecognized variable {}", name), 0, 0, "Runtime Error");
 }
 
 
 bool Environment::contains(std::string name) const {
     if (scopes.empty()) {
-        handleError("Attempted to access empty environment.", 0, 0, "Runtime Error");
+        handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     }
     for (const auto scope : scopes) {
         if (scope.contains(name)) {

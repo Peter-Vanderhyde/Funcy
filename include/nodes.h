@@ -15,6 +15,8 @@ using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::share
 [[noreturn]] void runtimeError(std::string message, int line, int column);
 [[noreturn]] void runtimeError(std::string message);
 
+bool check_truthy(const Value& value);
+
 class ASTNode {
 public:
     bool debug = false;
@@ -185,6 +187,7 @@ public:
     std::shared_ptr<std::string> func_name;
     std::vector<std::shared_ptr<ASTNode>> args;
     std::vector<std::shared_ptr<ASTNode>> block;
+    int recursion = 0;
 };
 
 class FuncCallNode : public ASTNode {
