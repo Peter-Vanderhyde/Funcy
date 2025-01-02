@@ -4,23 +4,14 @@
 
 #include <iostream>
 #include <vector>
-#include <csignal>
 #include "library.h"
 #include "lexer.h"
 #include "parser.h"
 #include "context.h"
 
 
-void signalHandler(int signal) {
-    if (signal == SIGSEGV) {
-        std::cerr << "Error: Stack overflow detected!" << std::endl;
-        std::exit(signal); // Exit gracefully with the signal code
-    }
-}
 
 int main(int argc, char* argv[]) {
-    // Register signal handler for segmentation faults
-    //std::signal(SIGSEGV, signalHandler);
 
     bool TESTING = false;
     if (!TESTING && argc < 2) {
