@@ -1,7 +1,5 @@
-original = "one two three four";
-
-# first method
-print(original.replace(" ", ", "));
-
-# second join method
-print(', '.join(original.split(' ')));
+guess = "";
+while not guess.isDigit() {
+    guess = input("Help");
+}
+print(int(guess));

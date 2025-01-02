@@ -4,13 +4,24 @@
 
 #include <iostream>
 #include <vector>
+#include <csignal>
 #include "library.h"
 #include "lexer.h"
 #include "parser.h"
 #include "context.h"
 
 
+void signalHandler(int signal) {
+    if (signal == SIGSEGV) {
+        std::cerr << "Error: Stack overflow detected!" << std::endl;
+        std::exit(signal); // Exit gracefully with the signal code
+    }
+}
+
 int main(int argc, char* argv[]) {
+    // Register signal handler for segmentation faults
+    //std::signal(SIGSEGV, signalHandler);
+
     bool TESTING = false;
     if (!TESTING && argc < 2) {
         runtimeError("Program usage: Funcy <program_path>");
@@ -75,6 +86,7 @@ int main(int argc, char* argv[]) {
     env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
     env.addFunction("zip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(zip)));
     env.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
+    env.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));

@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <vector>
 #include <memory>
+#include <chrono>
 #include "errorDefs.h"
 #include "values.h"
 #include "nodes.h"
@@ -629,6 +630,15 @@ BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args,
     return std::make_shared<Value>(result);
 }
 
+BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    using namespace std::chrono;
+
+    // Get the current time since epoch in milliseconds
+    auto now = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+
+    // Return it as a double for better compatibility
+    return std::make_shared<Value>(static_cast<double>(now));
+}
 
 
 ///  MEMBER FUNCTIONS  ///
@@ -918,6 +928,10 @@ BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& a
     }
 
     std::string string = args[0]->get<std::string>();
+    if (string.size() == 0) {
+        return std::make_shared<Value>(false);
+    }
+    
     for (char c : string) {
         if (!std::isdigit(c)) {
             return std::make_shared<Value>(false);

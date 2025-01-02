@@ -1396,6 +1396,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     Scope local_scope;
     setArgs(values, local_scope);
     local_env.addScope(local_scope);
+    local_env.set(*func_name, global_env.get(*func_name));
     for (auto statement : block) {
         try {
             auto result = statement->evaluate(local_env);
