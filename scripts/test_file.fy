@@ -1,102 +1,83 @@
-# Funcy Language Recursion and Scope Test File
+# Funcy Test File: Testing All Builtin and Type Builtin Functions
 
-# Test 1: Basic Recursion
-func countdown(n) {
-    if (n <= 0) {
-        print("Done");
-        return;
-    }
-    print(n);
-    countdown(n - 1);
+# Test Builtin Functions
+print("Expected: 10");
+print(int("10"));
+print("Expected: 10.5");
+print(float("10.5"));
+print("Expected: true");
+print(bool(1));
+print("Expected: false");
+print(bool(0));
+print("Expected: '123'");
+print(str(123));
+print("Expected: ['a', 'b', 'c']");
+print(list("abc"));
+print("Expected: {'key': 'value'}");
+print(dict([['key', 'value']]));
+print("Expected: 'Type:Integer'");
+print(type(123));
+print("Expected: range(0, 5)");
+print(range(0, 5));
+
+# Test Builtin List Functions
+list_test = [1, 2, 3, 4, 5];
+print("Expected: 5");
+print(list_test.size());
+list_test.append(6);
+print("Expected: [1, 2, 3, 4, 5, 6]");
+print(list_test);
+print("Expected: 6");
+print(list_test.pop());
+print("Expected: [1, 2, 3, 4, 5]");
+print(list_test);
+
+# Test Builtin Dictionary Functions
+dict_test = {"a": 1, "b": 2};
+print("Expected: 2");
+print(dict_test.get("b"));
+dict_test.update({"c": 3});
+print("Expected: {'a': 1, 'b': 2, 'c': 3}");
+print(dict_test);
+print("Expected: ['a', 'b', 'c']");
+print(dict_test.keys());
+print("Expected: [1, 2, 3]");
+print(dict_test.values());
+print("Expected: 3");
+print(dict_test.pop("c"));
+print("Expected: {'a': 1, 'b': 2}");
+print(dict_test);
+
+# Test Builtin String Functions
+string_test = "  Funcy Language  ";
+print("Expected: '  funcy language  '");
+print(string_test.lower());
+print("Expected: '  FUNCY LANGUAGE  '");
+print(string_test.upper());
+print("Expected: 'Funcy Language'");
+print(string_test.strip());
+print("Expected: ['Funcy', 'Language']");
+print(string_test.split());
+print("Expected: true");
+print("12345".isDigit());
+print("Expected: 18");
+print(string_test.length());
+print("Expected: 'Fancy Langaage'");
+print(string_test.replace("u", "a"));
+
+# Test Enumerate, Zip, and Map
+list1 = [1, 2, 3];
+list2 = ["a", "b", "c"];
+print("Expected: [(0, 1), (1, 2), (2, 3)]");
+print(enumerate(list1));
+print("Expected: [(1, 'a'), (2, 'b'), (3, 'c')]");
+print(zip(list1, list2));
+func double(x) {
+    return x * 2;
 }
+print("Expected: [2, 4, 6]");
+print(map(double, list1));
 
-countdown(5);  # Expected: 5, 4, 3, 2, 1, Done
-
-# Test 2: Nested Function with Recursion
-func outer(z) {
-    func inner(y) {
-        func recurse(x) {
-            if (x <= 0) {
-                return;
-            }
-            print(x);
-            recurse(x - 1);
-        }
-
-        recurse(y);
-    }
-
-    inner(z);
-}
-
-outer(3);  # Expected: 3, 2, 1
-
-/*# Test 3: Indirect Recursion
-func define_even_odd() {
-    func is_even(n) {
-        if (n == 0) {
-            return true;
-        }
-        return is_odd(n - 1);
-    }
-
-    func is_odd(n) {
-        if (n == 0) {
-            return false;
-        }
-        return is_even(n - 1);
-    }
-
-    return [is_even, is_odd];
-}
-
-funcs = define_even_odd();
-is_even = funcs[0];
-is_odd = funcs[1];
-
-print(is_even(4));  # Expected: true
-print(is_odd(4));   # Expected: false*/
-
-# Test 4: Recursive Factorial
-func factorial(n) {
-    if (n <= 1) {
-        return 1;
-    }
-    return n * factorial(n - 1);
-}
-
-print(factorial(5));  # Expected: 120
-
-# Test 5: Scope Integrity with Multiple Recursions
-func wrapper(a, b) {
-    func recurseA(x) {
-        if (x <= 0) {
-            return;
-        }
-        print("A:" + str(x));
-        recurseA(x - 1);
-    }
-
-    func recurseB(y) {
-        if (y <= 0) {
-            return;
-        }
-        print("B:" + str(y));
-        recurseB(y - 1);
-    }
-
-    recurseA(a);
-    recurseB(b);
-}
-
-wrapper(2, 3);  # Expected: A:2, A:1, B:3, B:2, B:1
-
-# Test 6: Deep Recursion Depth
-func deep_recursion(n) {
-    if (n == 0) {
-        return "Depth Reached";
-    }
-    return deep_recursion(n - 1);
-}
-
-print(deep_recursion(400));  # Expected: Depth Reached (ensure no stack overflow)
+# Test Time
+print("Expected: Current timestamp (variable)");
+print(time());

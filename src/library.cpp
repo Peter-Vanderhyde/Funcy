@@ -927,10 +927,14 @@ BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& arg
     std::string token;
     while ((pos = str.find(delimiter)) != std::string::npos) {
         token = str.substr(0, pos);
-        result.push_back(std::make_shared<Value>(token));
+        if (token != "") {
+            result.push_back(std::make_shared<Value>(token));
+        }
         str.erase(0, pos + delimiter.length());
     }
-    result.push_back(std::make_shared<Value>(str)); // Add the last token
+    if (str != "") {
+        result.push_back(std::make_shared<Value>(str)); // Add the last token
+    }
 
     return std::make_shared<Value>(std::make_shared<List>(result));
 }
