@@ -53,7 +53,7 @@ public:
     void display() const;
 private:
     std::vector<Scope> scopes;
-    int loop_depth;
+    int loop_depth = 0;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
     std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> member_functions;
     std::unordered_map<int, std::vector<std::string>> scoped_globals;

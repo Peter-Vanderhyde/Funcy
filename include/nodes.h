@@ -15,6 +15,8 @@ using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::share
 [[noreturn]] void runtimeError(std::string message, int line, int column);
 [[noreturn]] void runtimeError(std::string message);
 
+bool check_truthy(const Value& value);
+
 class ASTNode {
 public:
     bool debug = false;

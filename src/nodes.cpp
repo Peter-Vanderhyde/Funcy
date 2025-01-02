@@ -163,6 +163,45 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
 BinaryOpNode::BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right, int line, int column)
     : ASTNode{line, column}, left{left}, op{op}, right{right} {}
 
+// Helper function to determine the truthiness of a Value object
+bool check_truthy(const Value& value) {
+    switch (value.getType()) {
+        case ValueType::Boolean: {
+            return value.get<bool>(); // Directly get and return the bool value
+        }
+        case ValueType::Integer: {
+            return value.get<int>() != 0; // Integers are truthy if non-zero
+        }
+        case ValueType::Float: {
+            return value.get<double>() != 0.0; // Floats are truthy if non-zero
+        }
+        case ValueType::String: {
+            return !value.get<std::string>().empty(); // Strings are truthy if not empty
+        }
+        case ValueType::List: {
+            return !value.get<std::shared_ptr<List>>()->empty();
+        }
+        case ValueType::Dictionary: {
+            return !value.get<std::shared_ptr<Dictionary>>()->empty();
+        }
+        case ValueType::Function: {
+            return true;
+        }
+        case ValueType::BuiltInFunction: {
+            return true;
+        }
+        case ValueType::Type: {
+            return value.get<ValueType>() != ValueType::None;
+        }
+        case ValueType::None: {
+            return false; // None is always false
+        }
+        default: {
+            runtimeError("Check Truthy called on unknown value type");
+        }
+    }
+};
+
 std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared_ptr<Value> left_value,
                                                                     std::shared_ptr<Value>(right_value),
                                                                     TokenType* custom_op) {
@@ -175,45 +214,6 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
     } else {
         operation = *custom_op;
     }
-
-    // Helper function to determine the truthiness of a Value object
-    auto check_truthy = [](const Value& value) -> bool {
-        switch (value.getType()) {
-            case ValueType::Boolean: {
-                return value.get<bool>(); // Directly get and return the bool value
-            }
-            case ValueType::Integer: {
-                return value.get<int>() != 0; // Integers are truthy if non-zero
-            }
-            case ValueType::Float: {
-                return value.get<double>() != 0.0; // Floats are truthy if non-zero
-            }
-            case ValueType::String: {
-                return !value.get<std::string>().empty(); // Strings are truthy if not empty
-            }
-            case ValueType::List: {
-                return !value.get<std::shared_ptr<List>>()->empty();
-            }
-            case ValueType::Dictionary: {
-                return !value.get<std::shared_ptr<Dictionary>>()->empty();
-            }
-            case ValueType::Function: {
-                return true;
-            }
-            case ValueType::BuiltInFunction: {
-                return true;
-            }
-            case ValueType::Type: {
-                return value.get<ValueType>() != ValueType::None;
-            }
-            case ValueType::None: {
-                return false; // None is always false
-            }
-            default: {
-                runtimeError("Check Truthy called on unknown value type");
-            }
-        }
-    };
 
     // Deep comparison function for lists
     std::function<bool(const std::shared_ptr<List>&, const std::shared_ptr<List>&)> deepCompareLists;
@@ -594,7 +594,36 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         else {
             runtimeError("Expected list or dictionary for 'in' evaluation", line, column);
         }
-    } else {
+    } else if (op == TokenType::_And || op == TokenType::_Or) {
+        auto left_value = left->evaluate(env);
+        if (!left_value.has_value()) {
+            runtimeError("Unable to evaluate left operand for 'and' or 'or'", line, column);
+        }
+
+        bool left_truthy = check_truthy(*left_value.value());
+
+        // Short-circuit logic for 'and' and 'or'
+        if (op == TokenType::_And) {
+            if (!left_truthy) {
+                // Short-circuit: if left is false, return false immediately
+                return std::make_shared<Value>(false);
+            }
+        } else if (op == TokenType::_Or) {
+            if (left_truthy) {
+                // Short-circuit: if left is true, return true immediately
+                return std::make_shared<Value>(true);
+            }
+        }
+
+        // Evaluate the right-hand side only if necessary
+        auto right_value = right->evaluate(env);
+        if (!right_value.has_value()) {
+            runtimeError("Unable to evaluate right operand for 'and' or 'or'", line, column);
+        }
+
+        bool right_truthy = check_truthy(*right_value.value());
+        return std::make_shared<Value>(right_truthy);
+    }else {
         std::optional<std::shared_ptr<Value>> left_opt = left->evaluate(env);
         std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
 
