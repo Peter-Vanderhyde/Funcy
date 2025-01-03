@@ -96,7 +96,9 @@ void printValue(const std::shared_ptr<Value> value) {
             return;
         }
         case ValueType::Function: {
-            std::cout << style.blue << "Type:Function" << style.reset;
+            auto node = value->get<std::shared_ptr<ASTNode>>();
+            auto func_node = std::static_pointer_cast<FuncNode>(node);
+            std::cout << style.blue << "Function:" << *func_node->func_name << style.reset;
             return;
         }
         case ValueType::BuiltInFunction: {

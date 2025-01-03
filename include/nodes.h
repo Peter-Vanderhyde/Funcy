@@ -227,4 +227,5 @@ public:
 
     std::string name;
     std::vector<std::shared_ptr<ASTNode>> block;
+    Environment env_snapshot;
 };

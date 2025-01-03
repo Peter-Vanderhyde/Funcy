@@ -576,7 +576,7 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
 
 std::shared_ptr<ASTNode> Parser::parseAtom() {
     if (debug) std::cout << "Parse Atom " << getTokenStr() << std::endl;
-    else if (tokenIs("integer") || tokenIs("float") || tokenIs("boolean") || tokenIs("string")) {
+    if (tokenIs("integer") || tokenIs("float") || tokenIs("boolean") || tokenIs("string")) {
         const Token& token = consumeToken();
         if (std::holds_alternative<int>(token.value)) {
             auto int_value = std::get<int>(token.value);

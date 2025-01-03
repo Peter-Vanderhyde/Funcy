@@ -1419,9 +1419,9 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_
 
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env) {
     Scope local_scope;
+    local_scope.set(*func_name, global_env.get(*func_name));
     setArgs(values, local_scope);
     local_env.addScope(local_scope);
-    local_env.set(*func_name, global_env.get(*func_name));
     recursion += 1;
     if (recursion > 500) {
         throw StackOverflowException();
@@ -1526,4 +1526,36 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
     }
 
     return std::make_shared<Value>(evaluated_dict);
+}
+
+std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
+    if (debug) std::cout << "Evaluate Void Class" << std::endl;
+
+    auto current_scopes = env.copyScopes();
+    for (auto scope : current_scopes) {
+        env_snapshot.addScope(scope);
+    }
+
+    try {
+        for (auto statement : block) {
+            statement->evaluate(env_snapshot);
+        }
+    }
+    catch (const ReturnException) {
+        runtimeError("Return was used outside of function");
+    }
+    catch (const BreakException) {
+        runtimeError("Break was used outside of loop");
+    }
+    catch (const ContinueException) {
+        runtimeError("Continue was used outside of loop");
+    }
+    catch (const StackOverflowException) {
+        handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
+    return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<ClassNode>(*this)));
 }
