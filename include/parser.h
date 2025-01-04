@@ -18,6 +18,7 @@ private:
     std::string getTokenStr() const;
     bool tokenIs(std::string str) const;
     bool nextTokenIs(std::string str, int ahead = 1) const;
+    void expect(std::string expected) const;
 
     std::shared_ptr<ASTNode> parseFoundation();
     std::shared_ptr<ASTNode> parseControlFlowStatement();

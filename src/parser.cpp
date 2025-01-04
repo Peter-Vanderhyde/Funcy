@@ -50,6 +50,12 @@ bool Parser::nextTokenIs(std::string str, int ahead) const {
     return str == getTokenTypeLabel(peekToken(ahead).value()->type);
 }
 
+void Parser::expect(std::string expected) const {
+    if (!tokenIs(expected)) {
+        parsingError("Expected " + expected + " but got " + getTokenStr(), getToken().line, getToken().column);
+    }
+}
+
 
 std::vector<std::shared_ptr<ASTNode>> Parser::parse() {
     std::vector<std::shared_ptr<ASTNode>> statements;
@@ -76,11 +82,8 @@ std::shared_ptr<ASTNode> Parser::parseFoundation() {
     }
     else {
         auto statement = parseStatement();
-        if (!tokenIs(";")) {
-            handleError("Expected ';' but got " + getTokenStr(), getToken().line, getToken().column, "Syntax Error");
-        } else {
-            consumeToken();
-        }
+        expect(";");
+        consumeToken();
         return statement;
     }
 }
@@ -149,13 +152,9 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 }
             }
         } else if (t_str == "func") {
-            if (!tokenIs("identifier")) {
-                parsingError("Expected an identifier but got " + getTokenStr(), getToken().line, getToken().column);
-            }
+            expect("identifier");
             func_name = parseIdentifier(func_str);
-            if (!tokenIs("(")) {
-                parsingError("Expected an '(' but got " + getTokenStr(), getToken().line, getToken().column);
-            }
+            expect("(");
             consumeToken();
             auto arg_name = std::make_shared<std::string>("");
             std::vector<std::string> arg_strings;
@@ -187,6 +186,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             } else {
                 consumeToken();
             }
+        } else if (t_str == "class") {
+            expect("identifier");
         }
 
         if (!tokenIs("{")) {
@@ -542,9 +543,7 @@ std::shared_ptr<ASTNode> Parser::parseCollection() {
         ASTDictionary dict;
         while (!tokenIs("}") && !tokenIs("EndOfFile") && !tokenIs(";")) {
             auto key = parseLogicalOr();
-            if (!tokenIs(":")) {
-                parsingError("Expected ':'", getToken().line, getToken().column);
-            }
+            expect(":");
             consumeToken();
             auto value = parseLogicalOr();
             dict.push_back(std::make_pair(key, value));
@@ -615,9 +614,7 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifi
         }
         identifier = parseIdentifier(nullptr);
     }
-    if (!tokenIs("(")) {
-        parsingError("Missing '(' at function call", getToken().line, getToken().column);
-    }
+    expect("(");
     consumeToken();
     std::vector<std::shared_ptr<ASTNode>> arguments;
     while (!tokenIs(")") && !tokenIs("EndOfFile") && !tokenIs(";")) {
