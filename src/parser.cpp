@@ -114,7 +114,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         std::shared_ptr<ASTNode> for_increment;
         std::vector<std::shared_ptr<ASTNode>> func_args;
         std::shared_ptr<ASTNode> func_name;
-        auto func_str = std::make_shared<std::string>("");
+        auto name_str = std::make_shared<std::string>("");
         if (t_str == "if" || t_str == "elif" || t_str == "while") {
             if (tokenIs("{")) {
                 parsingError("Missing boolean expression ", getToken().line, getToken().column);
@@ -153,7 +153,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             }
         } else if (t_str == "func") {
             expect("identifier");
-            func_name = parseIdentifier(func_str);
+            func_name = parseIdentifier(name_str);
             expect("(");
             consumeToken();
             auto arg_name = std::make_shared<std::string>("");
@@ -188,11 +188,10 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             }
         } else if (t_str == "class") {
             expect("identifier");
+            func_name = parseIdentifier(name_str);
         }
 
-        if (!tokenIs("{")) {
-            parsingError("Expected '{' but got " + getTokenStr(), getToken().line, getToken().column);
-        }
+        expect("{");
         consumeToken();
 
         // Prevent connected elif to if outside of scope
@@ -234,7 +233,9 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
             return std::make_shared<ForNode>(keyword.type, for_initialization, variable_str, comparison_expr, for_increment, block, keyword.line, keyword.column);
         } else if (t_str == "func") {
-            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(func_str, func_args, block, keyword.line, keyword.column), keyword.line, keyword.column);
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(name_str, func_args, block, keyword.line, keyword.column), keyword.line, keyword.column);
+        } else if (t_str == "class") {
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<ClassNode>(name_str, block, keyword.line, keyword.column), keyword.line, keyword.column);
         } else {
             return std::make_shared<ScopedNode>(keyword.type, nullptr, comparison_expr, block, keyword.line, keyword.column);
         }
