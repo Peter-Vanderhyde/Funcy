@@ -8,6 +8,7 @@
 #include <functional>
 #include <optional>
 #include <map>
+#include "environment.h"
 
 enum class SpecialIndex {
     Begin,
@@ -17,6 +18,9 @@ enum class SpecialIndex {
 class Value;
 class ASTNode;
 class Environment;
+class Scope;
+class Class;
+class Instance;
 
 struct ValueCompare {
     bool operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const;
@@ -26,7 +30,6 @@ using Dictionary = std::map<std::shared_ptr<Value>, std::shared_ptr<Value>, Valu
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
     const std::vector<std::shared_ptr<Value>>& args, Environment& env
 )>;
-using Class = Environment;
 
 class List {
 private:
@@ -45,6 +48,37 @@ public:
     bool empty() const;
 };
 
+/*
+Have classes hold both their local environment and outer scope environment.
+Lookups from within the class are first checked in the local env, and then the outer env.
+However, if the identifier has a match with a function the in the local env and the name matches the
+class name, then check the outer scope and use the first class you find of that name.
+*/
+
+class Class {
+private:
+    std::string name;
+    Environment class_env;
+
+public:
+    Class(std::string name, Scope class_scope, std::vector<Scope> outer_scopes);
+    
+    std::shared_ptr<Instance> createInstance(std::vector<std::shared_ptr<Value>> args);
+    std::string getName() const;
+};
+
+class Instance {
+private:
+    std::string class_name;
+    Environment instance_env;
+
+public:
+    Instance(std::string class_name, Environment instance_env)
+        : class_name{class_name}, instance_env{instance_env} {}
+    
+    std::string getClassName() const;
+};
+
 enum class ValueType {
     Integer,
     Boolean,
@@ -57,6 +91,7 @@ enum class ValueType {
     Index,
     BuiltInFunction,
     Class,
+    Instance,
     Type
 };
 
@@ -64,7 +99,7 @@ class Value {
 private:
     std::variant<std::monostate, int, double, bool, std::string, std::shared_ptr<List>,
                 SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>, ValueType,
-                std::shared_ptr<Dictionary>, std::shared_ptr<Class>> value;
+                std::shared_ptr<Dictionary>, std::shared_ptr<Class>, std::shared_ptr<Instance>> value;
     ValueType value_type;
 
 public:
@@ -80,6 +115,7 @@ public:
     Value(ValueType v);
     Value(std::shared_ptr<Dictionary> v);
     Value(std::shared_ptr<Class> v);
+    Value(std::shared_ptr<Instance> v);
 
     ValueType getType() const;
 

@@ -144,6 +144,23 @@ bool List::empty() const {
 }
 
 
+Class::Class(std::string name, Scope class_scope, std::vector<Scope> outer_scopes)
+        : name{name}, class_env{Environment{class_scope, outer_scopes}} {}
+
+std::shared_ptr<Instance> Class::createInstance(std::vector<std::shared_ptr<Value>> args) {
+    return std::make_shared<Instance>(name, class_env);
+}
+
+std::string Class::getName() const {
+    return name;
+}
+
+
+std::string Instance::getClassName() const {
+    return class_name;
+}
+
+
 Value::Value()  // Defaults to monostate (NONE)
     : value_type{ValueType::None} {}
 
@@ -180,6 +197,9 @@ Value::Value(std::shared_ptr<Dictionary> v)
 Value::Value(std::shared_ptr<Class> v)
     : value{v}, value_type{ValueType::Class} {}
 
+Value::Value(std::shared_ptr<Instance> v)
+    : value{v}, value_type{ValueType::Instance} {}
+
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;
@@ -208,6 +228,8 @@ std::string getValueStr(Value value) {
             return "dictionary";
         case ValueType::Class:
             return "class";
+        case ValueType::Instance:
+            return "instance";
         case ValueType::None:
             return "null";
         default:
@@ -231,6 +253,7 @@ std::string getTypeStr(ValueType type) {
         {ValueType::Type, "Type:Type"},
         {ValueType::Dictionary, "Type:Dictionary"},
         {ValueType::Class, "Type:Class"},
+        {ValueType::Instance, "Type:Instance"},
         {ValueType::None, "Null"}
     };
     if (types.count(type) != 0) {

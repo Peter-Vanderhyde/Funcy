@@ -5,7 +5,9 @@
 #include <memory>
 #include <vector>
 #include <optional>
-#include "values.h"
+
+class Value;
+enum class ValueType;
 
 class Scope {
 public:
@@ -22,6 +24,7 @@ private:
 class Environment {
 public:
     Environment();
+    Environment(Scope class_scope, std::vector<Scope> outer_scopes);
     void set(std::string name, std::shared_ptr<Value> value);
     bool contains(std::string name) const;
     std::shared_ptr<Value> get(std::string name) const;
@@ -29,6 +32,7 @@ public:
     int scopeDepth() const;
     void addScope();
     void addScope(Scope& scope);
+    Scope getScope();
     void removeScope();
     std::vector<Scope> copyScopes() const;
     void addLoop();
@@ -53,6 +57,8 @@ public:
     void display() const;
 private:
     std::vector<Scope> scopes;
+    Scope class_scope;
+    bool class_env;
     int loop_depth = 0;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
     std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> member_functions;

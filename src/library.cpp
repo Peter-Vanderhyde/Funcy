@@ -105,6 +105,14 @@ void printValue(const std::shared_ptr<Value> value) {
             std::cout << style.blue << "Type:BuiltInFunction" << style.reset;
             return;
         }
+        case ValueType::Class: {
+            auto node = value->get<std::shared_ptr<Class>>();
+            std::cout << style.blue << "Class:" << node->getName() << style.reset;
+        }
+        case ValueType::Instance: {
+            auto node = value->get<std::shared_ptr<Instance>>();
+            std::cout << style.blue << node->getClassName() << ":Instance" << style.reset;
+        }
         case ValueType::Type: {
             std::cout << style.blue << getTypeStr(value->get<ValueType>()) << style.reset;
             return;

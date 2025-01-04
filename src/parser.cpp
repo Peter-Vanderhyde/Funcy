@@ -635,7 +635,7 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifi
         parsingError("Expected ')'", getToken().line, getToken().column);
     }
     consumeToken();
-    return std::make_shared<FuncCallNode>(identifier, arguments, identifier->line, identifier->column);
+    return std::make_shared<MethodCallNode>(identifier, arguments, identifier->line, identifier->column);
 }
 
 std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString) {

@@ -20,6 +20,8 @@ std::unordered_map<TokenType, ValueType> type_map{
     {TokenType::_ListType, ValueType::List},
     {TokenType::_FuncType, ValueType::Function},
     {TokenType::_BuiltInType, ValueType::BuiltInFunction},
+    {TokenType::_Class, ValueType::Class},
+    {TokenType::_Instance, ValueType::Instance},
     {TokenType::_NullType, ValueType::None}
 };
 
@@ -188,6 +190,12 @@ bool check_truthy(const Value& value) {
             return true;
         }
         case ValueType::BuiltInFunction: {
+            return true;
+        }
+        case ValueType::Class: {
+            return true;
+        }
+        case ValueType::Instance: {
             return true;
         }
         case ValueType::Type: {
@@ -533,7 +541,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
 
         // Get the type of the member
         ValueType member_type = left_value.value()->getType();
-        if (auto func_node = std::dynamic_pointer_cast<FuncCallNode>(right)) {
+        if (auto func_node = std::dynamic_pointer_cast<MethodCallNode>(right)) {
             // It's a member function
             // Save the result of the member to pass into the function
             func_node->member_value = left_value.value();
@@ -1444,8 +1452,8 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     return std::nullopt;
 }
 
-std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Function Call" << std::endl;
+std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env) {
+    if (debug) std::cout << "Evaluate Method Call" << std::endl;
     auto mapped_value = identifier->evaluate(env).value();
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
@@ -1463,13 +1471,22 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env) {
         catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
         }
-    } else {
+    } else if (mapped_value->getType() == ValueType::Class) {
+        auto class_value = mapped_value->get<std::shared_ptr<Class>>();
+        try {
+            return std::make_shared<Value>(class_value->createInstance(evaluateArgs(env)));
+        }
+        catch (const std::exception& e) {
+            runtimeError(e.what(), line, column);
+        }
+    }
+    else {
         runtimeError("Object type " + getValueStr(mapped_value) + " is not callable", line, column);
     }
     return std::nullopt;
 }
 
-std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, ValueType member_type) {
+std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env, ValueType member_type) {
     if (debug) std::cout << "Evaluate Function Call" << std::endl;
     auto ident_node = dynamic_cast<IdentifierNode*>(&*identifier);
     auto mapped_value = ident_node->evaluate(env, member_type).value();
@@ -1498,7 +1515,7 @@ std::optional<std::shared_ptr<Value>> FuncCallNode::evaluate(Environment& env, V
     return std::nullopt;
 }
 
-std::vector<std::shared_ptr<Value>> FuncCallNode::evaluateArgs(Environment& env) {
+std::vector<std::shared_ptr<Value>> MethodCallNode::evaluateArgs(Environment& env) {
     std::vector<std::shared_ptr<Value>> evaluated_values;
     for (auto value_node : values) {
         auto result = value_node->evaluate(env);
@@ -1529,16 +1546,12 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
 }
 
 std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Void Class" << std::endl;
-
-    auto current_scopes = env.copyScopes();
-    for (auto scope : current_scopes) {
-        env_snapshot.addScope(scope);
-    }
-
+    if (debug) std::cout << "Evaluate Class" << std::endl;
+    // Prevent the constructor overwriting the class name in the env
+    auto class_reference = env.get(name);
     try {
         for (auto statement : block) {
-            statement->evaluate(env_snapshot);
+            statement->evaluate(env);
         }
     }
     catch (const ReturnException) {
@@ -1557,5 +1570,16 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
         std::cerr << e.what() << std::endl;
     }
 
-    return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<ClassNode>(*this)));
+    local_scope = env.getScope();
+    env.removeScope();
+    auto overwritten_class = env.get(name);
+    if (overwritten_class->getType() != ValueType::Function) {
+        runtimeError("Class " + name + " is missing a constructor", line, column);
+    }
+    local_scope.set(name, overwritten_class);
+    env.set(name, class_reference);
+
+    auto outer_scopes = env.copyScopes();
+
+    return std::make_shared<Value>(std::make_shared<Class>(name, local_scope, outer_scopes));
 }

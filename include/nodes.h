@@ -190,12 +190,12 @@ public:
     int recursion = 0;
 };
 
-class FuncCallNode : public ASTNode {
+class MethodCallNode : public ASTNode {
 public:
-    FuncCallNode(std::shared_ptr<ASTNode> identifier, std::vector<std::shared_ptr<ASTNode>> values, int line, int column)
+    MethodCallNode(std::shared_ptr<ASTNode> identifier, std::vector<std::shared_ptr<ASTNode>> values, int line, int column)
         : ASTNode{line, column}, identifier{identifier}, values{values} {}
     
-    ~FuncCallNode() noexcept override = default;
+    ~MethodCallNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env, ValueType member_type);
@@ -227,5 +227,6 @@ public:
 
     std::string name;
     std::vector<std::shared_ptr<ASTNode>> block;
-    Environment env_snapshot;
+    Environment snapshot_env;
+    Scope local_scope;
 };

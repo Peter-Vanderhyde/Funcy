@@ -3,6 +3,7 @@
 #include <format>
 #include <iostream>
 #include "errorDefs.h"
+#include "values.h"
 
 
 Scope::Scope() {}
@@ -43,7 +44,12 @@ void Scope::display() const {
 }
 
 
-Environment::Environment() {}
+Environment::Environment() {
+    class_env = false;
+}
+
+Environment::Environment(Scope class_scope, std::vector<Scope> outer_scopes)
+        : class_scope{class_scope}, scopes{outer_scopes} {}
 
 void Environment::set(std::string name, std::shared_ptr<Value> value) {
     if (scopes.empty()) {
@@ -129,6 +135,10 @@ void Environment::addScope() {
 void Environment::addScope(Scope& scope) {
     scopes.push_back(scope);
     resetGlobals();
+}
+
+Scope Environment::getScope() {
+    return scopes.back();
 }
 
 void Environment::removeScope() {
