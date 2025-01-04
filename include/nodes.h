@@ -220,8 +220,8 @@ public:
 
 class ClassNode : public ASTNode {
 public:
-    ClassNode(std::string name, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
-        : ASTNode{line, column}, name{name}, block{block} {}
+    ClassNode(std::shared_ptr<std::string> name, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
+        : ASTNode{line, column}, name{*name}, block{block} {}
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
 
