@@ -3,9 +3,11 @@ class Test {
     func Test(x, y) {
         x + y;
         name = "Jeff";
+        hair = "blue";
         func deeper() {
             name = "George";
             print(name);
+            print(hair);
         }
         deeper();
     }

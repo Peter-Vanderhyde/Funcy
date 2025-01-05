@@ -1453,6 +1453,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     if (global_env.isClassEnv()) {
         local_env.removeScope();
         local_env.setClassEnv(global_env.getClassGlobals());
+        local_env.getClassGlobals().display();
     }
     local_env.addScope(local_scope);
     recursion += 1;
