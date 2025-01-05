@@ -49,10 +49,7 @@ public:
 };
 
 /*
-Have classes hold both their local environment and outer scope environment.
-Lookups from within the class are first checked in the local env, and then the outer env.
-However, if the identifier has a match with a function the in the local env and the name matches the
-class name, then check the outer scope and use the first class you find of that name.
+Add instance comparison
 */
 
 class Class {
@@ -61,9 +58,9 @@ private:
     Environment class_env;
 
 public:
-    Class(std::string name, Scope class_scope, std::vector<Scope> outer_scopes);
+    Class(std::string name, Environment& class_env);
     
-    std::shared_ptr<Instance> createInstance(std::vector<std::shared_ptr<Value>> args);
+    std::shared_ptr<Instance> createInstance();
     std::string getName() const;
 };
 
@@ -76,6 +73,8 @@ public:
     Instance(std::string class_name, Environment instance_env)
         : class_name{class_name}, instance_env{instance_env} {}
     
+    std::shared_ptr<Value> getConstructor();
+    Environment& getEnvironment();
     std::string getClassName() const;
 };
 

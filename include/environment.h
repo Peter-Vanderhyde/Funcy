@@ -24,7 +24,9 @@ private:
 class Environment {
 public:
     Environment();
-    Environment(Scope class_scope, std::vector<Scope> outer_scopes);
+    Environment(const Environment& other);
+    void setClassEnv(Scope& class_scope);
+    bool isClassEnv() const;
     void set(std::string name, std::shared_ptr<Value> value);
     bool contains(std::string name) const;
     std::shared_ptr<Value> get(std::string name) const;
@@ -47,17 +49,20 @@ public:
     void addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func);
     std::shared_ptr<Value> getMember(ValueType type, const std::string& name) const;
     bool hasMember(ValueType type, const std::string& name) const;
+    void setMember(std::string name, std::shared_ptr<Value> value); // Specifically for classes
 
     void addGlobal(std::string name);
     void resetGlobals();
     void removeGlobalScope();
     bool isGlobal(std::string name) const;
     void setGlobalValue(std::string name, std::shared_ptr<Value> value);
+    Scope& getClassGlobals();
+    void setClassGlobals(const Scope& class_scope);
 
     void display() const;
 private:
     std::vector<Scope> scopes;
-    Scope class_scope;
+    std::vector<Scope> class_scopes;
     bool class_env;
     int loop_depth = 0;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;

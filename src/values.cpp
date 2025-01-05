@@ -2,6 +2,7 @@
 #include <vector>
 #include "errorDefs.h"
 
+class FuncNode;
 
 bool ValueCompare::operator()(const std::shared_ptr<Value>& lhs, const std::shared_ptr<Value>& rhs) const {
     // Handle null pointers
@@ -144,10 +145,10 @@ bool List::empty() const {
 }
 
 
-Class::Class(std::string name, Scope class_scope, std::vector<Scope> outer_scopes)
-        : name{name}, class_env{Environment{class_scope, outer_scopes}} {}
+Class::Class(std::string name, Environment& class_env)
+        : name{name}, class_env{class_env} {}
 
-std::shared_ptr<Instance> Class::createInstance(std::vector<std::shared_ptr<Value>> args) {
+std::shared_ptr<Instance> Class::createInstance() {
     return std::make_shared<Instance>(name, class_env);
 }
 
@@ -155,6 +156,18 @@ std::string Class::getName() const {
     return name;
 }
 
+
+std::shared_ptr<Value> Instance::getConstructor() {
+    auto constructor = instance_env.get(class_name);
+    if (constructor->getType() != ValueType::Function) {
+        runtimeError(class_name + " Class constructor does not exist");
+    }
+    return constructor;
+}
+
+Environment& Instance::getEnvironment() {
+    return instance_env;
+}
 
 std::string Instance::getClassName() const {
     return class_name;

@@ -504,7 +504,24 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         }
 
         // Give it the actual left string, not the value of the variable
-        if (auto identifier_node = dynamic_cast<IdentifierNode*>(left.get())) {
+        if (auto node = std::dynamic_pointer_cast<BinaryOpNode>(left)) {
+            // It's a class.member = value
+            if (auto attr_ident = std::dynamic_pointer_cast<IdentifierNode>(node->right)) {
+                if (auto instance_ident = std::dynamic_pointer_cast<IdentifierNode>(node->left)) {
+                    auto instance_value = env.get(instance_ident->name);
+                    if (instance_value->getType() != ValueType::Instance) {
+                        runtimeError(getTypeStr(instance_value->getType()) + " object has no attribute " + attr_ident->name, line, column);
+                    }
+                    auto instance = instance_value->get<std::shared_ptr<Instance>>();
+                    instance->getEnvironment().setMember(attr_ident->name, right_value.value());
+                } else {
+                    auto left_value = node->left->evaluate(env);
+                    runtimeError(getValueStr(left_value.value()) + " object has no attribute " + attr_ident->name, line, column);
+                }
+            } else {
+                runtimeError("Invalid syntax", line, column);
+            }
+        } else if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
             env.set(identifier_node->name, right_value.value());
         } else if (auto index_node = dynamic_cast<IndexNode*>(left.get())) {
             index_node->assignIndex(env, right_value.value());
@@ -549,7 +566,11 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             return func_node->evaluate(env, member_type);
         }
         else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
-            return ident_node->evaluate(env, member_type);
+            Environment environment{env};
+            if (member_type == ValueType::Instance) {
+                environment = left_value.value()->get<std::shared_ptr<Instance>>()->getEnvironment();
+            }
+            return ident_node->evaluate(environment, member_type);
         }
         else {
             runtimeError("Invalid syntax", line, column);
@@ -1404,7 +1425,7 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
 
 std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Function" << std::endl;
-    local_env = env;
+    local_env = Environment{env};
     return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<FuncNode>(*this)));
 }
 
@@ -1429,6 +1450,10 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     Scope local_scope;
     local_scope.set(*func_name, global_env.get(*func_name));
     setArgs(values, local_scope);
+    if (global_env.isClassEnv()) {
+        local_env.removeScope();
+        local_env.setClassEnv(global_env.getClassGlobals());
+    }
     local_env.addScope(local_scope);
     recursion += 1;
     if (recursion > 500) {
@@ -1441,6 +1466,10 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
         catch (const ReturnException& e) {
             return e.value;
         }
+    }
+
+    if (global_env.isClassEnv()) {
+        global_env.setClassGlobals(local_env.getClassGlobals());
     }
 
     auto scopes = local_env.copyScopes();
@@ -1474,7 +1503,12 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
     } else if (mapped_value->getType() == ValueType::Class) {
         auto class_value = mapped_value->get<std::shared_ptr<Class>>();
         try {
-            return std::make_shared<Value>(class_value->createInstance(evaluateArgs(env)));
+            std::shared_ptr<Instance> instance = class_value->createInstance();
+            auto constructor = instance->getConstructor();
+            auto node = constructor->get<std::shared_ptr<ASTNode>>();
+            auto func_node = std::static_pointer_cast<FuncNode>(node);
+            func_node->callFunc(evaluateArgs(env), instance->getEnvironment());
+            return std::make_shared<Value>(instance);
         }
         catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
@@ -1488,14 +1522,28 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
 
 std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env, ValueType member_type) {
     if (debug) std::cout << "Evaluate Function Call" << std::endl;
-    auto ident_node = dynamic_cast<IdentifierNode*>(&*identifier);
-    auto mapped_value = ident_node->evaluate(env, member_type).value();
+    auto ident_node = std::static_pointer_cast<IdentifierNode>(identifier);
+    Environment environment{env};
+    if (member_value->getType() == ValueType::Instance) {
+        auto inst_node = member_value->get<std::shared_ptr<Instance>>();
+        environment = inst_node->getEnvironment();
+    }
+    std::shared_ptr<Value> mapped_value;
+    mapped_value = ident_node->evaluate(environment, member_type).value();
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
             auto values = evaluateArgs(env);
-            values.insert(values.begin(), member_value);
-            return func->callFunc(values, env);
+            if (member_type == ValueType::Instance) {
+                auto result = func->callFunc(values, environment);
+                auto inst_node = member_value->get<std::shared_ptr<Instance>>();
+                inst_node->getEnvironment().setClassGlobals(environment.getClassGlobals());
+                return result;
+            }
+            else {
+                values.insert(values.begin(), member_value);
+                return func->callFunc(values, environment);
+            }
         } else {
             runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
         }
@@ -1504,12 +1552,13 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
         auto values = evaluateArgs(env);
         values.insert(values.begin(), member_value);
         try {
-            return (*func_value)(values, env);
+            return (*func_value)(values, environment);
         }
         catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
         }
-    } else {
+    }
+    else {
         runtimeError("Object type " + getTypeStr(member_type) + " has no member function " + ident_node->name, line, column);
     }
     return std::nullopt;
@@ -1548,7 +1597,7 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
 std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Class" << std::endl;
     // Prevent the constructor overwriting the class name in the env
-    auto class_reference = env.get(name);
+    env.addScope();
     try {
         for (auto statement : block) {
             statement->evaluate(env);
@@ -1571,15 +1620,14 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
     }
 
     local_scope = env.getScope();
-    env.removeScope();
-    auto overwritten_class = env.get(name);
-    if (overwritten_class->getType() != ValueType::Function) {
+    if (!local_scope.contains(name)) {
         runtimeError("Class " + name + " is missing a constructor", line, column);
     }
-    local_scope.set(name, overwritten_class);
-    env.set(name, class_reference);
 
-    auto outer_scopes = env.copyScopes();
+    env.removeScope();
 
-    return std::make_shared<Value>(std::make_shared<Class>(name, local_scope, outer_scopes));
+    Environment class_env{env};
+    class_env.setClassEnv(local_scope);
+
+    return std::make_shared<Value>(std::make_shared<Class>(name, class_env));
 }

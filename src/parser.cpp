@@ -298,6 +298,15 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
         const Token& op = consumeToken();
         auto right = parseLogicalOr();
         return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+    } else if (tokenIs("identifier") && peekToken() && nextTokenIs(".") && peekToken() &&
+                nextTokenIs("identifier", 2) && peekToken() && (nextTokenIs("=", 3) || nextTokenIs("+=", 3 ||
+                                                                nextTokenIs("-=", 3) || nextTokenIs("*=", 3) ||
+                                                                nextTokenIs("/=", 3)))) {
+        auto left = parseMemberAccess(varString);
+
+        const Token& op = consumeToken();
+        auto right = parseLogicalOr();
+        return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
     } else if (tokenIs("identifier") && peekToken() && nextTokenIs("[")) {
         int i = 1;
         while (!nextTokenIs(";", i)) {
@@ -453,7 +462,7 @@ std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
     }
 }
 
-std::shared_ptr<ASTNode> Parser::parseMemberAccess() {
+std::shared_ptr<ASTNode> Parser::parseMemberAccess(std::shared_ptr<std::string> var_string) {
     if (debug) std::cout << "Parse Member" << std::endl;
     std::shared_ptr<ASTNode> node = parseIndexing();
 
@@ -465,7 +474,7 @@ std::shared_ptr<ASTNode> Parser::parseMemberAccess() {
                 if (nextTokenIs("(")) {
                     right = parseFuncCall();
                 } else {
-                    right = parseIdentifier();
+                    right = parseIdentifier(var_string);
                 }
                 node = std::make_shared<BinaryOpNode>(node, TokenType::_Dot, right, token.line, token.column);
             }

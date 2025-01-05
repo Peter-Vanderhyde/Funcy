@@ -108,10 +108,12 @@ void printValue(const std::shared_ptr<Value> value) {
         case ValueType::Class: {
             auto node = value->get<std::shared_ptr<Class>>();
             std::cout << style.blue << "Class:" << node->getName() << style.reset;
+            return;
         }
         case ValueType::Instance: {
             auto node = value->get<std::shared_ptr<Instance>>();
             std::cout << style.blue << node->getClassName() << ":Instance" << style.reset;
+            return;
         }
         case ValueType::Type: {
             std::cout << style.blue << getTypeStr(value->get<ValueType>()) << style.reset;
