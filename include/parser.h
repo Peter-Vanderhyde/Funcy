@@ -15,6 +15,7 @@ private:
     std::optional<const Token*> peekToken(int ahead = 1) const;
     const Token& getToken() const;
     const Token& consumeToken();
+    void backUp();
     std::string getTokenStr() const;
     bool tokenIs(std::string str) const;
     bool nextTokenIs(std::string str, int ahead = 1) const;

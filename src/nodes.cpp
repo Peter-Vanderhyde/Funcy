@@ -508,12 +508,12 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             // It's a class.member = value
             if (auto attr_ident = std::dynamic_pointer_cast<IdentifierNode>(node->right)) {
                 if (auto instance_ident = std::dynamic_pointer_cast<IdentifierNode>(node->left)) {
-                    auto instance_value = env.get(instance_ident->name);
+                    auto instance_value = env.get(instance_ident->name, instance_ident->member_variable);
                     if (instance_value->getType() != ValueType::Instance) {
                         runtimeError(getTypeStr(instance_value->getType()) + " object has no attribute " + attr_ident->name, line, column);
                     }
                     auto instance = instance_value->get<std::shared_ptr<Instance>>();
-                    instance->getEnvironment().setMember(attr_ident->name, right_value.value());
+                    instance->getEnvironment().set(attr_ident->name, right_value.value(), true);
                 } else {
                     auto left_value = node->left->evaluate(env);
                     runtimeError(getValueStr(left_value.value()) + " object has no attribute " + attr_ident->name, line, column);
@@ -522,8 +522,12 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                 runtimeError("Invalid syntax", line, column);
             }
         } else if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
-            env.set(identifier_node->name, right_value.value());
-        } else if (auto index_node = dynamic_cast<IndexNode*>(left.get())) {
+            if (env.is_top_scope && right_value.value()->getType() == ValueType::Function) {
+                identifier_node->member_variable = true;
+                env.is_top_scope = false;
+            }
+            env.set(identifier_node->name, right_value.value(), identifier_node->member_variable);
+        } else if (auto index_node = std::dynamic_pointer_cast<IndexNode>(left)) {
             index_node->assignIndex(env, right_value.value());
         } else if (auto list_node = std::dynamic_pointer_cast<ListNode>(left)) {
             if (right_value.value()->getType() != ValueType::List) {
@@ -539,7 +543,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
 
             for (int i = 0; i < right_list->size(); i++) {
                 if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(i))) {
-                    env.set(identifier_node->name, right_list->at(i));
+                    env.set(identifier_node->name, right_list->at(i), identifier_node->member_variable);
                 }
                 else {
                     runtimeError("Cannot assign value to literal", line, column);
@@ -569,6 +573,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             Environment environment{env};
             if (member_type == ValueType::Instance) {
                 environment = left_value.value()->get<std::shared_ptr<Instance>>()->getEnvironment();
+                ident_node->member_variable = true;
             }
             return ident_node->evaluate(environment, member_type);
         }
@@ -663,8 +668,8 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         if (result) {
             if (op == TokenType::_PlusEquals || op == TokenType::_MinusEquals || op == TokenType::_MultiplyEquals || op == TokenType::_DivideEquals) {
                 // Handle setting +=, -= etc.
-                if (auto identifierNode = dynamic_cast<IdentifierNode*>(left.get())) {
-                    env.set(identifierNode->name, result.value());
+                if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
+                    env.set(identifier_node->name, result.value(), identifier_node->member_variable);
                 }
                 else {
                     runtimeError("The operator '=' can only be used with variables", line, column);
@@ -697,14 +702,18 @@ IdentifierNode::IdentifierNode(std::string name, int line, int column)
 
 std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Identifier" << std::endl;
-    if (env.contains(name)) {
-        return env.get(name);
-    } else if (env.hasFunction(name)) {
+    if (env.contains(name, member_variable)) {
+        return env.get(name, member_variable);
+    } else if (!member_variable && env.hasFunction(name)) {
         return env.getFunction(name);
-    } else if (env.isGlobal(name)) {
+    } else if (!member_variable && env.isGlobal(name)) {
         return std::nullopt;
     } else {
-        runtimeError(std::format("Name '{}' is not defined", name), line, column);
+        if (member_variable) {
+            runtimeError("Attribute '" + name + "' is not defined", line, column);
+        } else {
+            runtimeError(std::format("Name '{}' is not defined", name), line, column);
+        }
     }
 }
 
@@ -816,7 +825,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate For" << std::endl;
     env.addScope();
     env.addLoop();
-    auto init_node = dynamic_cast<BinaryOpNode*>(initialization.get());
+    auto init_node = std::dynamic_pointer_cast<BinaryOpNode>(initialization);
     if (init_node->op != TokenType::_In) {
         initialization->evaluate(env);
 
@@ -856,7 +865,6 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             }
 
             variable = original_variable;
-            // set variable in env
             env.set(*init_string, std::make_shared<Value>(variable));
             // increment them
             increment->evaluate(env);
@@ -869,7 +877,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         auto container_result = init_node->right->evaluate(env);
         if (container_result.value()->getType() == ValueType::List) {
             auto list = container_result.value()->get<std::shared_ptr<List>>();
-            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(init_node->left);
             if (ident_node) {
                 std::string var_string = ident_node->name;
 
@@ -911,7 +919,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                         if (!ident_node) {
                             runtimeError("Can only assign values to identifiers", line, column);
                         }
-                        env.set(ident_node->name, list->at(index));
+                        env.set(ident_node->name, list->at(index), ident_node->member_variable);
                     }
                     
                     try {
@@ -930,7 +938,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         }
         else if (container_result.value()->getType() == ValueType::Dictionary) {
             auto dict = container_result.value()->get<std::shared_ptr<Dictionary>>();
-            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(init_node->left);
             if (ident_node) {
                 std::string var_string = ident_node->name;
 
@@ -965,8 +973,8 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 auto second_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(1));
 
                 for (const auto& pair : *dict) {
-                    env.set(first_node->name, pair.first);
-                    env.set(second_node->name, pair.second);
+                    env.set(first_node->name, pair.first, first_node->member_variable);
+                    env.set(second_node->name, pair.second, second_node->member_variable);
                     try {
                         for (auto statement : block) {
                             auto result = statement->evaluate(env);
@@ -983,7 +991,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
         }
         else if (container_result.value()->getType() == ValueType::String) {
             auto string = container_result.value()->get<std::string>();
-            auto ident_node = dynamic_cast<IdentifierNode*>(init_node->left.get());
+            auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(init_node->left);
             std::string var_string = ident_node->name;
 
             for (char c : string) {
@@ -1084,7 +1092,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
                 handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
             }
             catch (const std::exception& e) {
-                std::cerr << e.what() << std::endl;
+                runtimeError(e.what(), line, column);
             }
         }
 
@@ -1435,7 +1443,7 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_
     }
 
     for (size_t i = 0; i < values.size(); i++) {
-        if (auto ident_node = dynamic_cast<IdentifierNode*>(args.at(i).get())) {
+        if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(args.at(i))) {
             std::string arg_string = ident_node->name;
             local_scope.set(arg_string, values.at(i));
         } else {
@@ -1446,14 +1454,14 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_
     return;
 }
 
-std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env) {
-    Scope local_scope;
-    local_scope.set(*func_name, global_env.get(*func_name));
+std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env, bool member_func) {
+    Scope local_scope;    
+    local_scope.set(*func_name, global_env.get(*func_name, member_func));
     setArgs(values, local_scope);
     if (global_env.isClassEnv()) {
         local_env.removeScope();
-        local_env.setClassEnv(global_env.getClassGlobals());
-        local_env.getClassGlobals().display();
+        local_env.setClassEnv(global_env.getClassScope());
+        local_env.setClassAttrs(global_env.getClassAttrs());
     }
     local_env.addScope(local_scope);
     recursion += 1;
@@ -1461,16 +1469,11 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
         throw StackOverflowException();
     }
     for (auto statement : block) {
-        try {
-            auto result = statement->evaluate(local_env);
-        }
-        catch (const ReturnException& e) {
-            return e.value;
-        }
+        auto result = statement->evaluate(local_env);
     }
 
     if (global_env.isClassEnv()) {
-        global_env.setClassGlobals(local_env.getClassGlobals());
+        global_env.setClassAttrs(local_env.getClassAttrs());
     }
 
     auto scopes = local_env.copyScopes();
@@ -1484,13 +1487,14 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
 
 std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Method Call" << std::endl;
-    auto mapped_value = identifier->evaluate(env).value();
+    auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(identifier);
+    auto mapped_value = ident_node->evaluate(env).value();
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
-        if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
-            return func->callFunc(evaluateArgs(env), env);
+        if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
+            return func->callFunc(evaluateArgs(env), env, ident_node->member_variable);
         } else {
-            runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
+            runtimeError("Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(identifier)->name, line, column);
         }
     } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
         auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
@@ -1508,7 +1512,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             auto constructor = instance->getConstructor();
             auto node = constructor->get<std::shared_ptr<ASTNode>>();
             auto func_node = std::static_pointer_cast<FuncNode>(node);
-            func_node->callFunc(evaluateArgs(env), instance->getEnvironment());
+            func_node->callFunc(evaluateArgs(env), instance->getEnvironment(), true);
             return std::make_shared<Value>(instance);
         }
         catch (const std::exception& e) {
@@ -1528,17 +1532,18 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
     if (member_value->getType() == ValueType::Instance) {
         auto inst_node = member_value->get<std::shared_ptr<Instance>>();
         environment = inst_node->getEnvironment();
+        ident_node->member_variable = true;
     }
     std::shared_ptr<Value> mapped_value;
     mapped_value = ident_node->evaluate(environment, member_type).value();
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
-        if (auto func = dynamic_cast<FuncNode*>(func_value.get())) {
+        if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
             auto values = evaluateArgs(env);
             if (member_type == ValueType::Instance) {
-                auto result = func->callFunc(values, environment);
+                auto result = func->callFunc(values, environment, true);
                 auto inst_node = member_value->get<std::shared_ptr<Instance>>();
-                inst_node->getEnvironment().setClassGlobals(environment.getClassGlobals());
+                inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
                 return result;
             }
             else {
@@ -1546,7 +1551,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
                 return func->callFunc(values, environment);
             }
         } else {
-            runtimeError("Unable to call function " + dynamic_cast<IdentifierNode*>(identifier.get())->name, line, column);
+            runtimeError("Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(identifier)->name, line, column);
         }
     } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
         auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
@@ -1598,9 +1603,11 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
 std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Class" << std::endl;
     // Prevent the constructor overwriting the class name in the env
-    env.addScope();
+    Scope& temp = env.getClassAttrs();
+    env.addClassScope();
     try {
         for (auto statement : block) {
+            env.is_top_scope = true;
             statement->evaluate(env);
         }
     }
@@ -1617,18 +1624,20 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
         handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
     }
     catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        runtimeError(e.what(), line, column);
     }
 
     local_scope = env.getScope();
-    if (!local_scope.contains(name)) {
+    if (!env.contains(name, true)) {
         runtimeError("Class " + name + " is missing a constructor", line, column);
     }
 
-    env.removeScope();
+    Scope attrs = env.getClassAttrs();
+    env.removeClassScope();
 
     Environment class_env{env};
     class_env.setClassEnv(local_scope);
+    class_env.setClassAttrs(attrs);
 
     return std::make_shared<Value>(std::make_shared<Class>(name, class_env));
 }

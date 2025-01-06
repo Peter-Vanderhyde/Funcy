@@ -158,7 +158,7 @@ std::string Class::getName() const {
 
 
 std::shared_ptr<Value> Instance::getConstructor() {
-    auto constructor = instance_env.get(class_name);
+    auto constructor = instance_env.get(class_name, true);
     if (constructor->getType() != ValueType::Function) {
         runtimeError(class_name + " Class constructor does not exist");
     }

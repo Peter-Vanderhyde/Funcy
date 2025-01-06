@@ -65,7 +65,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Import, "import"},
     {TokenType::_Global, "global"},
     {TokenType::_Class, "class"},
-    {TokenType::_Instance, "instance"}
+    {TokenType::_Instance, "instance"},
+    {TokenType::_Ampersand, "&"}
     //{TokenType::, ""}
 };
 
@@ -98,7 +99,8 @@ std::unordered_map<char, TokenType> char_tokens {
     {']', TokenType::_SquareClose},
     {':', TokenType::_Colon},
     {'.', TokenType::_Dot},
-    {'%', TokenType::_Mod}
+    {'%', TokenType::_Mod},
+    {'&', TokenType::_Ampersand}
 };
 
 std::unordered_map<std::string, TokenType> keyword_tokens {

@@ -1,24 +1,27 @@
-class Test {
-    name = "Peter";
-    func Test(x, y) {
-        x + y;
-        name = "Jeff";
-        hair = "blue";
+class Person {
+    invis = true;
+    &visible = true;
+    func Person(name, age) {
+        &name = name;
+        &age = age;
         func deeper() {
-            name = "George";
-            print(name);
-            print(hair);
+            invis = not invis;
         }
         deeper();
+        &showStats();
     }
-    func reset() {
-        name = "John";
+    func showStats() {
+        print(&name + " is " + str(&age) + " years old.");
+    }
+    func birthday() {
+        &age += 1;
     }
 }
 
-t = Test("World", "Hello");
-print(t.name);
-t.name = "Joe";
-print(t.name);
-t.reset();
-print(t.name);
+man = Person("Dave", 35);
+print(man.visible);
+man.showStats();
+man.birthday();
+man.showStats();
+print(man.name);
+print(man.showStats);

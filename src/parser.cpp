@@ -35,6 +35,10 @@ const Token& Parser::consumeToken() {
     return token;
 }
 
+void Parser::backUp() {
+    current_index -= 1;
+}
+
 std::string Parser::getTokenStr() const {
     return getTokenTypeLabel(getToken().type);
 }
@@ -292,7 +296,17 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
 
 std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> varString) {
     if (debug) std::cout << "Parse Statement " << getTokenStr() << std::endl;
-    if (tokenIs("identifier") && peekToken() && (nextTokenIs("=") || nextTokenIs("+=") || nextTokenIs("-=") || nextTokenIs("*=") || nextTokenIs("/="))) {
+    bool member = false;
+    if (tokenIs("&")) {
+        consumeToken();
+        member = true;
+    }
+    if (tokenIs("identifier") && peekToken() && (nextTokenIs("=") || nextTokenIs("+=") ||
+                                                nextTokenIs("-=") || nextTokenIs("*=") ||
+                                                nextTokenIs("/="))) {
+        if (member) {
+            backUp();
+        }
         auto left = parseIdentifier(varString);
 
         const Token& op = consumeToken();
@@ -302,6 +316,9 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
                 nextTokenIs("identifier", 2) && peekToken() && (nextTokenIs("=", 3) || nextTokenIs("+=", 3 ||
                                                                 nextTokenIs("-=", 3) || nextTokenIs("*=", 3) ||
                                                                 nextTokenIs("/=", 3)))) {
+        if (member) {
+            backUp();
+        }
         auto left = parseMemberAccess(varString);
 
         const Token& op = consumeToken();
@@ -316,8 +333,14 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
             i++;
         }
         if (nextTokenIs(";", i)) {
+            if (member) {
+                backUp();
+            }
             return parseLogicalOr();
         } else {
+            if (member) {
+                backUp();
+            }
             auto left = parseIndexing();
             const Token& op = consumeToken();
             auto right = parseLogicalOr();
@@ -325,6 +348,9 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
         }
     }
     else {
+        if (member) {
+            backUp();
+        }
         auto left = parseLogicalOr();
         if (auto left_list = std::dynamic_pointer_cast<ListNode>(left)) {
             if (tokenIs("=")) {
@@ -605,7 +631,7 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
         }
     } else if (tokenIs("identifier") && peekToken() && peekToken().value()->type == TokenType::_ParenOpen) {
         return parseFuncCall();
-    } else if (tokenIs("identifier")) {
+    } else if (tokenIs("identifier") || tokenIs("&")) {
         return parseIdentifier();
     } else if (getTokenStr().find("type:") != std::string::npos) {
         return parseKeyword();
@@ -647,7 +673,22 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifi
 
 std::shared_ptr<ASTNode> Parser::parseIdentifier(std::shared_ptr<std::string> varString) {
     if (debug) std::cout << "Parse Identifier " << getTokenStr() << std::endl;
-    if (tokenIs("identifier")) {
+    if (tokenIs("&") && nextTokenIs("identifier")) {
+        const Token& location = consumeToken();
+        const Token& token = consumeToken();
+        if (std::holds_alternative<std::string>(token.value)) {
+            auto ident_value = std::get<std::string>(token.value);
+            if (varString != nullptr) {
+                *varString = ident_value;
+            }
+            auto ident_node = std::make_shared<IdentifierNode>(ident_value, token.line, token.column);
+            ident_node->member_variable = true;
+            return ident_node;
+        } else {
+            parsingError("Identifier was not a string??", token.line, token.column);
+        }
+    }
+    else if (tokenIs("identifier")) {
         const Token& token = consumeToken();
         if (std::holds_alternative<std::string>(token.value)) {
             auto ident_value = std::get<std::string>(token.value);

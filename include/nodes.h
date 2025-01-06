@@ -86,6 +86,7 @@ public:
 class IdentifierNode : public ASTNode {
 public:
     std::string name;
+    bool member_variable = false;
 
     IdentifierNode(std::string name, int line, int column);
 
@@ -181,7 +182,7 @@ public:
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     void setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_scope);
-    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env);
+    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env, bool member_func = false);
     
     Environment local_env;
     std::shared_ptr<std::string> func_name;

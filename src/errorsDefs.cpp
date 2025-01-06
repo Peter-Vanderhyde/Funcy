@@ -32,9 +32,12 @@ void handleError(std::string message, int line, int column, std::string prefix) 
     Style style{};
     std::string error;
     if (line == 0 && column == 0) {
-        error = std::format("{}{}:{} File {}{}{}:\n\n{}{}.{}",
+        error = std::format("{}{}:{} File {}{}{}:\n\n{}{}",
                             style.red, prefix, style.reset, style.green, filename, style.reset,
-                            style.orange, message, style.reset);
+                            style.orange, message);
+        if (!message.ends_with(style.reset)) {
+            error = std::format("{}.{}", error, style.reset);
+        }
     } else {
         error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",
                                         style.red, prefix, style.reset, style.green, filename, style.reset,
@@ -46,7 +49,10 @@ void handleError(std::string message, int line, int column, std::string prefix) 
         }
         spaces += style.orange + "^\n";
         error += spaces;
-        error += std::format("{}.{}", message, style.reset);
+        error += message;
+        if (!message.ends_with(style.reset)) {
+            error = std::format("{}.{}", error, style.reset);
+        }
     }
     throw std::runtime_error(error);
 }

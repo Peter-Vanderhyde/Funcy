@@ -51,7 +51,8 @@ Environment::Environment() {
 Environment::Environment(const Environment& other)
     : scopes(other.scopes), class_scopes(other.class_scopes), class_env(other.class_env),
       loop_depth(other.loop_depth), built_in_functions(other.built_in_functions),
-      member_functions(other.member_functions), scoped_globals(other.scoped_globals) {}
+      member_functions(other.member_functions), scoped_globals(other.scoped_globals),
+      class_depth(other.class_depth), class_attrs(other.class_attrs) {}
 
 void Environment::setClassEnv(Scope& class_scope) {
     class_env = true;
@@ -62,10 +63,16 @@ bool Environment::isClassEnv() const {
     return class_env;
 }
 
-void Environment::set(std::string name, std::shared_ptr<Value> value) {
+void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_member_var) {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     } else {
+        if (is_member_var && class_depth == 0 && class_env == false) {
+            runtimeError("Unable to set class attribute '" + name + "' outside of class");
+        } else if (is_member_var) {
+            class_attrs.set(name, value);
+            return;
+        }
         if (isGlobal(name)) {
             scopes.front().set(name, value);
             return;
@@ -93,16 +100,20 @@ void Environment::set(std::string name, std::shared_ptr<Value> value) {
     scopes.back().set(name, value);
 }
 
-std::shared_ptr<Value> Environment::get(std::string name) const {
+std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) const {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     }
-
+    if (is_member_var && class_depth == 0 && class_env == false) {
+        runtimeError("Unable to get class attribute '" + name + "' outside of class");
+    } else if (is_member_var) {
+        return class_attrs.get(name);
+    }
     if (isGlobal(name)) {
         if (scopes.front().contains(name)) {
             return scopes.front().get(name);
         } else {
-            handleError(std::format("Unrecognized variable {}", name), 0, 0, "Runtime Error");
+            runtimeError("Unrecognized variable " + name);
         }
     }
 
@@ -122,15 +133,18 @@ std::shared_ptr<Value> Environment::get(std::string name) const {
         }
     }
 
-    handleError(std::format("Unrecognized variable {}", name), 0, 0, "Runtime Error");
+    runtimeError(std::format("Unrecognized variable {}", name));
 }
 
 
-bool Environment::contains(std::string name) const {
+bool Environment::contains(std::string name, bool is_member_var) const {
     if (scopes.empty()) {
         handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     }
-    if (class_env == true) {
+    if (class_env == true || class_depth != 0) {
+        if (is_member_var) {
+            return class_attrs.contains(name);
+        }
         for (const auto scope : class_scopes) {
             if (scope.contains(name)) {
                 return true;
@@ -189,6 +203,18 @@ void Environment::addScope(Scope& scope) {
     resetGlobals();
 }
 
+void Environment::addClassScope() {
+    class_depth += 1;
+    class_attrs = Scope();
+    if (class_env == true) {
+        class_scopes.push_back(Scope());
+        resetGlobals();
+        return;
+    }
+    scopes.push_back(Scope());
+    resetGlobals();
+}
+
 Scope Environment::getScope() {
     if (class_env == true) {
         return class_scopes.back();
@@ -197,6 +223,18 @@ Scope Environment::getScope() {
 }
 
 void Environment::removeScope() {
+    if (class_env == true) {
+        class_scopes.pop_back();
+        removeGlobalScope();
+        return;
+    }
+    scopes.pop_back();
+    removeGlobalScope();
+}
+
+void Environment::removeClassScope() {
+    class_depth -= 1;
+    class_attrs = Scope();
     if (class_env == true) {
         class_scopes.pop_back();
         removeGlobalScope();
@@ -241,9 +279,7 @@ void Environment::addMember(ValueType type, const std::string& name, std::shared
 
 std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string& name) const {
     if (class_env == true && type == ValueType::Instance) {
-        if (class_scopes.front().contains(name)) {
-            return class_scopes.front().get(name);
-        }
+        return class_attrs.get(name);
         runtimeError("Class has no attribute: " + name);
     }
     else {
@@ -261,7 +297,7 @@ std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string&
 
 bool Environment::hasMember(ValueType type, const std::string& name) const {
     if (class_env == true && type == ValueType::Instance) {
-        return class_scopes.front().contains(name);
+        return class_attrs.contains(name);
     }
     auto members = member_functions.find(type);
     if (members != member_functions.end()) {
@@ -269,12 +305,6 @@ bool Environment::hasMember(ValueType type, const std::string& name) const {
         return func != members->second.end();
     }
     return false;
-}
-
-void Environment::setMember(std::string name, std::shared_ptr<Value> value) {
-    if (class_env) {
-        class_scopes.front().set(name, value);
-    }
 }
 
 void Environment::addGlobal(std::string name) {
@@ -306,23 +336,39 @@ void Environment::setGlobalValue(std::string name, std::shared_ptr<Value> value)
     scopes.at(0).set(name, value);
 }
 
-Scope& Environment::getClassGlobals() {
+Scope& Environment::getClassScope() {
     return class_scopes.front();
 }
 
-void Environment::setClassGlobals(const Scope& class_scope) {
+void Environment::setClassScope(const Scope& class_scope) {
     class_scopes[0] = class_scope;
 }
 
-void Environment::display() const {
+Scope& Environment::getClassAttrs() {
+    return class_attrs;
+}
+
+void Environment::setClassAttrs(Scope& scope) {
+    class_attrs = scope;
+}
+
+void Environment::display(bool show_attrs) const {
     int i = 1;
-    if (class_env) {
-        std::cout << "CLASS ENV" << std::endl;
-    }
     for (auto scope : scopes) {
         std::cout << "Scope:" << i << std::endl;
         scope.display();
         i += 1;
+    }
+    if (class_env || show_attrs) {
+        std::cout << "CLASS" << std::endl;
+        std::cout << "ATTRS\n";
+        class_attrs.display();
+        i = 1;
+        for (auto scope : class_scopes) {
+            std::cout << "Class Scope:" << i << std::endl;
+            scope.display();
+            i += 1;
+        }
     }
     std::cout << std::endl;
 }

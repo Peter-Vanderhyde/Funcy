@@ -27,15 +27,17 @@ public:
     Environment(const Environment& other);
     void setClassEnv(Scope& class_scope);
     bool isClassEnv() const;
-    void set(std::string name, std::shared_ptr<Value> value);
-    bool contains(std::string name) const;
-    std::shared_ptr<Value> get(std::string name) const;
+    void set(std::string name, std::shared_ptr<Value> value, bool is_member_var = false);
+    bool contains(std::string name, bool is_member_var = false) const;
+    std::shared_ptr<Value> get(std::string name, bool is_member_var = false) const;
 
     int scopeDepth() const;
     void addScope();
     void addScope(Scope& scope);
+    void addClassScope();
     Scope getScope();
     void removeScope();
+    void removeClassScope();
     std::vector<Scope> copyScopes() const;
     void addLoop();
     void removeLoop();
@@ -49,21 +51,26 @@ public:
     void addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func);
     std::shared_ptr<Value> getMember(ValueType type, const std::string& name) const;
     bool hasMember(ValueType type, const std::string& name) const;
-    void setMember(std::string name, std::shared_ptr<Value> value); // Specifically for classes
 
     void addGlobal(std::string name);
     void resetGlobals();
     void removeGlobalScope();
     bool isGlobal(std::string name) const;
     void setGlobalValue(std::string name, std::shared_ptr<Value> value);
-    Scope& getClassGlobals();
-    void setClassGlobals(const Scope& class_scope);
+    Scope& getClassScope();
+    void setClassScope(const Scope& class_scope);
+    Scope& getClassAttrs();
+    void setClassAttrs(Scope& scope);
 
-    void display() const;
+    void display(bool show_attrs = false) const;
+
+    bool is_top_scope = false;
 private:
     std::vector<Scope> scopes;
     std::vector<Scope> class_scopes;
+    Scope class_attrs;
     bool class_env;
+    bool class_depth = 0;
     int loop_depth = 0;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
     std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> member_functions;
