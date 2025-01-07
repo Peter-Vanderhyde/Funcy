@@ -324,7 +324,7 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
     auto list = std::make_shared<List>();
 
     if (args.size() == 0) {
-        throw std::runtime_error("list() conversion takes at least 1 argument. None were given");
+        return std::make_shared<Value>(std::make_shared<List>());
     }
 
     auto arg = args[0];

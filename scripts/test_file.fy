@@ -1,83 +1,110 @@
-# Funcy Test File: Testing All Builtin and Type Builtin Functions
+/* Library Management System */
 
-# Test Builtin Functions
-print("Expected: 10");
-print(int("10"));
-print("Expected: 10.5");
-print(float("10.5"));
-print("Expected: true");
-print(bool(1));
-print("Expected: false");
-print(bool(0));
-print("Expected: '123'");
-print(str(123));
-print("Expected: ['a', 'b', 'c']");
-print(list("abc"));
-print("Expected: {'key': 'value'}");
-print(dict([['key', 'value']]));
-print("Expected: 'Type:Integer'");
-print(type(123));
-print("Expected: range(0, 5)");
-print(range(0, 5));
+# Define a Book class
+class Book {
+    func &Book(title, author, year) {
+        &title = title;
+        &author = author;
+        &year = year;
+        &is_checked_out = false;
+    }
 
-# Test Builtin List Functions
-list_test = [1, 2, 3, 4, 5];
-print("Expected: 5");
-print(list_test.size());
-list_test.append(6);
-print("Expected: [1, 2, 3, 4, 5, 6]");
-print(list_test);
-print("Expected: 6");
-print(list_test.pop());
-print("Expected: [1, 2, 3, 4, 5]");
-print(list_test);
+    func &getInfo() {
+        return "Title: " + &title + ", Author: " + &author + ", Year: " + str(&year);
+    }
 
-# Test Builtin Dictionary Functions
-dict_test = {"a": 1, "b": 2};
-print("Expected: 2");
-print(dict_test.get("b"));
-dict_test.update({"c": 3});
-print("Expected: {'a': 1, 'b': 2, 'c': 3}");
-print(dict_test);
-print("Expected: ['a', 'b', 'c']");
-print(dict_test.keys());
-print("Expected: [1, 2, 3]");
-print(dict_test.values());
-print("Expected: 3");
-print(dict_test.pop("c"));
-print("Expected: {'a': 1, 'b': 2}");
-print(dict_test);
+    func &checkout() {
+        if &is_checked_out {
+            print(&title + " is already checked out.");
+        } else {
+            &is_checked_out = true;
+            print("You have checked out " + &title);
+        }
+    }
 
-# Test Builtin String Functions
-string_test = "  Funcy Language  ";
-print("Expected: '  funcy language  '");
-print(string_test.lower());
-print("Expected: '  FUNCY LANGUAGE  '");
-print(string_test.upper());
-print("Expected: 'Funcy Language'");
-print(string_test.strip());
-print("Expected: ['Funcy', 'Language']");
-print(string_test.split());
-print("Expected: true");
-print("12345".isDigit());
-print("Expected: 18");
-print(string_test.length());
-print("Expected: 'Fancy Langaage'");
-print(string_test.replace("u", "a"));
-
-# Test Enumerate, Zip, and Map
-list1 = [1, 2, 3];
-list2 = ["a", "b", "c"];
-print("Expected: [(0, 1), (1, 2), (2, 3)]");
-print(enumerate(list1));
-print("Expected: [(1, 'a'), (2, 'b'), (3, 'c')]");
-print(zip(list1, list2));
-func double(x) {
-    return x * 2;
+    func &returnBook() {
+        if &is_checked_out {
+            &is_checked_out = false;
+            print("You have returned " + &title);
+        } else {
+            print(&title + " was not checked out.");
+        }
+    }
 }
-print("Expected: [2, 4, 6]");
-print(map(double, list1));
 
-# Test Time
-print("Expected: Current timestamp (variable)");
-print(time());
+# Define a Library class
+class Library {
+    func &Library() {
+        &books = list();
+    }
+
+    func &addBook(book) {
+        &books.append(book);
+        print("Added: " + book.getInfo());
+    }
+
+    func &listBooks() {
+        if &books.size() == 0 {
+            print("The library has no books.");
+        } else {
+            print("Books in the library:");
+            for book in &books {
+                print("- " + book.getInfo());
+            }
+        }
+    }
+
+    func &checkoutBook(title) {
+        for book in &books {
+            if book.title == title {
+                book.checkout();
+                return;
+            }
+        }
+        print("Book not found: " + title);
+    }
+
+    func &returnBook(title) {
+        for book in &books {
+            if book.title == title {
+                book.returnBook();
+                return;
+            }
+        }
+        print("Book not found: " + title);
+    }
+}
+
+# Main program
+func main() {
+    library = Library();
+
+    # Add books to the library
+    book1 = Book("The Great Gatsby", "F. Scott Fitzgerald", 1925);
+    book2 = Book("1984", "George Orwell", 1949);
+    book3 = Book("To Kill a Mockingbird", "Harper Lee", 1960);
+
+    library.addBook(book1);
+    library.addBook(book2);
+    library.addBook(book3);
+
+    # List all books
+    library.listBooks();
+
+    # Checkout and return books
+    library.checkoutBook("1984");
+    library.checkoutBook("The Great Gatsby");
+    library.returnBook("1984");
+
+    # Try to checkout an already checked-out book
+    library.checkoutBook("The Great Gatsby");
+
+    # Return a book that wasn't checked out
+    library.returnBook("To Kill a Mockingbird");
+
+    # List books again to see the status
+    library.listBooks();
+}
+
+# Run the program
+main();
