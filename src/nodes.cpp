@@ -522,10 +522,6 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                 runtimeError("Invalid syntax", line, column);
             }
         } else if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
-            if (env.is_top_scope && right_value.value()->getType() == ValueType::Function) {
-                identifier_node->member_variable = true;
-                env.is_top_scope = false;
-            }
             env.set(identifier_node->name, right_value.value(), identifier_node->member_variable);
         } else if (auto index_node = std::dynamic_pointer_cast<IndexNode>(left)) {
             index_node->assignIndex(env, right_value.value());
@@ -553,6 +549,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         else {
             runtimeError("The operator '=' can only be used with variables", line, column);
         }
+        
     } else if (op == TokenType::_Dot) {
         // Handle member functions of types
         std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
@@ -1455,12 +1452,13 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_
 }
 
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env, bool member_func) {
-    Scope local_scope;    
-    local_scope.set(*func_name, global_env.get(*func_name, member_func));
+    Scope local_scope;
+    if (!member_func) {
+        local_scope.set(*func_name, global_env.get(*func_name, member_func));
+    }
     setArgs(values, local_scope);
     if (global_env.isClassEnv()) {
-        local_env.removeScope();
-        local_env.setClassEnv(global_env.getClassScope());
+        local_env.setClassEnv();
         local_env.setClassAttrs(global_env.getClassAttrs());
     }
     local_env.addScope(local_scope);
@@ -1468,8 +1466,13 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     if (recursion > 500) {
         throw StackOverflowException();
     }
-    for (auto statement : block) {
-        auto result = statement->evaluate(local_env);
+    try {
+        for (auto statement : block) {
+            auto result = statement->evaluate(local_env);
+        }
+    }
+    catch (const ReturnException& e) {
+        return e.value;
     }
 
     if (global_env.isClassEnv()) {
@@ -1603,11 +1606,10 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
 std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Class" << std::endl;
     // Prevent the constructor overwriting the class name in the env
-    Scope& temp = env.getClassAttrs();
+    Scope prev_attrs = env.getClassAttrs();
     env.addClassScope();
     try {
         for (auto statement : block) {
-            env.is_top_scope = true;
             statement->evaluate(env);
         }
     }
@@ -1627,17 +1629,13 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
         runtimeError(e.what(), line, column);
     }
 
-    local_scope = env.getScope();
-    if (!env.contains(name, true)) {
+    Environment class_env{env};
+    env.removeClassScope(prev_attrs);
+
+    class_env.setClassEnv();
+    if (!class_env.contains(name, true)) {
         runtimeError("Class " + name + " is missing a constructor", line, column);
     }
-
-    Scope attrs = env.getClassAttrs();
-    env.removeClassScope();
-
-    Environment class_env{env};
-    class_env.setClassEnv(local_scope);
-    class_env.setClassAttrs(attrs);
 
     return std::make_shared<Value>(std::make_shared<Class>(name, class_env));
 }

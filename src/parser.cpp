@@ -156,7 +156,9 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 }
             }
         } else if (t_str == "func") {
-            expect("identifier");
+            if (!tokenIs("identifier") && !(tokenIs("&") && nextTokenIs("identifier"))) {
+                parsingError("Expected identifier but got " + getTokenStr(), getToken().line, getToken().column);
+            }
             func_name = parseIdentifier(name_str);
             expect("(");
             consumeToken();
@@ -191,7 +193,14 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 consumeToken();
             }
         } else if (t_str == "class") {
-            expect("identifier");
+            if (!tokenIs("identifier")) {
+                if (tokenIs("&")) {
+                    parsingError("Cannot directly set class as a member. Must be referenced indirectly through another variable.",
+                                    getToken().line, getToken().column);
+                } else {
+                    expect("identifier");
+                }
+            }
             func_name = parseIdentifier(name_str);
         }
 
@@ -629,10 +638,12 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
             auto string_value = std::get<std::string>(token.value);
             return std::make_shared<AtomNode>(string_value, token.line, token.column);
         }
-    } else if (tokenIs("identifier") && peekToken() && peekToken().value()->type == TokenType::_ParenOpen) {
-        return parseFuncCall();
     } else if (tokenIs("identifier") || tokenIs("&")) {
-        return parseIdentifier();
+        if (nextTokenIs("(")) {
+            return parseFuncCall();
+        } else {
+            return parseIdentifier();
+        }
     } else if (getTokenStr().find("type:") != std::string::npos) {
         return parseKeyword();
     }
@@ -645,7 +656,7 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
 std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifier) {
     if (debug) std::cout << "Parse Func Call " << getTokenStr() << std::endl;
     if (!identifier) {
-        if (!tokenIs("identifier")) {
+        if (!tokenIs("identifier") && !(tokenIs("(") && nextTokenIs("identifier"))) {
             parsingError("Expected function name but got " + getTokenStr(), getToken().line, getToken().column);
         }
         identifier = parseIdentifier(nullptr);

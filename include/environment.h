@@ -25,7 +25,7 @@ class Environment {
 public:
     Environment();
     Environment(const Environment& other);
-    void setClassEnv(Scope& class_scope);
+    void setClassEnv();
     bool isClassEnv() const;
     void set(std::string name, std::shared_ptr<Value> value, bool is_member_var = false);
     bool contains(std::string name, bool is_member_var = false) const;
@@ -36,8 +36,9 @@ public:
     void addScope(Scope& scope);
     void addClassScope();
     Scope getScope();
+    int classDepth();
     void removeScope();
-    void removeClassScope();
+    void removeClassScope(Scope& previous_attrs);
     std::vector<Scope> copyScopes() const;
     void addLoop();
     void removeLoop();
@@ -57,8 +58,6 @@ public:
     void removeGlobalScope();
     bool isGlobal(std::string name) const;
     void setGlobalValue(std::string name, std::shared_ptr<Value> value);
-    Scope& getClassScope();
-    void setClassScope(const Scope& class_scope);
     Scope& getClassAttrs();
     void setClassAttrs(Scope& scope);
 
@@ -67,10 +66,9 @@ public:
     bool is_top_scope = false;
 private:
     std::vector<Scope> scopes;
-    std::vector<Scope> class_scopes;
     Scope class_attrs;
     bool class_env;
-    bool class_depth = 0;
+    int class_depth = 0;
     int loop_depth = 0;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
     std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> member_functions;

@@ -49,14 +49,13 @@ Environment::Environment() {
 }
 
 Environment::Environment(const Environment& other)
-    : scopes(other.scopes), class_scopes(other.class_scopes), class_env(other.class_env),
+    : scopes(other.scopes), class_env(other.class_env),
       loop_depth(other.loop_depth), built_in_functions(other.built_in_functions),
       member_functions(other.member_functions), scoped_globals(other.scoped_globals),
-      class_depth(other.class_depth), class_attrs(other.class_attrs) {}
+      class_depth(other.class_depth), class_attrs(other.class_attrs), is_top_scope(other.is_top_scope) {}
 
-void Environment::setClassEnv(Scope& class_scope) {
+void Environment::setClassEnv() {
     class_env = true;
-    class_scopes.push_back(class_scope);
 }
 
 bool Environment::isClassEnv() const {
@@ -77,14 +76,6 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
             scopes.front().set(name, value);
             return;
         }
-        if (class_env == true) { // change member values before exterior environment
-            for (int i = class_scopes.size() - 1; i > -1; i--) {
-                if (class_scopes.at(i).contains(name)) {
-                    class_scopes.at(i).set(name, value);
-                    return;
-                }
-            }
-        }
         for (int i = scopes.size() - 1; i > -1; i--) {
             if (scopes.at(i).contains(name)) {
                 scopes.at(i).set(name, value);
@@ -93,10 +84,6 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
         }
     }
 
-    if (class_env == true) {
-        class_scopes.back().set(name, value);
-        return;
-    }
     scopes.back().set(name, value);
 }
 
@@ -114,15 +101,6 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
             return scopes.front().get(name);
         } else {
             runtimeError("Unrecognized variable " + name);
-        }
-    }
-
-    if (class_env == true) {
-        for (int i = class_scopes.size() - 1; i >= 0; i--) {
-            const auto& scope = class_scopes.at(i);
-            if (scope.contains(name)) {
-                return scope.get(name);
-            }
         }
     }
     
@@ -145,11 +123,6 @@ bool Environment::contains(std::string name, bool is_member_var) const {
         if (is_member_var) {
             return class_attrs.contains(name);
         }
-        for (const auto scope : class_scopes) {
-            if (scope.contains(name)) {
-                return true;
-            }
-        }
     }
     for (const auto scope : scopes) {
         if (scope.contains(name)) {
@@ -161,9 +134,6 @@ bool Environment::contains(std::string name, bool is_member_var) const {
 }
 
 int Environment::scopeDepth() const {
-    if (class_env == true) {
-        return class_scopes.size();
-    }
     return scopes.size();
 }
 
@@ -184,74 +154,42 @@ void Environment::resetLoop() {
 }
 
 void Environment::addScope() {
-    if (class_env == true) {
-        class_scopes.push_back(Scope());
-        resetGlobals();
-        return;
-    }
     scopes.push_back(Scope());
     resetGlobals();
 }
 
 void Environment::addScope(Scope& scope) {
-    if (class_env == true) {
-        class_scopes.push_back(scope);
-        resetGlobals();
-        return;
-    }
     scopes.push_back(scope);
     resetGlobals();
 }
 
 void Environment::addClassScope() {
     class_depth += 1;
-    class_attrs = Scope();
-    if (class_env == true) {
-        class_scopes.push_back(Scope());
-        resetGlobals();
-        return;
-    }
     scopes.push_back(Scope());
     resetGlobals();
 }
 
 Scope Environment::getScope() {
-    if (class_env == true) {
-        return class_scopes.back();
-    }
     return scopes.back();
 }
 
+int Environment::classDepth() {
+    return class_depth;
+}
+
 void Environment::removeScope() {
-    if (class_env == true) {
-        class_scopes.pop_back();
-        removeGlobalScope();
-        return;
-    }
     scopes.pop_back();
     removeGlobalScope();
 }
 
-void Environment::removeClassScope() {
+void Environment::removeClassScope(Scope& previous_attrs) {
     class_depth -= 1;
-    class_attrs = Scope();
-    if (class_env == true) {
-        class_scopes.pop_back();
-        removeGlobalScope();
-        return;
-    }
+    class_attrs = previous_attrs;
     scopes.pop_back();
     removeGlobalScope();
 }
 
 std::vector<Scope> Environment::copyScopes() const {
-    if (class_env == true) {
-        std::vector<Scope> new_scopes = scopes;
-        for (auto scope : class_scopes) {
-            new_scopes.push_back(scope);
-        }
-        return new_scopes;
-    }
     return scopes;
 }
 
@@ -336,14 +274,6 @@ void Environment::setGlobalValue(std::string name, std::shared_ptr<Value> value)
     scopes.at(0).set(name, value);
 }
 
-Scope& Environment::getClassScope() {
-    return class_scopes.front();
-}
-
-void Environment::setClassScope(const Scope& class_scope) {
-    class_scopes[0] = class_scope;
-}
-
 Scope& Environment::getClassAttrs() {
     return class_attrs;
 }
@@ -353,22 +283,15 @@ void Environment::setClassAttrs(Scope& scope) {
 }
 
 void Environment::display(bool show_attrs) const {
+    if (class_env || show_attrs) {
+        std::cout << "ATTRS\n";
+        class_attrs.display();
+    }
     int i = 1;
     for (auto scope : scopes) {
         std::cout << "Scope:" << i << std::endl;
         scope.display();
         i += 1;
-    }
-    if (class_env || show_attrs) {
-        std::cout << "CLASS" << std::endl;
-        std::cout << "ATTRS\n";
-        class_attrs.display();
-        i = 1;
-        for (auto scope : class_scopes) {
-            std::cout << "Class Scope:" << i << std::endl;
-            scope.display();
-            i += 1;
-        }
     }
     std::cout << std::endl;
 }

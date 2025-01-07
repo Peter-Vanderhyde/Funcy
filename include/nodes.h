@@ -228,6 +228,5 @@ public:
 
     std::string name;
     std::vector<std::shared_ptr<ASTNode>> block;
-    Environment snapshot_env;
     Scope local_scope;
 };
