@@ -63,6 +63,8 @@ enum class TokenType{
     _DictType,
     _FuncType,
     _BuiltInType,
+    _ClassType,
+    _InstanceType,
     _Mod,
     _In,
     _Import,

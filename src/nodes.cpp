@@ -20,8 +20,8 @@ std::unordered_map<TokenType, ValueType> type_map{
     {TokenType::_ListType, ValueType::List},
     {TokenType::_FuncType, ValueType::Function},
     {TokenType::_BuiltInType, ValueType::BuiltInFunction},
-    {TokenType::_Class, ValueType::Class},
-    {TokenType::_Instance, ValueType::Instance},
+    {TokenType::_ClassType, ValueType::Class},
+    {TokenType::_InstanceType, ValueType::Instance},
     {TokenType::_NullType, ValueType::None}
 };
 
