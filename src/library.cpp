@@ -696,7 +696,11 @@ BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args
             auto copy = std::make_shared<List>(*orig);
             list->push_back(std::make_shared<Value>(copy));
         }
-        // Add one for dictionaries too
+        else if (args[1]->getType() == ValueType::Dictionary) {
+            auto orig = args[1]->get<std::shared_ptr<Dictionary>>();
+            auto copy = std::make_shared<Dictionary>(*orig);
+            list->push_back(std::make_shared<Value>(copy));
+        }
         else {
             list->push_back(args[1]);
         }
