@@ -282,6 +282,18 @@ void Environment::setClassAttrs(Scope& scope) {
     class_attrs = scope;
 }
 
+void Environment::setThis(std::shared_ptr<Value> inst_ref) {
+    this_ref = inst_ref;
+}
+
+std::shared_ptr<Value> Environment::getThis() {
+    if (!this_ref) {
+        runtimeError("'this' may only be used inside a member function");
+        return std::make_shared<Value>();
+    }
+    return this_ref;
+}
+
 void Environment::display(bool show_attrs) const {
     if (class_env || show_attrs) {
         std::cout << "ATTRS\n";

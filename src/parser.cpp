@@ -646,6 +646,8 @@ std::shared_ptr<ASTNode> Parser::parseAtom() {
         }
     } else if (getTokenStr().find("type:") != std::string::npos) {
         return parseKeyword();
+    } else if (tokenIs("this")) {
+        return parseKeyword();
     }
     else {
         parsingError(std::format("Expected atom but got {}", getTokenStr()), getToken().line, getToken().column);

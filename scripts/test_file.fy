@@ -12,8 +12,10 @@ class Course {
         if &students.size() < &max_students {
             &students.append(student);
             print("Enrolled " + student.getName() + " in " + &course_name);
+            return true;
         } else {
             print("Enrollment failed: " + &course_name + " is full.");
+            return false;
         }
     }
 
@@ -23,7 +25,7 @@ class Course {
         } else {
             print("Students in " + &course_name + ":");
             for student in &students {
-                print("- " + student.getName() + " (" + student.getAge() + " years old)");
+                print("- " + student.getName() + " (" + str(student.getAge()) + " years old)");
             }
         }
     }
@@ -47,8 +49,9 @@ class Student {
 
     func &enroll(course) {
         if course not in &courses {
-            &courses.append(course);
-            course.enrollStudent(self);
+            if course.enrollStudent(this) {
+                &courses.append(course);
+            }
         } else {
             print(&name + " is already enrolled in " + course.course_name);
         }
@@ -94,7 +97,7 @@ class University {
         } else {
             print("Courses in " + &name + ":");
             for course in &courses {
-                print("- " + course.course_name + " (Max students: " + course.max_students + ")");
+                print("- " + course.course_name + " (Max students: " + str(course.max_students) + ")");
             }
         }
     }
@@ -105,7 +108,7 @@ class University {
         } else {
             print("Students in " + &name + ":");
             for student in &students {
-                print("- " + student.getName() + " (" + student.getAge() + " years old)");
+                print("- " + student.getName() + " (" + str(student.getAge()) + " years old)");
             }
         }
     }

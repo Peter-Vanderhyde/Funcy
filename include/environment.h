@@ -7,6 +7,7 @@
 #include <optional>
 
 class Value;
+class Instance;
 enum class ValueType;
 
 class Scope {
@@ -61,12 +62,16 @@ public:
     Scope& getClassAttrs();
     void setClassAttrs(Scope& scope);
 
+    void setThis(std::shared_ptr<Value> inst_ref);
+    std::shared_ptr<Value> getThis();
+
     void display(bool show_attrs = false) const;
 
     bool is_top_scope = false;
 private:
     std::vector<Scope> scopes;
     Scope class_attrs;
+    std::shared_ptr<Value> this_ref = nullptr;
     bool class_env;
     int class_depth = 0;
     int loop_depth = 0;

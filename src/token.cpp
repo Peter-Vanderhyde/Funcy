@@ -68,7 +68,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Global, "global"},
     {TokenType::_Class, "class"},
     {TokenType::_Instance, "instance"},
-    {TokenType::_Ampersand, "&"}
+    {TokenType::_Ampersand, "&"},
+    {TokenType::_This, "this"}
     //{TokenType::, ""}
 };
 
@@ -133,7 +134,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"import", TokenType::_Import},
     {"global", TokenType::_Global},
     {"class", TokenType::_Class},
-    {"instance", TokenType::_Instance}
+    {"instance", TokenType::_Instance},
+    {"this", TokenType::_This}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {

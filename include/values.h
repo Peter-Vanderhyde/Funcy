@@ -73,7 +73,7 @@ public:
     Instance(std::string class_name, Environment instance_env)
         : class_name{class_name}, instance_env{instance_env} {}
     
-    std::shared_ptr<Value> getConstructor();
+    std::shared_ptr<Value> getConstructor(std::shared_ptr<Instance> this_reference);
     Environment& getEnvironment();
     std::string getClassName() const;
 };

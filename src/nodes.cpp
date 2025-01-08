@@ -1095,6 +1095,13 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
 
         popExecutionContext();
         return std::nullopt;
+    } else if (keyword == TokenType::_This) {
+        try {
+            return env.getThis();
+        }
+        catch (const std::exception& e) {
+            runtimeError(e.what(), line, column);
+        }
     } else if (type_map.contains(keyword)) {
         if (keyword == TokenType::_NullType) {
             return std::make_shared<Value>();
@@ -1460,6 +1467,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     if (global_env.isClassEnv()) {
         local_env.setClassEnv();
         local_env.setClassAttrs(global_env.getClassAttrs());
+        local_env.setThis(global_env.getThis());
     }
     local_env.addScope(local_scope);
     recursion += 1;
@@ -1512,9 +1520,10 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
         auto class_value = mapped_value->get<std::shared_ptr<Class>>();
         try {
             std::shared_ptr<Instance> instance = class_value->createInstance();
-            auto constructor = instance->getConstructor();
+            auto constructor = instance->getConstructor(instance);
             auto node = constructor->get<std::shared_ptr<ASTNode>>();
             auto func_node = std::static_pointer_cast<FuncNode>(node);
+            instance->getEnvironment().setThis(std::make_shared<Value>(instance));
             func_node->callFunc(evaluateArgs(env), instance->getEnvironment(), true);
             auto scopes = instance->getEnvironment().copyScopes();
             for (const auto& pair : scopes.at(0).getPairs()) {
@@ -1548,6 +1557,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
         if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
             auto values = evaluateArgs(env);
             if (member_type == ValueType::Instance) {
+                environment.setThis(member_value);
                 auto result = func->callFunc(values, environment, true);
                 auto inst_node = member_value->get<std::shared_ptr<Instance>>();
                 inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
