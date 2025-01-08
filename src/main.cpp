@@ -29,7 +29,13 @@ int main(int argc, char* argv[]) {
     std::string source_code = readSourceCodeFromFile(filename);
 
     if (source_code.empty()) {
-        runtimeError("File " + filename + " is empty or could not be read");
+        try {
+            runtimeError("File " + filename + " is empty or could not be read");
+        }
+        catch (const std::exception& e) {
+            std::cerr << e.what();
+            return 1;
+        }
     }
 
     pushExecutionContext(filename);

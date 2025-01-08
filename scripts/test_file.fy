@@ -1,109 +1,153 @@
-/* Library Management System */
+/* University Student Management System */
 
-# Define a Book class
-class Book {
-    func &Book(title, author, year) {
-        &title = title;
-        &author = author;
-        &year = year;
-        &is_checked_out = false;
+# Define a Course class
+class Course {
+    func &Course(course_name, max_students) {
+        &course_name = course_name;
+        &max_students = max_students;
+        &students = list();
     }
 
-    func &getInfo() {
-        return "Title: " + &title + ", Author: " + &author + ", Year: " + str(&year);
-    }
-
-    func &checkout() {
-        if &is_checked_out {
-            print(&title + " is already checked out.");
+    func &enrollStudent(student) {
+        if &students.size() < &max_students {
+            &students.append(student);
+            print("Enrolled " + student.getName() + " in " + &course_name);
         } else {
-            &is_checked_out = true;
-            print("You have checked out " + &title);
+            print("Enrollment failed: " + &course_name + " is full.");
         }
     }
 
-    func &returnBook() {
-        if &is_checked_out {
-            &is_checked_out = false;
-            print("You have returned " + &title);
+    func &listStudents() {
+        if &students.size() == 0 {
+            print("No students enrolled in " + &course_name);
         } else {
-            print(&title + " was not checked out.");
+            print("Students in " + &course_name + ":");
+            for student in &students {
+                print("- " + student.getName() + " (" + student.getAge() + " years old)");
+            }
         }
     }
 }
 
-# Define a Library class
-class Library {
-    func &Library() {
-        &books = list();
+# Define a Student class
+class Student {
+    func &Student(name, age) {
+        &name = name;
+        &age = age;
+        &courses = list();
     }
 
-    func &addBook(book) {
-        &books.append(book);
-        print("Added: " + book.getInfo());
+    func &getName() {
+        return &name;
     }
 
-    func &listBooks() {
-        if &books.size() == 0 {
-            print("The library has no books.");
+    func &getAge() {
+        return &age;
+    }
+
+    func &enroll(course) {
+        if course not in &courses {
+            &courses.append(course);
+            course.enrollStudent(self);
         } else {
-            print("Books in the library:");
-            for book in &books {
-                print("- " + book.getInfo());
+            print(&name + " is already enrolled in " + course.course_name);
+        }
+    }
+
+    func &listCourses() {
+        if &courses.size() == 0 {
+            print(&name + " is not enrolled in any courses.");
+        } else {
+            print(&name + "'s Courses:");
+            for course in &courses {
+                print("- " + course.course_name);
+            }
+        }
+    }
+}
+
+# Define a University class
+class University {
+    func &University(name) {
+        &name = name;
+        &courses = list();
+        &students = list();
+    }
+
+    func &addCourse(course_name, max_students) {
+        new_course = Course(course_name, max_students);
+        &courses.append(new_course);
+        print("Added course: " + course_name);
+        return new_course;
+    }
+
+    func &addStudent(name, age) {
+        new_student = Student(name, age);
+        &students.append(new_student);
+        print("Added student: " + name);
+        return new_student;
+    }
+
+    func &listAllCourses() {
+        if &courses.size() == 0 {
+            print("No courses available in the university.");
+        } else {
+            print("Courses in " + &name + ":");
+            for course in &courses {
+                print("- " + course.course_name + " (Max students: " + course.max_students + ")");
             }
         }
     }
 
-    func &checkoutBook(title) {
-        for book in &books {
-            if book.title == title {
-                book.checkout();
-                return;
+    func &listAllStudents() {
+        if &students.size() == 0 {
+            print("No students are registered in the university.");
+        } else {
+            print("Students in " + &name + ":");
+            for student in &students {
+                print("- " + student.getName() + " (" + student.getAge() + " years old)");
             }
         }
-        print("Book not found: " + title);
-    }
-
-    func &returnBook(title) {
-        for book in &books {
-            if book.title == title {
-                book.returnBook();
-                return;
-            }
-        }
-        print("Book not found: " + title);
     }
 }
 
 # Main program
 func main() {
-    library = Library();
+    # Create the university
+    uni = University("Tech University");
 
-    # Add books to the library
-    book1 = Book("The Great Gatsby", "F. Scott Fitzgerald", 1925);
-    book2 = Book("1984", "George Orwell", 1949);
-    book3 = Book("To Kill a Mockingbird", "Harper Lee", 1960);
+    # Add courses
+    course_math = uni.addCourse("Mathematics", 2);
+    course_cs = uni.addCourse("Computer Science", 3);
+    course_physics = uni.addCourse("Physics", 2);
 
-    library.addBook(book1);
-    library.addBook(book2);
-    library.addBook(book3);
+    # Add students
+    student_john = uni.addStudent("John Doe", 20);
+    student_jane = uni.addStudent("Jane Smith", 19);
+    student_anna = uni.addStudent("Anna Lee", 22);
 
-    # List all books
-    library.listBooks();
+    # Enroll students in courses
+    student_john.enroll(course_math);
+    student_john.enroll(course_cs);
+    student_jane.enroll(course_math);
+    student_jane.enroll(course_physics);
+    student_anna.enroll(course_cs);
+    student_anna.enroll(course_physics);
 
-    # Checkout and return books
-    library.checkoutBook("1984");
-    library.checkoutBook("The Great Gatsby");
-    library.returnBook("1984");
+    # Attempt to over-enroll a course
+    student_anna.enroll(course_math);
 
-    # Try to checkout an already checked-out book
-    library.checkoutBook("The Great Gatsby");
+    # List all courses and their students
+    uni.listAllCourses();
+    course_math.listStudents();
+    course_cs.listStudents();
+    course_physics.listStudents();
 
-    # Return a book that wasn't checked out
-    library.returnBook("To Kill a Mockingbird");
-
-    # List books again to see the status
-    library.listBooks();
+    # List all students and their courses
+    uni.listAllStudents();
+    student_john.listCourses();
+    student_jane.listCourses();
+    student_anna.listCourses();
 }
 
 # Run the program

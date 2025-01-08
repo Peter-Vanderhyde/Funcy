@@ -1516,6 +1516,10 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             auto node = constructor->get<std::shared_ptr<ASTNode>>();
             auto func_node = std::static_pointer_cast<FuncNode>(node);
             func_node->callFunc(evaluateArgs(env), instance->getEnvironment(), true);
+            auto scopes = instance->getEnvironment().copyScopes();
+            for (const auto& pair : scopes.at(0).getPairs()) {
+                env.setGlobalValue(pair.first, pair.second);
+            }
             return std::make_shared<Value>(instance);
         }
         catch (const std::exception& e) {
@@ -1547,6 +1551,10 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
                 auto result = func->callFunc(values, environment, true);
                 auto inst_node = member_value->get<std::shared_ptr<Instance>>();
                 inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
+                auto scopes = environment.copyScopes();
+                for (const auto& pair : scopes.at(0).getPairs()) {
+                    env.setGlobalValue(pair.first, pair.second);
+                }
                 return result;
             }
             else {
