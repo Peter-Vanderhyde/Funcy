@@ -166,7 +166,7 @@ BinaryOpNode::BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::sha
     : ASTNode{line, column}, left{left}, op{op}, right{right} {}
 
 // Helper function to determine the truthiness of a Value object
-bool check_truthy(const Value& value) {
+bool checkTruthy(const Value& value) {
     switch (value.getType()) {
         case ValueType::Boolean: {
             return value.get<bool>(); // Directly get and return the bool value
@@ -300,17 +300,17 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
     };
 
     if (operation == TokenType::_And) {
-        if (check_truthy(*left_value)) {
-            if (check_truthy(*right_value)) {
+        if (checkTruthy(*left_value)) {
+            if (checkTruthy(*right_value)) {
                 return std::make_shared<Value>(true);
             }
         }
         return std::make_shared<Value>(false);
     }
     else if (operation == TokenType::_Or) {
-        if (check_truthy(*left_value)) {
+        if (checkTruthy(*left_value)) {
             return std::make_shared<Value>(true);
-        } else if (check_truthy(*right_value)) {
+        } else if (checkTruthy(*right_value)) {
             return std::make_shared<Value>(true);
         } else {
             return std::make_shared<Value>(false);
@@ -439,6 +439,31 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
             return std::make_shared<Value>(static_cast<int>(op_result));
         } else {
             return std::make_shared<Value>(op_result);
+        }
+    }
+    else if (left_str == "class" && right_str == "class") {
+        auto left_class = left_value->get<std::shared_ptr<Class>>();
+        auto right_class = right_value->get<std::shared_ptr<Class>>();
+
+        if (operation == TokenType::_Compare) {
+            // Compare if they are the exact same class object
+            return std::make_shared<Value>(left_class == right_class);
+        } else if (operation == TokenType::_NotEqual) {
+            return std::make_shared<Value>(left_class != right_class);
+        } else {
+            runtimeError("Unsupported operation for Class types", line, column);
+        }
+    } else if (left_str == "instance" && right_str == "instance") {
+        auto left_instance = left_value->get<std::shared_ptr<Instance>>();
+        auto right_instance = right_value->get<std::shared_ptr<Instance>>();
+
+        if (operation == TokenType::_Compare) {
+            // Compare if they are the exact same instance object
+            return std::make_shared<Value>(left_instance == right_instance);
+        } else if (operation == TokenType::_NotEqual) {
+            return std::make_shared<Value>(left_instance != right_instance);
+        } else {
+            runtimeError("Unsupported operation for Instance types", line, column);
         }
     }
 
@@ -631,7 +656,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             runtimeError("Unable to evaluate left operand for 'and' or 'or'", line, column);
         }
 
-        bool left_truthy = check_truthy(*left_value.value());
+        bool left_truthy = checkTruthy(*left_value.value());
 
         // Short-circuit logic for 'and' and 'or'
         if (op == TokenType::_And) {
@@ -652,7 +677,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             runtimeError("Unable to evaluate right operand for 'and' or 'or'", line, column);
         }
 
-        bool right_truthy = check_truthy(*right_value.value());
+        bool right_truthy = checkTruthy(*right_value.value());
         return std::make_shared<Value>(right_truthy);
     }else {
         std::optional<std::shared_ptr<Value>> left_opt = left->evaluate(env);
@@ -733,7 +758,7 @@ ScopedNode::ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, s
 bool ScopedNode::getComparisonValue(Environment& env) const {
     auto result = comparison->evaluate(env);
     if (result.has_value()) {
-        auto checkTruthy = [](const Value& value) -> bool {
+        auto check_truthy = [](const Value& value) -> bool {
             switch (value.getType()) {
                 case ValueType::Boolean:
                     return value.get<bool>(); // Return the boolean value directly
@@ -753,7 +778,7 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
             }
         };
 
-        return checkTruthy(*result.value());
+        return check_truthy(*result.value());
     }
     else {
         runtimeError("Missing a boolean comparison for keyword to evaluate", line, column);
