@@ -80,6 +80,7 @@ int main(int argc, char* argv[]) {
     env.addFunction("zip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(zip)));
     env.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
     env.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
+    env.addFunction("length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(length)));
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));

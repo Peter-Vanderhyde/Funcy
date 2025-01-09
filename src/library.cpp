@@ -665,6 +665,25 @@ BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>(static_cast<double>(now));
 }
 
+BuiltInFunctionReturn length(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("length() takes 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto value = args[0];
+    ValueType type = value->getType();
+    if (type == ValueType::String) {
+        return std::make_shared<Value>(static_cast<int>(value->get<std::string>().length()));
+    } else if (type == ValueType::List) {
+        return std::make_shared<Value>(static_cast<int>(value->get<std::shared_ptr<List>>()->size()));
+    } else if (type == ValueType::Dictionary) {
+        return std::make_shared<Value>(static_cast<int>(value->get<std::shared_ptr<Dictionary>>()->size()));
+    } else {
+        throw std::runtime_error("Object of " + getTypeStr(value->getType()) + " has no length");
+    }
+    return std::nullopt;
+}
+
 
 ///  MEMBER FUNCTIONS  ///
 

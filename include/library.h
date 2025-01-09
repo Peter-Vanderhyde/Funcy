@@ -36,6 +36,7 @@ BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Env
 BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn length(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
