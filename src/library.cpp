@@ -299,7 +299,7 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
         case ValueType::Integer:
             return std::make_shared<Value>(std::to_string(arg->get<int>()));
         case ValueType::Float:
-            return std::make_shared<Value>(toString(arg->get<double>()));
+            return std::make_shared<Value>(std::to_string(arg->get<double>()));
         case ValueType::Boolean:
             return std::make_shared<Value>(arg->get<bool>() ? "true" : "false");
         case ValueType::List: {
@@ -307,12 +307,34 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
             std::string result = "[";
             for (size_t i = 0; i < list->size(); ++i) {
                 auto str_return = stringConverter({list->at(i)}, env).value();
-                result += str_return->get<std::string>();
+                if (list->at(i)->getType() == ValueType::String) {
+                    result += '"' + str_return->get<std::string>() + '"';
+                } else {
+                    result += str_return->get<std::string>();
+                }
                 if (i < list->size() - 1) {
                     result += ", ";
                 }
             }
             result += "]";
+            return std::make_shared<Value>(result);
+        }
+        case ValueType::Dictionary: {
+            auto dict = arg->get<std::shared_ptr<Dictionary>>();
+            std::string result = "{";
+            bool first = true;
+            for (const auto& pair : *dict) {
+                if (!first) {
+                    result += ", ";
+                }
+                first = false;
+                auto key_str = stringConverter({pair.first}, env).value();
+                auto value_str = stringConverter({pair.second}, env).value();
+                std::string key_representation = pair.first->getType() == ValueType::String ? '"' + key_str->get<std::string>() + '"' : key_str->get<std::string>();
+                std::string value_representation = pair.second->getType() == ValueType::String ? '"' + value_str->get<std::string>() + '"' : value_str->get<std::string>();
+                result += key_representation + ": " + value_representation;
+            }
+            result += "}";
             return std::make_shared<Value>(result);
         }
         default:
@@ -578,6 +600,40 @@ BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Envi
     file.close();
 
     return std::make_shared<Value>(buffer.str());
+}
+
+BuiltInFunctionReturn write(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("write() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::String) {
+        throw std::runtime_error("write() expected the first argument to be a string (file path)");
+    }
+    if (args[1]->getType() != ValueType::String) {
+        throw std::runtime_error("write() expected the second argument to be a string (content)");
+    }
+
+    std::string new_path;
+    std::string file_path = args[0]->get<std::string>();
+    std::string content = args[1]->get<std::string>();
+
+    if (!std::filesystem::path(file_path).is_absolute()) {
+        std::string path = currentExecutionContext(); // Fetch base execution context
+        new_path = path.substr(0, path.find_last_of('/')) + "/" + file_path;
+    } else {
+        new_path = file_path;
+    }
+
+    std::ofstream file(new_path, std::ios::out);
+    if (!file) {
+        throw std::runtime_error("Failed to open file for writing: " + new_path);
+    }
+
+    file << content;
+    file.close();
+
+    return std::make_shared<Value>();
 }
 
 BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
