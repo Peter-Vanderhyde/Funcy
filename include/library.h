@@ -60,3 +60,6 @@ BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& a
 BuiltInFunctionReturn stringLength(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+
+BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

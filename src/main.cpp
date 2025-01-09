@@ -104,6 +104,9 @@ int main(int argc, char* argv[]) {
     env.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
     env.addMember(ValueType::String, "join", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringJoin)));
 
+    env.addMember(ValueType::Instance, "set", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
+    env.addMember(ValueType::Instance, "get", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
+
 
     try {
         for (auto statement : statements) {

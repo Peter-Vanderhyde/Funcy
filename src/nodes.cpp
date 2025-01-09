@@ -743,6 +743,8 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env,
     if (debug) std::cout << "Evaluate Identifier" << std::endl;
     if (env.hasMember(member_type, name)) {
         return env.getMember(member_type, name);
+    } else if (env.hasMember(name)) {
+        return env.getMember(name);
     } else {
         runtimeError(name + " is not defined", line, column);
     }

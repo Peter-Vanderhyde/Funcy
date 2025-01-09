@@ -215,34 +215,37 @@ void Environment::addMember(ValueType type, const std::string& name, std::shared
     member_functions[type][name] = func;
 }
 
+void Environment::addMember(const std::string& name, std::shared_ptr<Value> value) {
+    class_attrs.set(name, value);
+}
+
 std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string& name) const {
-    if (class_env == true && type == ValueType::Instance) {
-        return class_attrs.get(name);
-        runtimeError("Class has no attribute: " + name);
-    }
-    else {
-        auto members = member_functions.find(type);
-        if (members != member_functions.end()) {
-            auto func = members->second.find(name);
-            if (func != members->second.end()) {
-                return func->second;
-            }
+    auto members = member_functions.find(type);
+    if (members != member_functions.end()) {
+        auto func = members->second.find(name);
+        if (func != members->second.end()) {
+            return func->second;
         }
     }
 
     runtimeError("Unrecognized member function: " + name);
 }
 
+std::shared_ptr<Value> Environment::getMember(const std::string& name) const {
+    return class_attrs.get(name);
+}
+
 bool Environment::hasMember(ValueType type, const std::string& name) const {
-    if (class_env == true && type == ValueType::Instance) {
-        return class_attrs.contains(name);
-    }
     auto members = member_functions.find(type);
     if (members != member_functions.end()) {
         auto func = members->second.find(name);
         return func != members->second.end();
     }
     return false;
+}
+
+bool Environment::hasMember(const std::string& name) const {
+    return class_attrs.contains(name);
 }
 
 void Environment::addGlobal(std::string name) {

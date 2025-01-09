@@ -51,8 +51,11 @@ public:
     bool hasFunction(const std::string& name) const;
 
     void addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func);
+    void addMember(const std::string& name, std::shared_ptr<Value> value);
     std::shared_ptr<Value> getMember(ValueType type, const std::string& name) const;
+    std::shared_ptr<Value> getMember(const std::string& name) const;
     bool hasMember(ValueType type, const std::string& name) const;
+    bool hasMember(const std::string& name) const;
 
     void addGlobal(std::string name);
     void resetGlobals();

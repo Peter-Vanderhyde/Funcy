@@ -1112,3 +1112,36 @@ BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args
 
     return std::make_shared<Value>(combined);
 }
+
+
+BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 3) {
+        throw std::runtime_error("set() takes exactly 3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto inst = args[0]->get<std::shared_ptr<Instance>>();
+    auto name_val = args[1];
+    auto value = args[2];
+    if (name_val->getType() != ValueType::String) {
+        throw std::runtime_error("set() expected an attribute name string for the first argument but got " + getTypeStr(name_val->getType()));
+    }
+    
+    auto name = name_val->get<std::string>();
+    inst->getEnvironment().addMember(name, value);
+    return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("get() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto inst = args[0]->get<std::shared_ptr<Instance>>();
+    auto name_val = args[1];
+    if (name_val->getType() != ValueType::String) {
+        throw std::runtime_error("get() expected an attribute name string for the first argument but got " + getTypeStr(name_val->getType()));
+    }
+
+    auto name = name_val->get<std::string>();
+    return inst->getEnvironment().getMember(name);
+}

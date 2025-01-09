@@ -1,6 +1,17 @@
-file_path = "test.json";
+class Example {
+    func &Example() {}
+}
 
-d = {"first": {"Second": 20}};
+e = Example();
+d = {
+    "name":"Peter",
+    "age":23
+};
 
-contents = str(d);
-print(contents);
+for [name, value] in d {
+    e.set(name, value);
+}
+
+for attr in d.keys() {
+    print(e.get(attr));
+}
