@@ -11,7 +11,9 @@ d = {
 for [name, value] in d {
     e.set(name, value);
 }
-
-for attr in d.keys() {
-    print(e.get(attr));
+func printVal(val) {
+    print(val);
 }
+
+e.set("printVal", printVal);
+e.printVal("That thing");
