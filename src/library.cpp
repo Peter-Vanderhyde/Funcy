@@ -8,6 +8,7 @@
 #include <memory>
 #include <chrono>
 #include <filesystem>
+#include <cmath>
 #include "errorDefs.h"
 #include "values.h"
 #include "nodes.h"
@@ -267,6 +268,24 @@ BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& a
     }
 }
 
+BuiltInFunctionReturn callable(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("callable() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto type = args[0]->getType();
+    switch (type) {
+        case ValueType::Function:
+            return std::make_shared<Value>(true);
+        case ValueType::BuiltInFunction:
+            return std::make_shared<Value>(true);
+        case ValueType::Class:
+            return std::make_shared<Value>(true);
+        default:
+            return std::make_shared<Value>(false);
+    }
+}
+
 BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     using namespace std::chrono;
 
@@ -322,18 +341,42 @@ BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(dict);
 }
 
+BuiltInFunctionReturn divMod(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("divMod() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::Integer) {
+        throw std::runtime_error("divMod() expected an argument 1 of Type:Integer but got " + getTypeStr(args[0]->getType()));
+    }
+    if (args[1]->getType() != ValueType::Integer) {
+        throw std::runtime_error("divMod() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+    }
+
+    int dividend = args[0]->get<int>();
+    int divisor = args[1]->get<int>();
+
+    int result = dividend / divisor;
+    int remainder = dividend % divisor;
+
+    List list;
+    list.push_back(std::make_shared<Value>(result));
+    list.push_back(std::make_shared<Value>(remainder));
+    return std::make_shared<Value>(std::make_shared<List>(list));
+}
+
 BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() < 1 || args.size() > 2) {
         throw std::runtime_error("enumerate() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throw std::runtime_error("enumerate() expected an argument of Type:List for argument 1 but got " + getTypeStr(args[0]->getType()));
+        throw std::runtime_error("enumerate() expected an argument 1 of Type:List but got " + getTypeStr(args[0]->getType()));
     }
     int start = 0;
     if (args.size() == 2) {
         if (args[1]->getType() != ValueType::Integer) {
-            throw std::runtime_error("enumerate() expected an argument of Type:Integer for argument 2 but got " + getTypeStr(args[1]->getType()));
+            throw std::runtime_error("enumerate() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
         }
         start = args[1]->get<int>();
     }
@@ -385,6 +428,19 @@ BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, E
     }
 
     return std::make_shared<Value>(args[0]->getType());
+}
+
+BuiltInFunctionReturn globals(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 0) {
+        throw std::runtime_error("globals() takes 0 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto global_scope = env.copyScopes().at(0);
+    Dictionary dict;
+    for (const auto& pair : global_scope.getPairs()) {
+        dict[std::make_shared<Value>(pair.first)] = pair.second;
+    }
+    return std::make_shared<Value>(std::make_shared<Dictionary>(dict));
 }
 
 BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
@@ -502,6 +558,18 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(list);
 }
 
+BuiltInFunctionReturn locals(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 0) {
+        throw std::runtime_error("locals() takes 0 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    Dictionary dict;
+    for (const auto& pair : env.getScope().getPairs()) {
+        dict[std::make_shared<Value>(pair.first)] = pair.second;
+    }
+    return std::make_shared<Value>(std::make_shared<Dictionary>(dict));
+}
+
 BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 2) {
         throw std::runtime_error("map() requires exactly 2 arguments. " + std::to_string(args.size()) + " were given");
@@ -511,11 +579,11 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
     auto list_value = args[1];
 
     if (func->getType() != ValueType::Function && func->getType() != ValueType::BuiltInFunction) {
-        throw std::runtime_error("map() expected an argument of Type:Function or Type:BuiltInFunction for argument 1 but got " + getTypeStr(func->getType()));
+        throw std::runtime_error("map() expected an argument 1 of Type:Function or Type:BuiltInFunction but got " + getTypeStr(func->getType()));
     }
 
     if (list_value->getType() != ValueType::List) {
-        throw std::runtime_error("map() expected an argument of Type:List for argument 2 but got " + getTypeStr(list_value->getType()));
+        throw std::runtime_error("map() expected an argument 2 of Type:List but got " + getTypeStr(list_value->getType()));
     }
 
     auto list = list_value->get<std::shared_ptr<List>>();
@@ -550,6 +618,156 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
     return std::make_shared<Value>(result_list);
 }
 
+BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() == 0) {
+        throw std::runtime_error("max() takes 1 or more arguments. 0 were given");
+    }
+
+    std::shared_ptr<List> list;
+    if (args.size() == 1) {
+        if (args[0]->getType() != ValueType::List) {
+            throw std::runtime_error("max() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+        }
+        list = args[0]->get<std::shared_ptr<List>>();
+    } else {
+        List arg_list;
+        for (const auto& arg : args) {
+            arg_list.push_back(arg);
+        }
+        list = std::make_shared<List>(arg_list);
+    }
+        
+    if (list->empty()) {
+        throw std::runtime_error("max() argument is an empty sequence");
+    }
+    auto first_type = list->at(0)->getType();
+
+    // Ensure all elements are comparable
+    for (const auto& item : list->getElements()) {
+        auto item_type = item->getType();
+        if (!(item_type == first_type || 
+              (item_type == ValueType::Integer && first_type == ValueType::Float) || 
+              (item_type == ValueType::Float && first_type == ValueType::Integer))) {
+            throw std::runtime_error("max() '>' comparison is not supported between " + getTypeStr(first_type) +
+                                     " and " + getTypeStr(item_type));
+        }
+    }
+
+    int max_index = 0;
+    for (int i = 1; i < list->size(); i++) {
+        auto current = list->at(i);
+        auto max_value = list->at(max_index);
+
+        if (first_type == ValueType::Integer || first_type == ValueType::Float) {
+            // Convert to double for comparison if mixing Integer and Float
+            double current_value = (current->getType() == ValueType::Integer) 
+                                   ? static_cast<double>(current->get<int>()) 
+                                   : current->get<double>();
+
+            double max_value_num = (max_value->getType() == ValueType::Integer) 
+                                   ? static_cast<double>(max_value->get<int>()) 
+                                   : max_value->get<double>();
+
+            if (current_value > max_value_num) {
+                max_index = i;
+            }
+        } else if (first_type == ValueType::String) {
+            if (current->get<std::string>() > max_value->get<std::string>()) {
+                max_index = i;
+            }
+        } else if (first_type == ValueType::List) {
+            int current_size = current->get<std::shared_ptr<List>>()->size();
+            int max_size = max_value->get<std::shared_ptr<List>>()->size();
+            if (current_size > max_size) {
+                max_index = i;
+            }
+        } else if (first_type == ValueType::Dictionary) {
+            int current_size = current->get<std::shared_ptr<Dictionary>>()->size();
+            int max_size = max_value->get<std::shared_ptr<Dictionary>>()->size();
+            if (current_size > max_size) {
+                max_index = i;
+            }
+        }
+    }
+
+    return list->at(max_index);
+}
+
+BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() == 0) {
+        throw std::runtime_error("min() takes 1 or more arguments. 0 were given");
+    }
+
+    std::shared_ptr<List> list;
+    if (args.size() == 1) {
+        if (args[0]->getType() != ValueType::List) {
+            throw std::runtime_error("min() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+        }
+        list = args[0]->get<std::shared_ptr<List>>();
+    } else {
+        List arg_list;
+        for (const auto& arg : args) {
+            arg_list.push_back(arg);
+        }
+        list = std::make_shared<List>(arg_list);
+    }
+        
+    if (list->empty()) {
+        throw std::runtime_error("min() argument is an empty sequence");
+    }
+    auto first_type = list->at(0)->getType();
+
+    // Ensure all elements are comparable
+    for (const auto& item : list->getElements()) {
+        auto item_type = item->getType();
+        if (!(item_type == first_type || 
+              (item_type == ValueType::Integer && first_type == ValueType::Float) || 
+              (item_type == ValueType::Float && first_type == ValueType::Integer))) {
+            throw std::runtime_error("min() '>' comparison is not supported between " + getTypeStr(first_type) +
+                                     " and " + getTypeStr(item_type));
+        }
+    }
+
+    int min_index = 0;
+    for (int i = 1; i < list->size(); i++) {
+        auto current = list->at(i);
+        auto max_value = list->at(min_index);
+
+        if (first_type == ValueType::Integer || first_type == ValueType::Float) {
+            // Convert to double for comparison if mixing Integer and Float
+            double current_value = (current->getType() == ValueType::Integer) 
+                                   ? static_cast<double>(current->get<int>()) 
+                                   : current->get<double>();
+
+            double max_value_num = (max_value->getType() == ValueType::Integer) 
+                                   ? static_cast<double>(max_value->get<int>()) 
+                                   : max_value->get<double>();
+
+            if (current_value < max_value_num) {
+                min_index = i;
+            }
+        } else if (first_type == ValueType::String) {
+            if (current->get<std::string>() < max_value->get<std::string>()) {
+                min_index = i;
+            }
+        } else if (first_type == ValueType::List) {
+            int current_size = current->get<std::shared_ptr<List>>()->size();
+            int max_size = max_value->get<std::shared_ptr<List>>()->size();
+            if (current_size < max_size) {
+                min_index = i;
+            }
+        } else if (first_type == ValueType::Dictionary) {
+            int current_size = current->get<std::shared_ptr<Dictionary>>()->size();
+            int max_size = max_value->get<std::shared_ptr<Dictionary>>()->size();
+            if (current_size < max_size) {
+                min_index = i;
+            }
+        }
+    }
+
+    return list->at(min_index);
+}
+
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     for (const auto& arg : args) {
         printValue(arg);
@@ -566,7 +784,7 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Env
 
     for (int i = 0; i < args.size(); i++) {
         if (args[i]->getType() != ValueType::Integer) {
-            throw std::runtime_error("range() expected an argument of Type:Integer for argument " + std::to_string(i) + " but got " + getTypeStr(args[i]->getType()));
+            throw std::runtime_error("range() expected an argument " + std::to_string(i) + " of Type:Integer but got " + getTypeStr(args[i]->getType()));
         }
     }
 
@@ -634,6 +852,44 @@ BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Envi
     return std::make_shared<Value>(buffer.str());
 }
 
+BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("reversed() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        throw std::runtime_error("reversed() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    List new_list;
+
+    for (auto item : list->getElements()) {
+        new_list.insert(0, item);
+    }
+
+    return std::make_shared<Value>(std::make_shared<List>(new_list));
+}
+
+BuiltInFunctionReturn round(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("round() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::Integer && args[0]->getType() != ValueType::Float) {
+        throw std::runtime_error("round() expected a number but got " + getTypeStr(args[0]->getType()));
+    }
+
+    if (args[0]->getType() == ValueType::Integer) {
+        int num = args[0]->get<int>();
+        return std::make_shared<Value>(num);
+    }
+
+    double num = args[0]->get<double>();
+    num = std::round(num);
+    return std::make_shared<Value>(num);
+}
+
 std::string toString(double value){
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2) << value;
@@ -696,16 +952,47 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
     }
 }
 
+BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("sum() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        throw std::runtime_error("sum() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    bool not_ints = false;
+    double summation = 0.0;
+    for (auto num : list->getElements()) {
+        if (num->getType() == ValueType::Integer) {
+            double cast = static_cast<double>(num->get<int>());
+            summation += cast;
+        } else if (num->getType() == ValueType::Float) {
+            not_ints = true;
+            summation += num->get<double>();
+        } else {
+            throw std::runtime_error("Unsupported operation: Type:Float '+' " + getTypeStr(num->getType()));
+        }
+    }
+
+    if (not_ints) {
+        return std::make_shared<Value>(summation);
+    } else {
+        return std::make_shared<Value>(static_cast<int>(summation));
+    }
+}
+
 BuiltInFunctionReturn write(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 2) {
         throw std::runtime_error("write() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
 
     if (args[0]->getType() != ValueType::String) {
-        throw std::runtime_error("write() expected an argument of Type:String for argument 1 but got " + getTypeStr(args[0]->getType()));
+        throw std::runtime_error("write() expected an argument 1 of Type:String but got " + getTypeStr(args[0]->getType()));
     }
     if (args[1]->getType() != ValueType::String) {
-        throw std::runtime_error("write() expected an argument of Type:String for argument 2 but got " + getTypeStr(args[1]->getType()));
+        throw std::runtime_error("write() expected an argument 2 of Type:String but got " + getTypeStr(args[1]->getType()));
     }
 
     std::string new_path;
@@ -740,7 +1027,7 @@ BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Envir
     int i = 0;
     for (auto arg : args) {
         if (arg->getType() != ValueType::List) {
-            throw std::runtime_error("zip() expected an argument of Type:List for argument " + std::to_string(i) + " but got " + getTypeStr(arg->getType()));
+            throw std::runtime_error("zip() expected an argument " + std::to_string(i) + " of Type:List but got " + getTypeStr(arg->getType()));
         }
         int size = arg->get<std::shared_ptr<List>>()->size();
         if (size < min_size) {
@@ -796,7 +1083,7 @@ BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, E
         index = -1;
     } else {
         if (args[1]->getType() != ValueType::Integer) {
-            throw std::runtime_error("pop() expected an argument of Type:Integer for argument but got " + getValueStr(args[1]));
+            throw std::runtime_error("pop() expected an argument of Type:Integer but got " + getValueStr(args[1]));
         }
         index = args[1]->get<int>();
     }
@@ -973,7 +1260,7 @@ BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args
     std::string joiner = args[0]->get<std::string>();
 
     if (args[1]->getType() != ValueType::List) {
-        throw std::runtime_error("join() expected an argument of Type:List for argument but got " + getTypeStr(args[1]->getType()));
+        throw std::runtime_error("join() expected an argument of Type:List but got " + getTypeStr(args[1]->getType()));
     }
     auto segments = args[1]->get<std::shared_ptr<List>>();
     std::string combined = "";
@@ -1022,13 +1309,13 @@ BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& a
 
     // Get the substring to replace
     if (args[1]->getType() != ValueType::String) {
-        throw std::runtime_error("replace() expected an argument of Type:String for argument 1 but got " + getTypeStr(args[1]->getType()));
+        throw std::runtime_error("replace() expected an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
     }
     std::string to_replace = args[1]->get<std::string>();
 
     // Get the replacement substring
     if (args[2]->getType() != ValueType::String) {
-        throw std::runtime_error("replace() expected an argument of Type:String for argument 2 but got " + getTypeStr(args[2]->getType()));
+        throw std::runtime_error("replace() expected an argument 2 of Type:String but got " + getTypeStr(args[2]->getType()));
     }
     std::string replacement = args[2]->get<std::string>();
 
@@ -1054,7 +1341,7 @@ BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& arg
         if (args[1]->getType() == ValueType::String) {
             delimiter = args[1]->get<std::string>();
         } else {
-            throw std::runtime_error("split() expected an argument of Type:String for argument 1 but got " + getTypeStr(args[1]->getType()));
+            throw std::runtime_error("split() expected an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
         }
     }
 
@@ -1097,7 +1384,7 @@ BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& arg
         if (args[1]->getType() == ValueType::String) {
             strip_chars = args[1]->get<std::string>();
         } else {
-            throw std::runtime_error("strip() expected an argument of Type:String for argument but got " + getTypeStr(args[1]->getType()));
+            throw std::runtime_error("strip() expected an argument of Type:String but got " + getTypeStr(args[1]->getType()));
         }
     }
 
@@ -1125,7 +1412,7 @@ BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& arg
     auto inst = args[0]->get<std::shared_ptr<Instance>>();
     auto name_val = args[1];
     if (name_val->getType() != ValueType::String) {
-        throw std::runtime_error("delAttr() expected an argument of Type:String for argument but got " + getTypeStr(name_val->getType()));
+        throw std::runtime_error("delAttr() expected an argument of Type:String but got " + getTypeStr(name_val->getType()));
     }
 
     auto name = name_val->get<std::string>();
@@ -1143,7 +1430,7 @@ BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& arg
     auto inst = args[0]->get<std::shared_ptr<Instance>>();
     auto name_val = args[1];
     if (name_val->getType() != ValueType::String) {
-        throw std::runtime_error("getAttr() expected an argument of Type:String for argument but got " + getTypeStr(name_val->getType()));
+        throw std::runtime_error("getAttr() expected an argument of Type:String but got " + getTypeStr(name_val->getType()));
     }
 
     auto name = name_val->get<std::string>();
@@ -1158,7 +1445,7 @@ BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& arg
     auto inst = args[0]->get<std::shared_ptr<Instance>>();
     auto name = args[1];
     if (name->getType() != ValueType::String) {
-        throw std::runtime_error("hasAttr() expected an argument of Type:String for argument but got " + getTypeStr(name->getType()));
+        throw std::runtime_error("hasAttr() expected an argument of Type:String but got " + getTypeStr(name->getType()));
     }
 
     bool has = inst->getEnvironment().hasMember(name->get<std::string>());
@@ -1175,7 +1462,7 @@ BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& arg
     auto name_val = args[1];
     auto value = args[2];
     if (name_val->getType() != ValueType::String) {
-        throw std::runtime_error("setAttr() expected an argument of Type:String for argument but got " + getTypeStr(name_val->getType()));
+        throw std::runtime_error("setAttr() expected an argument of Type:String but got " + getTypeStr(name_val->getType()));
     }
     
     auto name = name_val->get<std::string>();

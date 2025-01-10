@@ -44,8 +44,10 @@ public:
     void insert(const std::shared_ptr<List>& other); // Overload for inserting a List directly
     void set(size_t index, std::shared_ptr<Value> value);
     std::shared_ptr<Value> at(size_t index) const;
+    std::vector<std::shared_ptr<Value>> getElements();
     size_t size() const;
     bool empty() const;
+
 };
 
 /*

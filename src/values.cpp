@@ -136,6 +136,10 @@ std::shared_ptr<Value> List::at(size_t index) const {
     return elements.at(index);
 }
 
+std::vector<std::shared_ptr<Value>> List::getElements() {
+    return elements;
+}
+
 size_t List::size() const {
     return elements.size();
 }

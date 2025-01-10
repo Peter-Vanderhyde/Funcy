@@ -83,6 +83,16 @@ int main(int argc, char* argv[]) {
     env.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
     env.addFunction("length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(length)));
     env.addFunction("abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(absoluteValue)));
+    env.addFunction("callable", std::make_shared<Value>(std::make_shared<BuiltInFunction>(callable)));
+    env.addFunction("divMod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(divMod)));
+    env.addFunction("globals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(globals)));
+    env.addFunction("locals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(locals)));
+    env.addFunction("max", std::make_shared<Value>(std::make_shared<BuiltInFunction>(max)));
+    env.addFunction("min", std::make_shared<Value>(std::make_shared<BuiltInFunction>(min)));
+    env.addFunction("reversed", std::make_shared<Value>(std::make_shared<BuiltInFunction>(reversed)));
+    env.addFunction("round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(round)));
+    env.addFunction("sum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sum)));
+    
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
