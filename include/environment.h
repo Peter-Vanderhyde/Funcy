@@ -15,6 +15,7 @@ public:
     Scope();
     void set(std::string name, std::shared_ptr<Value> value);
     std::shared_ptr<Value> get(std::string name) const;
+    void remove(std::string name);
     bool contains(std::string name) const;
     const std::vector<std::pair<std::string, std::shared_ptr<Value>>> getPairs() const;
     void display() const;
@@ -56,6 +57,7 @@ public:
     std::shared_ptr<Value> getMember(const std::string& name) const;
     bool hasMember(ValueType type, const std::string& name) const;
     bool hasMember(const std::string& name) const;
+    void delMember(const std::string& name);
 
     void addGlobal(std::string name);
     void resetGlobals();

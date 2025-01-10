@@ -82,6 +82,7 @@ int main(int argc, char* argv[]) {
     env.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
     env.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
     env.addFunction("length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(length)));
+    env.addFunction("abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(absoluteValue)));
 
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
@@ -104,8 +105,10 @@ int main(int argc, char* argv[]) {
     env.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
     env.addMember(ValueType::String, "join", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringJoin)));
 
-    env.addMember(ValueType::Instance, "set", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
-    env.addMember(ValueType::Instance, "get", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
+    env.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
+    env.addMember(ValueType::Instance, "getAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
+    env.addMember(ValueType::Instance, "delAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceDel)));
+    env.addMember(ValueType::Instance, "hasAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceHas)));
 
 
     try {

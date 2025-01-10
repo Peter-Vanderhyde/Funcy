@@ -19,6 +19,7 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
                                                     std::shared_ptr<Value> second);
 
 
+BuiltInFunctionReturn absoluteValue(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
@@ -61,5 +62,7 @@ BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& arg
 BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
+BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

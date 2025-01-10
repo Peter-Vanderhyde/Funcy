@@ -16,6 +16,10 @@ bool Scope::contains(std::string name) const {
     return static_cast<bool>(variables.count(name));
 }
 
+void Scope::remove(std::string name) {
+    variables.erase(name);
+}
+
 const std::vector<std::pair<std::string, std::shared_ptr<Value>>> Scope::getPairs() const {
     std::vector<std::pair<std::string, std::shared_ptr<Value>>> pairs;
     for (const auto& pair : variables) {
@@ -246,6 +250,10 @@ bool Environment::hasMember(ValueType type, const std::string& name) const {
 
 bool Environment::hasMember(const std::string& name) const {
     return class_attrs.contains(name);
+}
+
+void Environment::delMember(const std::string& name) {
+    class_attrs.remove(name);
 }
 
 void Environment::addGlobal(std::string name) {

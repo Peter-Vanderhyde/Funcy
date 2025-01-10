@@ -1,19 +1,14 @@
-class Example {
-    func &Example() {}
+class Test {
+    func &Test() {
+        &name = "Peter";
+    }
 }
 
-e = Example();
-d = {
-    "name":"Peter",
-    "age":23
-};
-
-for [name, value] in d {
-    e.set(name, value);
-}
-func printVal(val) {
-    print(val);
-}
-
-e.set("printVal", printVal);
-e.printVal("That thing");
+t = Test();
+print(t.hasAttr("name"));
+print(t.hasAttr("age"));
+t.setAttr("age", 21);
+print(t.hasAttr("age"));
+t.delAttr("name");
+print(t.hasAttr("name"));
+t.delAttr("name");
