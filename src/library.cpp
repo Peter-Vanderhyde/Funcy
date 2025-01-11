@@ -139,7 +139,7 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
     // Transform the first Value into int or double
     switch (first->getType()) {
         case ValueType::Boolean:
-            first_num = first->get<bool>() ? 1 : 0;  // Convert bool to int
+            first_num = first->get<bool>() ? 1 : 0;
             break;
         case ValueType::Integer:
             first_num = first->get<int>();
@@ -154,7 +154,7 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
     // Transform the second Value into int or double
     switch (second->getType()) {
         case ValueType::Boolean:
-            second_num = second->get<bool>() ? 1 : 0;  // Convert bool to int
+            second_num = second->get<bool>() ? 1 : 0;
             break;
         case ValueType::Integer:
             second_num = second->get<int>();
@@ -296,7 +296,7 @@ BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& arg
     // Get the current time since epoch in milliseconds
     auto now = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 
-    // Return it as a double for better compatibility
+    // Return it as an int
     return std::make_shared<Value>(static_cast<int>(now));
 }
 
