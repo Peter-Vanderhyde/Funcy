@@ -18,7 +18,6 @@ Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` fi
 - [Classes](#classes)
 - [Keywords](#keywords)
 - [Built-in Functions](#built-in-functions)
-- [Modules and Imports](#modules-and-imports)
 - [Examples](#examples)
 - [Additional Features](#additional-features)
 - [Conclusion](#conclusion)
@@ -382,18 +381,6 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 
 ---
 
-## Modules and Imports
-
-### Syntax:
-
-```funcy
-import <path/to/module.fy>;
-```
-
-- Allows code reuse across files.
-
----
-
 ## Examples
 
 ### Example 1: Factorial Function
@@ -437,13 +424,6 @@ print(obj.getPrivateAttr());  # Output: 20
 
   ```funcy
   print("hello" * 3);  # Output: hellohellohello
-  ```
-
-- **Type Conversion:**
-
-  ```funcy
-  x = int("123");
-  print(type(x) == Integer);  # Output: true
   ```
 
 - **List Slicing:**
