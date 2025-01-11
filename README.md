@@ -1,178 +1,145 @@
-
-# Funcy: A Custom Scripting Language
-
-Funcy is a  flexible scripting language designed for simplicity and versatility. With support for variable assignments, control flow, object-oriented programming, and robust built-in functions, Funcy is ideal for a variety of programming tasks.
-
----
-
-## Quick Start
-
-### Hello World
-
-```funcy
-print("Hello, World!");
-```
-
-### Fibonacci Sequence
-
-```funcy
-index = 15;
-a = 0;
-b = 0;
-
-while index > 0 {
-    if a == 0 and a == b {
-        print(0);
-        b = 1;
-    } else {
-        temp = a + b;
-        a = b;
-        b = temp;
-        print(a);
-    }
-    index -= 1;
-}
-```
-### Class Example
-
-```funcy
-class Person {
-    func &Person(name, age) {
-        &name = name;
-        &age = age;
-    }
-
-    func &greet() {
-        print("Hello, my name is " + &name);
-    }
-}
-
-let john = Person("John", 30);
-john.greet();
-```
+# Funcy Documentation  
+***Author: Peter Vanderhyde***  
+***Project Start: November 2024***  
 
 ---
 
-## Running
+### VSCode Extension
+Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` file can be downloaded from the [funcy-lang Github Repository](https://github.com/Peter-Vanderhyde/funcy-lang).
 
-To run Funcy, download the interpreter from the repository and run your programs as follows:
+## Quick Links
 
-```bash
-Funcy.exe <path/to/script.fy>
-```
+- [Introduction](#introduction)
+- [Syntax Overview](#syntax-overview)
+- [Data Types](#data-types)
+- [Operators](#operators)
+- [Control Flow](#control-flow)
+- [Functions](#functions)
+- [Classes](#classes)
+- [Keywords](#keywords)
+- [Built-in Functions](#built-in-functions)
+- [Modules and Imports](#modules-and-imports)
+- [Examples](#examples)
+- [Additional Features](#additional-features)
+- [Conclusion](#conclusion)
 
 ---
 
-## Features
+## Introduction
 
-### Core Features
-- Variable assignments
-- Multiple data types
-- Control flow with `if`, `elif`, `else`, `for`, and `while`
-- Object-oriented programming with classes
-- Extensive built-in functions
+Funcy is a dynamically-typed programming language based off of Python and designed for simplicity, flexibility and expressiveness. It supports features like object-oriented programming, control flow structures, built-in functions, and rich data types.
 
 ---
 
 ## Syntax Overview
 
-### Variables
+### General Rules
 
-Variables are assigned using the `=` operator. Example:
+- Statements end with a semicolon `;`, unless a new scope is being created. (if statements, function definitions, etc.)
+- Scopes are enclosed in `{}`.
+- Comments:
+  - Single-line: `# Comment here`
+  - Multi-line: `/* Multi-line comment */`
+
+### Example:
 
 ```funcy
 x = 10;
-y = "hello";
+if x > 5 {
+    print("x is greater than 5");
+}
 ```
-
-### Data Types
-
-Funcy supports the following data types:
-
-- Integer
-- Float
-- Boolean
-- String
-- List
-- Dictionary
-- Function
-- Class
-
-### Operators
-
-Funcy supports several operators:
-
-- **Arithmetic**: `+`, `-`, `*`, `/`, `%`, `**`, `^`
-- **Comparison**: `==`, `!=`, `<`, `<=`, `>`, `>=`
-- **Logical**: `and`, `or`, `not`
 
 ---
 
-## Keywords
+## Data Types
 
-### Import
+1. **Integer**
+2. **Float**
+3. **Boolean** (`true` and `false` in lowercase)
+4. **String**
+5. **List**
+6. **Dictionary**
+7. **Function**
+8. **Class**
+9. **Instance**
 
-The `import` keyword allows you to include external Funcy scripts in your program:
+---
 
-```funcy
-import "utilities.fy";
-```
+## Operators
 
-### Global
+### Arithmetic:
 
-The `global` keyword allows variables in an outer scope to be modified inside a function:
+| Operator | Description      |
+| -------- | ---------------- |
+| `+`      | Addition         |
+| `-`      | Subtraction      |
+| `*`      | Multiplication   |
+| `/`      | Division         |
+| `//`     | Integer Division |
+| `%`      | Modulo           |
+| `**`     | Exponentiation   |
+| `^`      | Exponentiation   |
 
-```funcy
-x = 10;
+### Comparison:
 
-func modifyGlobal() {
-    global x;
-    x = 20;
-}
+| Operator | Description           |
+| -------- | --------------------- |
+| `==`     | Equal to              |
+| `!=`     | Not equal to          |
+| `<`      | Less than             |
+| `>`      | Greater than          |
+| `<=`     | Less than or equal to |
+| `>=`     | Greater than or equal |
 
-modifyGlobal();
-print(x); # Outputs: 20
-```
+### Logical:
+
+| Operator | Description |
+| -------- | ----------- |
+| `and`    | Logical AND |
+| `or`     | Logical OR  |
+| `not`    | Logical NOT |
 
 ---
 
 ## Control Flow
 
-### If-Else Statements
+### Conditional Statements:
 
 ```funcy
 if condition {
-    # Code block
+    # code block
 } elif another_condition {
-    # Code block
+    # code block
 } else {
-    # Code block
+    # code block
 }
 ```
 
-### While Loop
+### Loops:
+
+#### While Loop:
 
 ```funcy
 while condition {
-    # Code block
+    # code block
 }
 ```
 
-### For Loop
-
-**Iterating over a range:**
+#### For Loop:
 
 ```funcy
-for i = 0, i < 10, i += 1 {
-    # Code block
+for var = start, var < end, var += step {
+    # code block
 }
-```
 
-**Iterating over a list:**
+for item in list {     # for i in range(5)
+    # code block
+}
 
-```funcy
-for item in list {
-    # Code block
+# Multi-Variable assignment in for loops:
+for [key, value] in dictionary.items() {
+    # code block
 }
 ```
 
@@ -180,165 +147,308 @@ for item in list {
 
 ## Functions
 
-Functions are defined using the `func` keyword:
+### Defining Functions:
 
 ```funcy
-func myFunction(arg1, arg2) {
-    return arg1 + arg2;
+func functionName(arg1, arg2) {
+    # code block
+    return result;
 }
+```
+
+### Returning Multiple Values:
+
+```funcy
+func multiReturn() {
+    return [val1, val2];
+}
+[x, y] = multiReturn();
 ```
 
 ---
 
 ## Classes
 
-Funcy supports object-oriented programming. Public attributes are prefixed with `&`, while private attributes do not use `&`.
-
-### Class Syntax
+### Syntax:
 
 ```funcy
-class MyClass {
-    &public_attribute = "Accessible from outside";
-    private_attribute = "Accessible only within class";
+class ClassName {
+    private_var = "visible inside class only";
+    &public_var = "visible outside class";
 
-    func &MyClass(arg1, arg2) {
-        # Constructor
-        &public_attribute = arg1;
-        private_attribute = arg2;
+    # Constructor
+    func &ClassName(arg, data) {
+        &public_var = arg;
+        &data = data;
     }
 
-    func &publicMethod() {
-        print("This is a public method.");
+    func &getPrivateVar() {
+        return private_var;
     }
 
     func privateMethod() {
-        print("This is a private method.");
+        # internal logic
     }
 }
 
-# Example usage
-instance = MyClass("Hello", "World");
-instance.publicMethod();
-print(instance.public_attribute);
+obj = ClassName("value");
+print(obj.getPrivateVar());
+print(obj.public_var);
 ```
 
-### Nested Classes
+- Private members and methods are accessible only within the class.
+- Public attributes and methods marked with `&` are accessible externally.
+- The constructor must be a public method with the same name as the class.
 
-Nested classes provide logical grouping of related functionality:
+---
+
+## Keywords
+
+Keywords in Funcy are reserved words with predefined meanings and specific purposes in the language. They cannot be used as variable names or identifiers.
+
+---
+
+### Control Flow Keywords:
+
+- `in`: Used for iterating over ranges, collections, checking for values in lists, keys in dictionaries, and substrings in strings.
+  ```funcy
+  for item in list {
+      print(item);
+  }
+
+  if "apple" in fruits {
+      print("Found apple!");
+  }
+
+  if key in dictionary {
+      print("Key exists in dictionary");
+  }
+
+  if "sub" in "substring" {
+      print("Substring found!");
+  }
+  ```
+
+  It can also be combined with the `not` keyword to check for the absence of items:
+  ```funcy
+  if "orange" not in fruits {
+      print("Orange is not in the list");
+  }
+  ```
+- `break`: Exits the current loop prematurely.
+  ```funcy
+  for x in range(10) {
+      if x == 5 {
+          break;  # Exit loop
+      }
+      print(x);
+  }
+  ```
+- `continue`: Skips the current iteration and moves to the next.
+  ```funcy
+  for x in range(10) {
+      if x % 2 == 0 {
+          continue;  # Skip even numbers
+      }
+      print(x);
+  }
+  ```
+
+### Type Keywords:
+
+- `Integer`, `Float`, `Boolean`, `String`, `List`, `Dictionary`, `Function`, `Class`, `Instance`, `Null`: Used to define and compare types.
+  ```funcy
+  x = 10;
+  print(type(x) == Integer);  # true
+  ```
+
+### Declaration Keywords:
+
+- `global`: Declares a variable as global, making it accessible outside its local scope and allows modifying its value within a function.
+  ```funcy
+  x = 10;
+  func modifyGlobal() {
+      global x;
+      x = 20;
+  }
+
+  class Example {
+      func &Example() {}
+      func &modifyGlobal() {
+          global x;
+          x *= 2;
+      }
+  }
+
+  modifyGlobal();
+  print(x);  # 20
+  e = Example();
+  e.modifyGlobal();
+  print(x);  # 40
+  ```
+- `import`: Imports modules or libraries.
+  ```funcy
+  import "module.fy";
+  ```
+
+---
+
+## Built-in Functions
+
+### General Functions:
+
+- `abs(value) -> int|float` - Returns the absolute value of a number.
+- `all(list) -> bool` - Returns `true` if all elements of the list are true or the list is empty.
+- `any(list) -> bool` - Returns `true` if any element of the list is true.
+- `bool(value) -> bool` - Converts a value to its boolean equivalent.
+- `callable(var) -> bool` - Checks if the variable is callable.
+- `dict(iterable={}) -> dict` - Creates a dictionary from another dictionary, or a list of key-value pairs.
+- `divMod(a, b) -> list` - Returns a list with the quotient and remainder of `a` divided by `b`.
+- `enumerate(list) -> list` - Returns index-value pairs for a list.
+- `float(value) -> float` - Converts a value to a floating-point number.
+- `globals() -> dict` - Returns a dictionary of global variables.
+- `input(prompt="") -> string` - Prompts user for input.
+- `int(value) -> int` - Converts a value to an integer.
+- `length(var) -> int` - Gives the length or size of a string, list, or dictionary.
+- `list(iterable=[]) -> list` - Converts an iterable to a list.
+- `locals() -> dict` - Returns a dictionary of local variables in the current scope.
+- `map(func, list) -> list` - Applies a function to each item in the list and returns a list of results.
+- `max(arg1, ...) -> int|float|string|obj` - Returns the maximum value of several arguments, or a list of values.
+- `min(arg1, ...) -> int|float|string|obj` - Returns the minimum value of several arguments, or a list of values.
+- `print(arg1, ...) -> Null` - Prints arguments.
+- `range(start=0, end, step=1) -> list` - Generates a range of numbers.
+- `read(file_path_str) -> string` - Reads from a file.
+- `reversed(list) -> list` - Returns a reversed version of the sequence.
+- `round(value, precision=0) -> float` - Rounds a number to the given precision.
+- `str(value) -> string` - Converts a value to a string.
+- `sum(list) -> int|float` - Returns the sum of all elements in a list.
+- `time() -> int` - Returns system time as an integer.
+- `type(var) -> Type` - Returns the type of the variable.
+- `write(file_path_str, contents) -> Null` - Writes to a file.
+- `zip(list1, list1, ...) -> list` - Combines lists into a list of value pair lists.
+
+### List Functions:
+
+- `append(value) -> Null` - Adds a value to the list.
+- `clear() -> Null` - Removes all elements from the list.
+- `copy() -> list` - Returns a deep copy of the list.
+- `index(value) -> int` - Returns the index of the first occurrence of a value. Errors if no match is found.
+- `insert(index, value) -> Null` - Inserts a value at the specified index.
+- `pop(index=-1) -> int|float|string|bool|obj|Null` - Removes and returns an item by index.
+- `remove(value) -> Null` - Removes the first occurrence of a value. Errors if no match is found.
+- `size() -> int` - Returns the number of elements.
+
+### Dictionary Functions:
+
+- `clear() -> Null` - Removes all key-value pairs.
+- `copy() -> dict` - Returns a deep copy of the dictionary.
+- `get(key, default_return=Null) -> int|float|string|bool|obj|Null` - Retrieves the value for a key.
+- `items() -> list` - Returns key-value pairs as a list.
+- `keys() -> list` - Returns all keys as a list.
+- `pop(key) -> int|float|string|bool|obj|Null` - Removes a key and its value.
+- `setDefault(key, default_value) -> int|float|string|bool|obj|Null` - Returns the value of a key or sets it to a default value.
+- `size() -> int` - Returns the number of key-value pairs.
+- `update(dict) -> Null` - Merges another dictionary.
+- `values() -> list` - Returns all values as a list.
+
+### String Functions:
+
+- `capitalize() -> string` - Capitalizes the first letter of the string.
+- `endsWith(suffix) -> bool` - Checks if the string ends with the specified suffix.
+- `find(sub) -> int` - Finds the first occurrence of a substring and returns the index. Returns -1 if no match is found.
+- `isAlpha() -> bool` - Checks if the string contains only alphabetic characters.
+- `isAlphaNum() -> bool` - Checks if the string is alphanumeric.
+- `isDigit() -> bool` - Checks if the string is numeric.
+- `isSpace() -> bool` - Checks if the string contains only spaces.
+- `isWhitespace() -> bool` - Checks if the string contains only whitespace.
+- `join(list) -> string` - Joins a list of strings.
+- `length() -> int` - Returns string length.
+- `lower() -> string` - Converts to lowercase.
+- `replace(old, new) -> string` - Replaces substrings.
+- `split(split_str=" ") -> list` - Splits into a list by a separator.
+- `strip(strip_str=whitespace_chars) -> string` - Removes characters from both ends.
+- `upper() -> string` - Converts to uppercase.
+
+### Instance Functions:
+
+- `delAttr(name_str) -> Null` - Deletes an attribute by name.
+- `getAttr(name_str) -> int|float|string|bool|obj|Null` - Gets attributes of an instance using a name string.
+- `hasAttr(name_str) -> bool` - Checks if an attribute exists.
+- `setAttr(name_str, value) -> Null` - Sets attributes of an instance using a name string.
+
+### Float Functions:
+
+- `isInt() -> bool` - Checks if the float is equivalent to an integer.
+
+---
+
+## Modules and Imports
+
+### Syntax:
 
 ```funcy
-class OuterClass {
-    func &OuterClass() {
-        &nested_instance = Null;
-    }
+import <path/to/module.fy>;
+```
 
-    class InnerClass {
-        func &InnerClass(data) {
-            &data = data;
-        }
+- Allows code reuse across files.
 
-        func &showData() {
-            print("Data: " + &data);
-        }
-    }
+---
 
-    func &createInner(data) {
-        &nested_instance = InnerClass(data);
-    }
+## Examples
 
-    func &useInner() {
-        if type(&nested_instance) == Instance {
-            &nested_instance.showData();
-        } else {
-            print("No inner instance available.");
-        }
+### Example 1: Factorial Function
+
+```funcy
+func factorial(n) {
+    if n == 0 {
+        return 1;
+    } else {
+        return n * factorial(n - 1);
     }
 }
 
-# Example usage
-outer = OuterClass();
-outer.useInner();
-outer.createInner("Nested Example");
-outer.useInner();
+print(factorial(5));  # Output: 120
 ```
 
----
-
-## Built-In Functions
-
-### String Member Functions
-
-- `lower()`: Converts the string to lowercase.
-- `upper()`: Converts the string to uppercase.
-- `strip(strip_str=whitespace)`: Removes leading and trailing whitespace.
-- `split(split_str=" ")`: Splits the string into a list of substrings.
-- `replace(old, new)`: Replaces occurrences of `old` with `new`.
-- `join(iterable)`: Joins a list of strings.
-- `isDigit()`: Checks if the string consists only of digits.
-- `length()`: Returns the length of the string.
-
-### List Member Functions
-
-- `append(item)`: Adds an item to the end of the list.
-- `pop()`: Removes and returns the last item of the list.
-- `size()`: Returns the number of elements in the list.
-
-### Dictionary Member Functions
-
-- `get(key, default=Null)`: Returns the value associated with the key.
-- `items()`: Returns a list of key-value pairs.
-- `keys()`: Returns a list of keys.
-- `values()`: Returns a list of values.
-- `pop(key)`: Removes and returns the value associated with the key.
-- `update(dict)`: Updates the dictionary with key-value pairs from another dictionary.
-- `size()`: Returns the number of key-value pairs in the dictionary.
-
-### General Built-In Functions
-
-- `print()`: Outputs to the console.
-- `int()`, `float()`, `bool()`, `str()`: Type conversions.
-- `list()`, `dict()`: Create lists and dictionaries.
-- `range(start=0, stop, step=1)`: Generate a range of numbers.
-- `map(func, iterable)`: Applies a function to all items in an iterable.
-- `zip(iterable, iterable, ...)`: Combines multiple iterables into lists of lists.
-- `enumerate(iterable)`: Adds an index to each item in an iterable.
-- `type(value)`: Returns the type of a value.
-- `read(filename)`: Reads the contents of a file as a string.
-- `input(prompt="")`: Prompts the user for input and returns the entered value.
-- `all(iterable)`: Returns `True` if all elements in the iterable are true.
-- `any(iterable)`: Returns `True` if any element in the iterable is true.
-- `time()`: Returns the current system time.
-
----
-
-## Comments
-
-### Single-Line Comments
-
-Single-line comments start with `#`:
+### Example 2: Class with Public and Private Attributes
 
 ```funcy
-# This is a comment
-```
+class Example {
+    func &Example(value) {
+        &public_attr = value;
+        private_attr = value * 2;
+    }
 
-### Multi-Line Comments
+    func &getPrivateAttr() {
+        return private_attr;
+    }
+}
 
-Multi-line comments are enclosed in `/*` and `*/`:
-
-```funcy
-/*
-This is a 
-multi-line comment.
-*/
+obj = Example(10);
+print(obj.public_attr);  # Output: 10
+print(obj.getPrivateAttr());  # Output: 20
 ```
 
 ---
 
-## License
+## Additional Features
 
+- **String Multiplication:**
 
-Funcy is licensed under the MIT License. See the LICENSE file for details.
+  ```funcy
+  print("hello" * 3);  # Output: hellohellohello
+  ```
 
----
+- **Type Conversion:**
 
-This ReadMe provides an overview of the Funcy language, including its features, syntax, and usage examples.
+  ```funcy
+  x = int("123");
+  print(type(x) == Integer);  # Output: true
+  ```
+
+- **List Slicing:**
+
+  ```funcy
+  my_list = [1, 2, 3, 4, 5];
+  sublist = my_list[1:4];  # Output: [2, 3, 4]
+  ```
