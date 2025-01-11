@@ -876,21 +876,34 @@ BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, 
 }
 
 BuiltInFunctionReturn round(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
-    if (args.size() != 1) {
-        throw std::runtime_error("round() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    if (args.size() < 1 || args.size() > 2) {
+        throw std::runtime_error("round() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
     }
 
     if (args[0]->getType() != ValueType::Integer && args[0]->getType() != ValueType::Float) {
-        throw std::runtime_error("round() expected a number but got " + getTypeStr(args[0]->getType()));
+        throw std::runtime_error("round() expected an argument 1 of Type:Integer or Type:Float but got " + getTypeStr(args[0]->getType()));
+    }
+
+    int precision = 0; // Default precision
+    if (args.size() == 2) {
+        if (args[1]->getType() != ValueType::Integer) {
+            throw std::runtime_error("round() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+        }
+        precision = args[1]->get<int>();
     }
 
     if (args[0]->getType() == ValueType::Integer) {
         int num = args[0]->get<int>();
-        return std::make_shared<Value>(num);
+        if (precision > 0) {
+            throw std::runtime_error("round() cannot apply precision to an integer");
+        }
+        return std::make_shared<Value>(num); // Integers do not require rounding
     }
 
     double num = args[0]->get<double>();
-    num = std::round(num);
+    double factor = std::pow(10.0, precision);
+    num = std::round(num * factor) / factor;
+
     return std::make_shared<Value>(num);
 }
 

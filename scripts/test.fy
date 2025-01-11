@@ -1,6 +1,3 @@
-a = {"one":1, "two":2};
-b = a.copy();
-a.pop("two");
-print(a, b);
-print(a.setDefault("three", 3));
-print(a.setDefault("three", Null));
+print(round(2.53));
+print(round(2.53, 1));
+print(round(5, 2));
