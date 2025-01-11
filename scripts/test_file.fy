@@ -155,16 +155,3 @@ func main() {
 
 # Run the program
 main();
-
-/*
-abs
-get set has attrs
-del
-globals
-filter
-min max
-reverse
-round
-sum
-isInstance
-*/

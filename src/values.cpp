@@ -91,6 +91,9 @@ bool ValueCompare::operator()(const std::shared_ptr<Value>& lhs, const std::shar
 
 
 
+List::List(std::vector<std::shared_ptr<Value>> elements)
+    : elements{elements} {}
+
 void List::push_back(std::shared_ptr<Value> value) {
         elements.push_back(value);
     }
@@ -129,6 +132,104 @@ void List::set(size_t index, std::shared_ptr<Value> value) {
     elements[index] = value;
 }
 
+bool compareValues(std::shared_ptr<Value> left, std::shared_ptr<Value> right) {
+    if (left->getType() == right->getType()) {
+        ValueType type = left->getType();
+        switch (type) {
+            case ValueType::Integer:
+                return left->get<int>() == right->get<int>();
+            case ValueType::Float:
+                return left->get<double>() == right->get<double>();
+            case ValueType::Boolean:
+                return left->get<bool>() == right->get<bool>();
+            case ValueType::String:
+                return left->get<std::string>() == right->get<std::string>();
+            case ValueType::List: {
+                auto l_list = left->get<std::shared_ptr<List>>();
+                auto r_list = right->get<std::shared_ptr<List>>();
+                if (l_list->size() == r_list->size()) {
+                    for (int i = 0; i < l_list->size(); i++) {
+                        if (!compareValues(l_list->at(i), r_list->at(i))) {
+                            return false;
+                        }
+                    }
+                } else {
+                    return false;
+                }
+            }
+            case ValueType::Dictionary: {
+                auto l_dict = left->get<std::shared_ptr<Dictionary>>();
+                auto r_dict = right->get<std::shared_ptr<Dictionary>>();
+                if (l_dict->size() == r_dict->size()) {
+                    for (int i = 0; i < l_dict->size(); i++) {
+                        auto l_index_pair = std::next(l_dict->begin(), i);
+                        auto r_index_pair = std::next(r_dict->begin(), i);
+                        if (!compareValues(l_index_pair->first, r_index_pair->first)) {
+                            return false;
+                        } else if (!compareValues(l_index_pair->second, r_index_pair->second)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            case ValueType::None:
+                return true;
+            case ValueType::Function:
+                return left->get<std::shared_ptr<ASTNode>>() == right->get<std::shared_ptr<ASTNode>>();
+            case ValueType::BuiltInFunction:
+                return left->get<std::shared_ptr<BuiltInFunction>>() == right->get<std::shared_ptr<BuiltInFunction>>();
+            case ValueType::Class:
+                return left->get<std::shared_ptr<Class>>() == right->get<std::shared_ptr<Class>>();
+            case ValueType::Instance:
+                return left->get<std::shared_ptr<Instance>>() == right->get<std::shared_ptr<Instance>>();
+            case ValueType::Type:
+                return left->get<ValueType>() == right->get<ValueType>();
+            default:
+                throw std::runtime_error("Comparing unkown types");
+        }
+    } else if ((left->getType() == ValueType::Integer && right->getType() == ValueType::Float) ||
+                (left->getType() == ValueType::Float && right->getType() == ValueType::Integer)) {
+        double l_float, r_float;
+        if (left->getType() == ValueType::Integer) {
+            l_float = static_cast<double>(left->get<int>());
+            r_float = right->get<double>();
+        } else {
+            l_float = left->get<double>();
+            r_float = static_cast<double>(right->get<int>());
+        }
+
+        return l_float == r_float;
+    } else {
+        return false;
+    }
+}
+
+void List::erase(const std::shared_ptr<Value> value) {
+    for (auto it = elements.begin(); it != elements.end(); it++) {
+        if (compareValues(*it, value)) {
+            elements.erase(it);
+            return;
+        }
+    }
+    throw std::runtime_error(getValueStr(value) + " is not in list");
+}
+
+int List::index(const std::shared_ptr<Value> value, int start, int end) const {
+    for (int i = start; i < end; i++) {
+        if (elements.begin() + i == elements.end()) {
+            throw std::out_of_range("Index out of range");
+        }
+        auto it = elements.begin() + i;
+        if (compareValues(*it, value)) {
+            return i;
+        }
+    }
+    throw std::runtime_error(getValueStr(value) + " is not in list");
+}
+
 std::shared_ptr<Value> List::at(size_t index) const {
     if (index >= elements.size() || index < 0) {
         throw std::out_of_range("Index out of range");
@@ -146,6 +247,10 @@ size_t List::size() const {
 
 bool List::empty() const {
     return elements.empty();
+}
+
+void List::clear() {
+    elements.clear();
 }
 
 

@@ -37,16 +37,20 @@ private:
 
 public:
     List() {}
+    List(std::vector<std::shared_ptr<Value>> elements);
 
     void push_back(std::shared_ptr<Value> value);
     std::shared_ptr<Value> pop(int index);
     void insert(size_t index, std::shared_ptr<Value> value);
     void insert(const std::shared_ptr<List>& other); // Overload for inserting a List directly
     void set(size_t index, std::shared_ptr<Value> value);
+    void erase(const std::shared_ptr<Value> value);
+    int index(const std::shared_ptr<Value> value, int start, int end) const;
     std::shared_ptr<Value> at(size_t index) const;
     std::vector<std::shared_ptr<Value>> getElements();
     size_t size() const;
     bool empty() const;
+    void clear();
 
 };
 

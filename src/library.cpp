@@ -9,6 +9,7 @@
 #include <chrono>
 #include <filesystem>
 #include <cmath>
+#include <cctype>
 #include "errorDefs.h"
 #include "values.h"
 #include "nodes.h"
@@ -179,6 +180,9 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
         return {std::get<int>(first_num), std::get<int>(second_num)};
     }
 }
+
+
+///  MEMBER FUNCTIONS  ///
 
 
 BuiltInFunctionReturn absoluteValue(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
@@ -1048,7 +1052,21 @@ BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Envir
 }
 
 
-///  MEMBER FUNCTIONS  ///
+///  TYPE MEMBER FUNCTIONS  ///
+
+
+BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("isInt() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    double num = args[0]->get<double>();
+    if (num == static_cast<int>(num)) {
+        return std::make_shared<Value>(true);
+    } else {
+        return std::make_shared<Value>(false);
+    }
+}
 
 
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
@@ -1070,6 +1088,83 @@ BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args
     else {
         list->push_back(args[1]);
     }
+    return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn listClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("clear() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    list->clear();
+    return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn listCopy(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("copy() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    return std::make_shared<Value>(std::make_shared<List>(list->getElements()));
+}
+
+BuiltInFunctionReturn listIndex(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() < 2 || args.size() > 4) {
+        throw std::runtime_error("index() takes 2-4 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    auto value = args[1];
+    auto start = 0;
+    auto end = list->size();
+    if (args.size() >= 3) {
+        if (args[2]->getType() != ValueType::Integer) {
+            throw std::runtime_error("index() expected an argument 2 of Type:Integer but got " + getTypeStr(args[2]->getType()));
+        }
+        start = args[2]->get<int>();
+    }
+    if (args.size() == 4) {
+        if (args[3]->getType() != ValueType::Integer) {
+            throw std::runtime_error("index() expected an argument 3 of Type:Integer but got " + getTypeStr(args[3]->getType()));
+        }
+        end = args[3]->get<int>();
+    }
+
+    if (start < 0) {
+        start = list->size() - -start;
+        if (start < 0) {
+            throw std::runtime_error("Invalid start index");
+        }
+    }
+    if (end < 0) {
+        end = list->size() - -end;
+        if (end < 0) {
+            throw std::runtime_error("Invalid end index");
+        }
+    }
+    if (start > end) {
+        throw std::runtime_error("index() start index was greater than end index");
+    }
+
+    int index = list->index(value, start, end);
+    return std::make_shared<Value>(index);
+}
+
+BuiltInFunctionReturn listInsert(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 3) {
+        throw std::runtime_error("insert() takes exactly 3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    if (args[1]->getType() != ValueType::Integer) {
+        throw std::runtime_error("insert() expected an argument 1 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+    }
+    auto index = args[1]->get<int>();
+    auto value = args[2];
+
+    list->insert(index, value);
     return std::make_shared<Value>();
 }
 
@@ -1098,6 +1193,19 @@ BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, E
     }
 }
 
+BuiltInFunctionReturn listRemove(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("remove() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    auto value = args[1];
+
+    
+    list->erase(value);
+    return std::make_shared<Value>();
+}
+
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
         throw std::runtime_error("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
@@ -1107,6 +1215,27 @@ BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, 
     int size = list->size();
     return std::make_shared<Value>(size);
     return std::nullopt;
+}
+
+
+BuiltInFunctionReturn dictClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("clear() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    dict->clear();
+    return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn dictCopy(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("clear() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    Dictionary copy{*dict};
+    return std::make_shared<Value>(std::make_shared<Dictionary>(copy));
 }
 
 BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
@@ -1123,7 +1252,6 @@ BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args
 
     return std::make_shared<Value>(result);
 }
-
 
 BuiltInFunctionReturn dictGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() < 2 || args.size() > 3) {
@@ -1204,6 +1332,27 @@ BuiltInFunctionReturn dictPop(const std::vector<std::shared_ptr<Value>>& args, E
     }
 }
 
+BuiltInFunctionReturn dictSetDefault(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() < 2 || args.size() > 3) {
+        throw std::runtime_error("setDefault() takes 2-3 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
+    auto key = args[1];
+    std::shared_ptr<Value> default_val = std::make_shared<Value>();
+    if (args.size() == 3) {
+        default_val = args[2];
+    }
+
+    auto it = dict->find(key);
+    if (it != dict->end()) {
+        return it->second;
+    } else {
+        (*dict)[key] = default_val;
+        return default_val;
+    }
+}
+
 BuiltInFunctionReturn dictSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
         throw std::runtime_error("size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
@@ -1234,6 +1383,90 @@ BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args
 }
 
 
+BuiltInFunctionReturn stringCapitalize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("capitalize() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    if (string.empty()) {
+        return args[0];
+    }
+    std::transform(string.begin(), string.begin() + 1, string.begin(),
+                    [](unsigned char c){ return std::toupper(c); });
+    if (string.length() == 1) {
+        return std::make_shared<Value>(string);
+    }
+    std::transform(string.begin() + 1, string.end(), string.begin() + 1,
+                    [](unsigned char c){ return std::tolower(c); });
+    return std::make_shared<Value>(string);
+}
+
+BuiltInFunctionReturn stringEndsWith(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("endsWith() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    if (args[1]->getType() != ValueType::String) {
+        throw std::runtime_error("endsWith() expects an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
+    }
+    std::string substr = args[1]->get<std::string>();
+    if (string.length() < substr.length()) {
+        return std::make_shared<Value>(false);
+    }
+    int string_start_index = string.length() - substr.length();
+
+    for (int i = 0; i < substr.length(); i++) {
+        if (string.at(string_start_index + i) != substr.at(i)) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    return std::make_shared<Value>(true);
+}
+
+BuiltInFunctionReturn stringFind(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("find() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    if (args[1]->getType() != ValueType::String) {
+        throw std::runtime_error("find() expected an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
+    }
+    std::string substr = args[1]->get<std::string>();
+
+    if (substr.empty()) {
+        return std::make_shared<Value>(0);
+    }
+
+    int index = string.find(substr);
+    if (index == std::string::npos) {
+        return std::make_shared<Value>(-1);
+    }
+    return std::make_shared<Value>(index);
+}
+
+BuiltInFunctionReturn stringIsAlpha(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("isAlpha() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    bool result = std::all_of(string.begin(), string.end(), [](unsigned char c){ return isalpha(c); });
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn stringIsAlphaNum(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("isAlphaNum() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    bool result = std::all_of(string.begin(), string.end(), [](unsigned char c){ return isalnum(c); });
+    return std::make_shared<Value>(result);
+}
+
 BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
         throw std::runtime_error("isDigit() requires exactly 1 argument. " + std::to_string(args.size()) + " were given");
@@ -1250,6 +1483,26 @@ BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& a
         }
     }
     return std::make_shared<Value>(true);
+}
+
+BuiltInFunctionReturn stringIsSpace(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("isSpace() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    bool result = std::all_of(string.begin(), string.end(), [](unsigned char c){ return isspace(c); });
+    return std::make_shared<Value>(result);
+}
+
+BuiltInFunctionReturn stringIsWhitespace(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("isWhitespace() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    bool result = std::all_of(string.begin(), string.end(), [](unsigned char c){ return iswspace(c); });
+    return std::make_shared<Value>(result);
 }
 
 BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {

@@ -50,19 +50,36 @@ BuiltInFunctionReturn write(const std::vector<std::shared_ptr<Value>>& args, Env
 BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 
+BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn listClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn listCopy(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn listIndex(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn listInsert(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn listRemove(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
+BuiltInFunctionReturn dictClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictCopy(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictItems(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictKeys(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn dictSetDefault(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
+BuiltInFunctionReturn stringCapitalize(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringEndsWith(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringFind(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringIsAlpha(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringIsAlphaNum(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringIsSpace(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringIsWhitespace(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringLength(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

@@ -94,9 +94,16 @@ int main(int argc, char* argv[]) {
     env.addFunction("sum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sum)));
     
 
+    env.addMember(ValueType::Float, "isInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatIsInt)));
+    
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
     env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
     env.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
+    env.addMember(ValueType::List, "insert", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listInsert)));
+    env.addMember(ValueType::List, "remove", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listRemove)));
+    env.addMember(ValueType::List, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listClear)));
+    env.addMember(ValueType::List, "index", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listIndex)));
+    env.addMember(ValueType::List, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listCopy)));
 
     env.addMember(ValueType::Dictionary, "get", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictGet)));
     env.addMember(ValueType::Dictionary, "items", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictItems)));
@@ -105,6 +112,9 @@ int main(int argc, char* argv[]) {
     env.addMember(ValueType::Dictionary, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictPop)));
     env.addMember(ValueType::Dictionary, "update", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictUpdate)));
     env.addMember(ValueType::Dictionary, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSize)));
+    env.addMember(ValueType::Dictionary, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictClear)));
+    env.addMember(ValueType::Dictionary, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictCopy)));
+    env.addMember(ValueType::Dictionary, "setDefault", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSetDefault)));
 
     env.addMember(ValueType::String, "lower", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLower)));
     env.addMember(ValueType::String, "upper", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringUpper)));
@@ -114,6 +124,13 @@ int main(int argc, char* argv[]) {
     env.addMember(ValueType::String, "length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLength)));
     env.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
     env.addMember(ValueType::String, "join", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringJoin)));
+    env.addMember(ValueType::String, "capitalize", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringCapitalize)));
+    env.addMember(ValueType::String, "endsWith", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringEndsWith)));
+    env.addMember(ValueType::String, "find", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringFind)));
+    env.addMember(ValueType::String, "isAlphaNum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlphaNum)));
+    env.addMember(ValueType::String, "isAlpha", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlpha)));
+    env.addMember(ValueType::String, "isSpace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsSpace)));
+    env.addMember(ValueType::String, "isWhitespace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsWhitespace)));
 
     env.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
     env.addMember(ValueType::Instance, "getAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
