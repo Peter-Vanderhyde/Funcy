@@ -43,6 +43,8 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
 BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn randChoice(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

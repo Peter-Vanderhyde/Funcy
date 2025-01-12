@@ -15,8 +15,9 @@
 int main(int argc, char* argv[]) {
 
     bool TESTING = false;
+    bool ignore_overflow = false;
     if (!TESTING && argc < 2) {
-        runtimeError("Program usage: Funcy <program_path>");
+        runtimeError("Program Usage: Funcy <program_path> [-IgnoreOverflow]");
         return 0;
     }
 
@@ -25,6 +26,15 @@ int main(int argc, char* argv[]) {
         filename = "../scripts/test.fy";
     } else {
         filename = argv[1];
+    }
+
+    if (argc == 3) {
+        std::string flag = argv[2];
+        if (flag == "-IgnoreOverflow") {
+            ignore_overflow = true;
+        } else {
+            runtimeError("Program Usage: Unrecognized flag " + flag);
+        }
     }
     std::string source_code = readSourceCodeFromFile(filename);
 
@@ -61,6 +71,7 @@ int main(int argc, char* argv[]) {
     }
 
     Environment env = buildStartingEnvironment();
+    DETECT_RECURSION = !ignore_overflow;
 
     try {
         for (auto statement : statements) {
@@ -77,7 +88,8 @@ int main(int argc, char* argv[]) {
                 runtimeError("Continue was used outside of loop");
             }
             catch (const StackOverflowException) {
-                handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
+                handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
+the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
             }
         }
     }

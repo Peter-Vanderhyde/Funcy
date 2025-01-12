@@ -155,6 +155,16 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(true);
         }
     }
+    else if (val_type == ValueType::Instance) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    else if (val_type == ValueType::Class) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(false);
+        }
+    }
 
     runtimeError(std::format("Unsupported operand types for operation. Operation was '{}' {}",
                                 getTokenTypeLabel(op), getTypeStr(value->getType())), line, column);
@@ -1113,7 +1123,8 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
                 runtimeError("Continue was used outside of loop");
             }
             catch (const StackOverflowException) {
-                handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
+                handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
+the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
             }
             catch (const std::exception& e) {
                 runtimeError(e.what(), line, column);
@@ -1498,7 +1509,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     }
     local_env.addScope(local_scope);
     recursion += 1;
-    if (recursion > 500) {
+    if (recursion > 500 && detect_recursion_limit) {
         throw StackOverflowException();
     }
     try {
@@ -1668,7 +1679,8 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
         runtimeError("Continue was used outside of loop");
     }
     catch (const StackOverflowException) {
-        handleError("Maximum recursion depth exceeded", 0, 0, "StackOverflowError");
+        handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
+the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
     }
     catch (const std::exception& e) {
         runtimeError(e.what(), line, column);

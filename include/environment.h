@@ -10,6 +10,8 @@ class Value;
 class Instance;
 enum class ValueType;
 
+extern bool DETECT_RECURSION;
+
 class Scope {
 public:
     Scope();
@@ -73,6 +75,7 @@ public:
     void display(bool show_attrs = false) const;
 
     bool is_top_scope = false;
+    bool detect_recursion = DETECT_RECURSION;
 private:
     std::vector<Scope> scopes;
     Scope class_attrs;

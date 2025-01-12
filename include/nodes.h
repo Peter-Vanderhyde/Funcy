@@ -189,6 +189,7 @@ public:
     std::vector<std::shared_ptr<ASTNode>> args;
     std::vector<std::shared_ptr<ASTNode>> block;
     int recursion = 0;
+    bool detect_recursion_limit = local_env.detect_recursion;
 };
 
 class MethodCallNode : public ASTNode {

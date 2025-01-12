@@ -5,6 +5,7 @@
 #include "errorDefs.h"
 #include "values.h"
 
+bool DETECT_RECURSION;
 
 Scope::Scope() {}
 

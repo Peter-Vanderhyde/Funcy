@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <cmath>
 #include <cctype>
+#include <random>
 #include "errorDefs.h"
 #include "values.h"
 #include "nodes.h"
@@ -207,6 +208,8 @@ Environment buildStartingEnvironment() {
     env.addFunction("max", std::make_shared<Value>(std::make_shared<BuiltInFunction>(max)));
     env.addFunction("min", std::make_shared<Value>(std::make_shared<BuiltInFunction>(min)));
     env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
+    env.addFunction("randChoice", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randChoice)));
+    env.addFunction("randInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randInt)));
     env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
     env.addFunction("readFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(readFile)));
     env.addFunction("reversed", std::make_shared<Value>(std::make_shared<BuiltInFunction>(reversed)));
@@ -899,6 +902,47 @@ BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Env
     }
     std::cout << std::endl;
     return std::nullopt;
+}
+
+BuiltInFunctionReturn randChoice(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("randChoice() takes exactly 1 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        throw std::runtime_error("randChoice() expected an argument 1 of Type:List but got " + getTypeStr(args[0]->getType()));
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(0, list->size() - 1);
+
+    int index = dist(gen);
+    return list->at(index);
+}
+
+BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("randInt() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::Integer) {
+        throw std::runtime_error("randInt() expected an argument 1 of Type:Integer but got " + getTypeStr(args[0]->getType()));
+    }
+    if (args[1]->getType() != ValueType::Integer) {
+        throw std::runtime_error("randInt() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+    }
+
+    int min = args[0]->get<int>();
+    int max = args[1]->get<int>();
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(min, max);
+
+    return std::make_shared<Value>(dist(gen));
 }
 
 BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
