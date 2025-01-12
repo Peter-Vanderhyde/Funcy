@@ -18,10 +18,13 @@ void printValue(const std::shared_ptr<Value> value);
 std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> first,
                                                     std::shared_ptr<Value> second);
 
+Environment buildStartingEnvironment();
+
 
 BuiltInFunctionReturn absoluteValue(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn appendFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn callable(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
@@ -41,14 +44,13 @@ BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Envir
 BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
-BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
-BuiltInFunctionReturn round(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
-BuiltInFunctionReturn write(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
-
 
 BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
@@ -86,6 +88,7 @@ BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& arg
 BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn stringToJson(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

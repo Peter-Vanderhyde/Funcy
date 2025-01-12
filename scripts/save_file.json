@@ -1,0 +1,61 @@
+{
+    "age": 29,
+    "email": "john.doe@example.com",
+    "friends": [
+        {
+            "email": "jane.smith@example.com",
+            "name": "Jane Smith",
+            "phone": "555-123-4567"
+        },
+        {
+            "email": "mike.johnson@example.com",
+            "name": "Mike Johnson",
+            "phone": "555-987-6543"
+        }
+    ],
+    "isActive": true,
+    "name": "John Doe",
+    "orders": [
+        {
+            "date": "2025-01-01",
+            "items": [
+                {
+                    "name": "Wireless Mouse",
+                    "price": 49.990000,
+                    "productId": "P1001",
+                    "quantity": 1
+                },
+                {
+                    "name": "Mechanical Keyboard",
+                    "price": 150.000000,
+                    "productId": "P1002",
+                    "quantity": 1
+                }
+            ],
+            "orderId": "A123",
+            "total": 199.990000
+        },
+        {
+            "date": "2025-01-05",
+            "items": [
+                {
+                    "name": "USB-C Hub",
+                    "price": 49.990000,
+                    "productId": "P2001",
+                    "quantity": 1
+                }
+            ],
+            "orderId": "B456",
+            "total": 49.990000
+        }
+    ],
+    "preferences": {
+        "language": "en-US",
+        "notifications": {
+            "email": true,
+            "push": true,
+            "sms": false
+        },
+        "theme": "dark"
+    }
+}

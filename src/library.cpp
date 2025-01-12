@@ -14,6 +14,8 @@
 #include "values.h"
 #include "nodes.h"
 #include "context.h"
+#include "parser.h"
+#include "lexer.h"
 
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
@@ -181,6 +183,93 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
     }
 }
 
+Environment buildStartingEnvironment() {
+    Environment env;
+    env.addScope();
+
+    env.addFunction("abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(absoluteValue)));
+    env.addFunction("all", std::make_shared<Value>(std::make_shared<BuiltInFunction>(all)));
+    env.addFunction("any", std::make_shared<Value>(std::make_shared<BuiltInFunction>(any)));
+    env.addFunction("appendFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(appendFile)));
+    env.addFunction("bool", std::make_shared<Value>(std::make_shared<BuiltInFunction>(boolConverter)));
+    env.addFunction("callable", std::make_shared<Value>(std::make_shared<BuiltInFunction>(callable)));
+    env.addFunction("dict", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictConverter)));
+    env.addFunction("divMod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(divMod)));
+    env.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
+    env.addFunction("float", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatConverter)));
+    env.addFunction("globals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(globals)));
+    env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
+    env.addFunction("int", std::make_shared<Value>(std::make_shared<BuiltInFunction>(intConverter)));
+    env.addFunction("length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(length)));
+    env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
+    env.addFunction("locals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(locals)));
+    env.addFunction("map", std::make_shared<Value>(std::make_shared<BuiltInFunction>(map)));
+    env.addFunction("max", std::make_shared<Value>(std::make_shared<BuiltInFunction>(max)));
+    env.addFunction("min", std::make_shared<Value>(std::make_shared<BuiltInFunction>(min)));
+    env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
+    env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
+    env.addFunction("readFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(readFile)));
+    env.addFunction("reversed", std::make_shared<Value>(std::make_shared<BuiltInFunction>(reversed)));
+    env.addFunction("round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(roundVal)));
+    env.addFunction("str", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
+    env.addFunction("sum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sum)));
+    env.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
+    env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
+    env.addFunction("writeFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(writeFile)));
+    env.addFunction("zip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(zip)));
+
+    // ValueType::Float Members
+    env.addMember(ValueType::Float, "isInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatIsInt)));
+
+    // ValueType::List Members
+    env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
+    env.addMember(ValueType::List, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listClear)));
+    env.addMember(ValueType::List, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listCopy)));
+    env.addMember(ValueType::List, "index", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listIndex)));
+    env.addMember(ValueType::List, "insert", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listInsert)));
+    env.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
+    env.addMember(ValueType::List, "remove", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listRemove)));
+    env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
+
+    // ValueType::Dictionary Members
+    env.addMember(ValueType::Dictionary, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictClear)));
+    env.addMember(ValueType::Dictionary, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictCopy)));
+    env.addMember(ValueType::Dictionary, "get", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictGet)));
+    env.addMember(ValueType::Dictionary, "items", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictItems)));
+    env.addMember(ValueType::Dictionary, "keys", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictKeys)));
+    env.addMember(ValueType::Dictionary, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictPop)));
+    env.addMember(ValueType::Dictionary, "setDefault", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSetDefault)));
+    env.addMember(ValueType::Dictionary, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSize)));
+    env.addMember(ValueType::Dictionary, "update", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictUpdate)));
+    env.addMember(ValueType::Dictionary, "values", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictValues)));
+
+    // ValueType::String Members
+    env.addMember(ValueType::String, "capitalize", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringCapitalize)));
+    env.addMember(ValueType::String, "endsWith", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringEndsWith)));
+    env.addMember(ValueType::String, "find", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringFind)));
+    env.addMember(ValueType::String, "isAlpha", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlpha)));
+    env.addMember(ValueType::String, "isAlphaNum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlphaNum)));
+    env.addMember(ValueType::String, "isDigit", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsDigit)));
+    env.addMember(ValueType::String, "isSpace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsSpace)));
+    env.addMember(ValueType::String, "isWhitespace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsWhitespace)));
+    env.addMember(ValueType::String, "join", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringJoin)));
+    env.addMember(ValueType::String, "length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLength)));
+    env.addMember(ValueType::String, "lower", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLower)));
+    env.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
+    env.addMember(ValueType::String, "split", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringSplit)));
+    env.addMember(ValueType::String, "strip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringStrip)));
+    env.addMember(ValueType::String, "toJson", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringToJson)));
+    env.addMember(ValueType::String, "upper", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringUpper)));
+
+    // ValueType::Instance Members
+    env.addMember(ValueType::Instance, "delAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceDel)));
+    env.addMember(ValueType::Instance, "getAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
+    env.addMember(ValueType::Instance, "hasAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceHas)));
+    env.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
+
+    return env;
+}
+
 
 ///  MEMBER FUNCTIONS  ///
 
@@ -245,6 +334,37 @@ BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Envir
         }
     }
     return std::make_shared<Value>(false);
+}
+
+BuiltInFunctionReturn appendFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 2) {
+        throw std::runtime_error("appendFile() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::String) {
+        throw std::runtime_error("appendFile() expected an argument 1 of Type:String but got " + getTypeStr(args[0]->getType()));
+    }
+
+    if (args[1]->getType() != ValueType::String) {
+        throw std::runtime_error("appendFile() expected an argument 2 of Type:String but got " + getTypeStr(args[1]->getType()));
+    }
+
+    std::shared_ptr<Value> filename = args[0];
+    std::string contents_to_add = args[1]->get<std::string>();
+
+    std::string orig_contents = "";
+    try {
+        auto contents = readFile(std::vector<std::shared_ptr<Value>>{filename}, env);
+        if (contents) {
+            orig_contents = contents.value()->get<std::string>();
+        }
+    }
+    catch (const std::exception& e) {
+    }
+
+    auto new_contents = std::make_shared<Value>(orig_contents + contents_to_add);
+    writeFile(std::vector<std::shared_ptr<Value>>{filename, new_contents}, env);
+    return std::make_shared<Value>();
 }
 
 BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
@@ -825,7 +945,7 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Env
     return std::make_shared<Value>(nums);
 }
 
-BuiltInFunctionReturn read(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {
         throw std::runtime_error("read() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -875,7 +995,7 @@ BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(std::make_shared<List>(new_list));
 }
 
-BuiltInFunctionReturn round(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() < 1 || args.size() > 2) {
         throw std::runtime_error("round() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -927,8 +1047,10 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
             return std::make_shared<Value>(std::to_string(arg->get<int>()));
         case ValueType::Float:
             return std::make_shared<Value>(std::to_string(arg->get<double>()));
-        case ValueType::Boolean:
-            return std::make_shared<Value>(arg->get<bool>() ? "true" : "false");
+        case ValueType::Boolean: {
+            auto result = std::make_shared<Value>(std::string(arg->get<bool>() ? "true" : "false"));
+            return result;
+        }
         case ValueType::List: {
             std::shared_ptr<List> list = arg->get<std::shared_ptr<List>>();
             std::string result = "[";
@@ -957,8 +1079,20 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
                 first = false;
                 auto key_str = stringConverter({pair.first}, env).value();
                 auto value_str = stringConverter({pair.second}, env).value();
-                std::string key_representation = pair.first->getType() == ValueType::String ? '"' + key_str->get<std::string>() + '"' : key_str->get<std::string>();
-                std::string value_representation = pair.second->getType() == ValueType::String ? '"' + value_str->get<std::string>() + '"' : value_str->get<std::string>();
+                std::string key_representation;
+                if (pair.first->getType() == ValueType::String) {
+                    key_representation = '"' + key_str->get<std::string>() + '"';
+                } else {
+                    key_representation = key_str->get<std::string>();
+                }
+
+                std::string value_representation;
+                if (pair.second->getType() == ValueType::String) {
+                    value_representation = '"' + value_str->get<std::string>() + '"';
+                } else {
+                    value_representation = value_str->get<std::string>();
+                }
+
                 result += key_representation + ": " + value_representation;
             }
             result += "}";
@@ -1000,7 +1134,7 @@ BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Envir
     }
 }
 
-BuiltInFunctionReturn write(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 2) {
         throw std::runtime_error("write() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1667,6 +1801,41 @@ BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& arg
                     [](unsigned char c) { return std::toupper(c); });
     
     return std::make_shared<Value>(string);
+}
+
+BuiltInFunctionReturn stringToJson(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throw std::runtime_error("toJson() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string string = args[0]->get<std::string>();
+    std::vector<Token> tokens = Lexer{string}.tokenize();
+    if (tokens.size() < 3) {
+        throw std::runtime_error("Invalid string syntax for dictionary conversion");
+    }
+    tokens.insert(tokens.end() - 1, Token{TokenType::_Semi, 0, 0});
+    Parser parser{tokens};
+    std::vector<std::shared_ptr<ASTNode>> statements;
+    try {
+        statements = parser.parse();
+    }
+    catch (const std::exception& e) {
+        std::string message = e.what();
+        int index = message.find_last_of('\n');
+        std::string problem = message.substr(index);
+        runtimeError(problem);
+    }
+    if (auto dict_node = std::dynamic_pointer_cast<DictionaryNode>(statements[0])) {
+        if (statements.size() != 1) {
+            throw std::runtime_error("Invalid string syntax for dictionary conversion");
+        }
+        Environment env = buildStartingEnvironment();
+        std::optional<std::shared_ptr<Value>> dictionary;
+        return dict_node->evaluate(env);
+    } else {
+        throw std::runtime_error("Invalid string syntax for dictionary conversion");
+        return nullptr;
+    }
 }
 
 

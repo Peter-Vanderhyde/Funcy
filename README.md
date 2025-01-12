@@ -319,11 +319,11 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 - `read(file_path_str) -> string` - Reads from a file.
 - `reversed(list) -> list` - Returns a reversed version of the sequence.
 - `round(value, precision=0) -> float` - Rounds a number to the given precision.
-- `str(value) -> string` - Converts a value to a string.
+- `str(value) -> string` - Converts a value to a string. Dictionaries converted into a string will maintain json compatible formatting so they can be saved in json files.
 - `sum(list) -> int|float` - Returns the sum of all elements in a list.
 - `time() -> int` - Returns system time as an integer.
 - `type(var) -> Type` - Returns the type of the variable.
-- `write(file_path_str, contents) -> Null` - Writes to a file.
+- `write(file_path_str, contents) -> Null` - Writes a string to a file.
 - `zip(list1, list1, ...) -> list` - Combines lists into a list of value pair lists.
 
 ### List Functions:
@@ -366,6 +366,7 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 - `replace(old, new) -> string` - Replaces substrings.
 - `split(split_str=" ") -> list` - Splits into a list by a separator.
 - `strip(strip_str=whitespace_chars) -> string` - Removes characters from both ends.
+- `toJson() -> dictionary` - Converts a string that is in json format into a dictionary object. Pairs well with reading json files.
 - `upper() -> string` - Converts to uppercase.
 
 ### Instance Functions:
@@ -415,6 +416,8 @@ obj = Example(10);
 print(obj.public_attr);  # Output: 10
 print(obj.getPrivateAttr());  # Output: 20
 ```
+
+### Example 3: 
 
 ---
 
