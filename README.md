@@ -7,6 +7,24 @@
 ### VSCode Extension
 Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` file can be downloaded from the [funcy-lang Github Repository](https://github.com/Peter-Vanderhyde/funcy-lang).
 
+### Running a Funcy File
+
+To execute a Funcy program, in the command-line, run the `Funcy.exe` executable with the following syntax:
+
+```bash
+Funcy.exe <file_path> [-IgnoreOverflow]
+```
+
+#### Arguments:
+- `<file_path>`: The path to the `.fy` file you want to execute.
+- `-IgnoreOverflow` (optional): A flag that allows the program to continue running even when excessive recursion is detected. When disabled, your program may experience sudden, random termination due to stack overflow.
+
+#### Example:
+Run a Funcy file with the `-IgnoreOverflow` flag:
+```bash
+Funcy.exe example.fy -IgnoreOverflow
+```
+
 ## Quick Links
 
 - [Introduction](#introduction)
@@ -299,6 +317,7 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 - `abs(value) -> int|float` - Returns the absolute value of a number.
 - `all(list) -> bool` - Returns `true` if all elements of the list are true or the list is empty.
 - `any(list) -> bool` - Returns `true` if any element of the list is true.
+- `appendFile(file, content) -> Null` - Will add the content onto the end of the existing file content, or create a new file with that content.
 - `bool(value) -> bool` - Converts a value to its boolean equivalent.
 - `callable(var) -> bool` - Checks if the variable is callable.
 - `dict(iterable={}) -> dict` - Creates a dictionary from another dictionary, or a list of key-value pairs.
@@ -315,15 +334,17 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 - `max(arg1, ...) -> int|float|string|obj` - Returns the maximum value of several arguments, or a list of values.
 - `min(arg1, ...) -> int|float|string|obj` - Returns the minimum value of several arguments, or a list of values.
 - `print(arg1, ...) -> Null` - Prints arguments.
+- `randChoice(list) -> int|float|string|bool|obj` - Picks a random element from a list and returns it.
+- `randInt(min, max) -> int` - Chooses a random integer between and including the minimum and maximum given values.
 - `range(start=0, end, step=1) -> list` - Generates a range of numbers.
-- `read(file_path_str) -> string` - Reads from a file.
+- `readFile(file_path_str) -> string` - Reads from a file. Throws error if file does not exist.
 - `reversed(list) -> list` - Returns a reversed version of the sequence.
 - `round(value, precision=0) -> float` - Rounds a number to the given precision.
 - `str(value) -> string` - Converts a value to a string. Dictionaries converted into a string will maintain json compatible formatting so they can be saved in json files.
 - `sum(list) -> int|float` - Returns the sum of all elements in a list.
 - `time() -> int` - Returns system time as an integer.
 - `type(var) -> Type` - Returns the type of the variable.
-- `write(file_path_str, contents) -> Null` - Writes a string to a file.
+- `write(file_path_str, contents) -> Null` - Writes a string to a file. Creates a new file if it does not already exist.
 - `zip(list1, list1, ...) -> list` - Combines lists into a list of value pair lists.
 
 ### List Functions:
