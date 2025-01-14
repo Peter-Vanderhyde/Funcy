@@ -702,9 +702,11 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                 // Handle setting +=, -= etc.
                 if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
                     env.set(identifier_node->name, result.value(), identifier_node->member_variable);
+                } else if (auto index_node = std::dynamic_pointer_cast<IndexNode>(left)) {
+                    index_node->assignIndex(env, result.value());
                 }
                 else {
-                    runtimeError("The operator '=' can only be used with variables", line, column);
+                    runtimeError("The operator '=' can only be used with variables or indexes", line, column);
                 }
             }
             else {
@@ -1476,20 +1478,39 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
 std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
     if (debug) std::cout << "Evaluate Function" << std::endl;
     local_env = Environment{env};
+    int i = 0;
+    for (auto pair : default_arg_nodes) {
+        i++;
+        auto value = pair.second->evaluate(local_env);
+        if (!value) {
+            runtimeError("Unable to evaluate default argument " + std::to_string(i), line, column);
+        }
+        default_arg_values[pair.first] = value.value();
+    }
     return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<FuncNode>(*this)));
 }
 
 void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_scope) {
     if (values.size() != args.size()) {
-        runtimeError(std::format("Incorrect number of args were passed in. {} instead of {}", values.size(), args.size()), line, column);
+        if (values.size() > args.size()) {
+            if (default_arg_values.size() > 0) {
+                runtimeError(std::format("Function takes from {} to {} arguments but {} were given", args.size() - default_arg_values.size(), args.size(), values.size()), line, column);
+            } else {
+                runtimeError(std::format("Function takes {} arguments but {} were given", args.size(), values.size()), line, column);
+            }
+        } else if (values.size() < args.size() - default_arg_values.size()) {
+            runtimeError(std::format("Missing {} required argument", args.size() - default_arg_values.size() - values.size()), line, column);
+        }
     }
 
-    for (size_t i = 0; i < values.size(); i++) {
+    for (size_t i = 0; i < args.size(); i++) {
         if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(args.at(i))) {
             std::string arg_string = ident_node->name;
-            local_scope.set(arg_string, values.at(i));
-        } else {
-            runtimeError("Unable to convert identifier for function argument", line, column);
+            if (i < values.size()) {
+                local_scope.set(arg_string, values.at(i));
+            } else {
+                local_scope.set(arg_string, default_arg_values.at(arg_string));
+            }
         }
     }
 

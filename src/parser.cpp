@@ -118,6 +118,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
         std::shared_ptr<ASTNode> for_increment;
         std::vector<std::shared_ptr<ASTNode>> func_args;
         std::shared_ptr<ASTNode> func_name;
+        std::map<std::string, std::shared_ptr<ASTNode>> default_arg_values;
         auto name_str = std::make_shared<std::string>("");
         if (t_str == "if" || t_str == "elif" || t_str == "while") {
             if (tokenIs("{")) {
@@ -130,7 +131,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 parsingError("Missing for loop expression", getToken().line, getToken().column);
             }
             for_initialization = parseStatement(variable_str);
-            auto in_node = dynamic_cast<BinaryOpNode*>(for_initialization.get());
+            auto in_node = std::dynamic_pointer_cast<BinaryOpNode>(for_initialization);
             if (in_node && in_node->op != TokenType::_In) {
                 if (in_node->op != TokenType::_Equals) {
                     parsingError("Invalid for loop syntax", getToken().line, getToken().column);
@@ -164,11 +165,28 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             consumeToken();
             auto arg_name = std::make_shared<std::string>("");
             std::vector<std::string> arg_strings;
+            bool found_default_arg = false;
             while (!tokenIs(")") && !tokenIs("EndOfFile") && !tokenIs("{")) {
                 if (!tokenIs("identifier")) {
                     parsingError("Expected argument but got " + getTokenStr(), getToken().line, getToken().column);
                 }
-                func_args.push_back(parseIdentifier(arg_name));
+                if (nextTokenIs("=")) {
+                    // It's a default argument assignment
+                    auto default_statement = parseStatement(arg_name);
+                    auto assign_node = std::dynamic_pointer_cast<BinaryOpNode>(default_statement);
+                    if (!assign_node) {
+                        parsingError("Invalid default argument assignment", getToken().line, getToken().column);
+                    }
+                    func_args.push_back(assign_node->left);
+                    default_arg_values[*arg_name] = assign_node->right;
+                    found_default_arg = true;
+                } else {
+                    if (found_default_arg) {
+                        parsingError("Parameter without default cannot follow a default parameter", getToken().line, getToken().column);
+                    }
+                    // It's a regular argument
+                    func_args.push_back(parseIdentifier(arg_name));
+                }
                 if (std::find(arg_strings.begin(), arg_strings.end(), *arg_name) == arg_strings.end()) {
                     arg_strings.push_back(*arg_name);
                     *arg_name = "";
@@ -246,7 +264,7 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
             return std::make_shared<ForNode>(keyword.type, for_initialization, variable_str, comparison_expr, for_increment, block, keyword.line, keyword.column);
         } else if (t_str == "func") {
-            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(name_str, func_args, block, keyword.line, keyword.column), keyword.line, keyword.column);
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(name_str, func_args, default_arg_values, block, keyword.line, keyword.column), keyword.line, keyword.column);
         } else if (t_str == "class") {
             return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<ClassNode>(name_str, block, keyword.line, keyword.column), keyword.line, keyword.column);
         } else {
@@ -314,7 +332,7 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
                                                 nextTokenIs("-=") || nextTokenIs("*=") ||
                                                 nextTokenIs("/="))) {
         if (member) {
-            backUp();
+            backUp(); // Make the & part of the identifier parsing
         }
         auto left = parseIdentifier(varString);
 
