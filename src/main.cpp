@@ -10,11 +10,11 @@
 #include "context.h"
 #include "errorDefs.h"
 
+bool TESTING = false;
 
 
 int main(int argc, char* argv[]) {
 
-    bool TESTING = false;
     bool ignore_overflow = false;
     if (!TESTING && argc < 2) {
         runtimeError("Program Usage: Funcy <program_path> [-IgnoreOverflow]");
