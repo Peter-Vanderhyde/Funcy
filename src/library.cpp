@@ -1150,8 +1150,11 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
             return arg; // Already a string
         case ValueType::Integer:
             return std::make_shared<Value>(std::to_string(arg->get<int>()));
-        case ValueType::Float:
-            return std::make_shared<Value>(std::to_string(arg->get<double>()));
+        case ValueType::Float: {
+            std::stringstream ss;
+            ss << arg->get<double>();
+            return std::make_shared<Value>(ss.str());
+        }
         case ValueType::Boolean: {
             auto result = std::make_shared<Value>(std::string(arg->get<bool>() ? "true" : "false"));
             return result;
