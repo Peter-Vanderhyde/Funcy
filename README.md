@@ -182,6 +182,20 @@ func multiReturn() {
 [x, y] = multiReturn();
 ```
 
+### Using Default Arguments:
+
+```funcy
+func showString(arg1, arg2="default string", arg3=Null) {
+    if arg3 {
+        print(arg2);
+    }
+}
+
+showString(Null, "doesn't print");
+showString(Null, "does print", true);
+showString(arg2="shuffled", arg3=true, arg1=Null);
+```
+
 ---
 
 ## Classes

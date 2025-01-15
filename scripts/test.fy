@@ -1,4 +1,11 @@
-h = [1, 2, 3];
-h[1] += 4;
+func testFunc() {
+    return "Default string";
+}
 
-print(h);
+func otherFunc(x=1, y=testFunc()) {
+    print(x, y);
+}
+
+otherFunc(y=3, x=6);
+otherFunc(y=5);
+otherFunc(8);

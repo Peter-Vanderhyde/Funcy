@@ -1490,23 +1490,48 @@ std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
     return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<FuncNode>(*this)));
 }
 
-void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_scope) {
-    if (values.size() != args.size()) {
-        if (values.size() > args.size()) {
-            if (default_arg_values.size() > 0) {
-                runtimeError(std::format("Function takes from {} to {} arguments but {} were given", args.size() - default_arg_values.size(), args.size(), values.size()), line, column);
-            } else {
-                runtimeError(std::format("Function takes {} arguments but {} were given", args.size(), values.size()), line, column);
+void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values,
+                        std::map<std::string, std::shared_ptr<Value>> pairs, Scope& local_scope) {
+
+    int num_args = values.size();
+
+    values.resize(args.size());
+    for (auto pair : pairs) {
+        std::string name = pair.first;
+        std::shared_ptr<Value> value = pair.second;
+        num_args++;
+        bool found_match = false;
+        for (size_t i = 0; i < args.size(); i++) {
+            auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(args.at(i));
+            if (ident_node->name == name) {
+                if (values.at(i) != nullptr) {
+                    runtimeError("Cannot assign multiple values to " + name, line, column);
+                }
+                values[i] = value;
+                found_match = true;
             }
-        } else if (values.size() < args.size() - default_arg_values.size()) {
-            runtimeError(std::format("Missing {} required argument", args.size() - default_arg_values.size() - values.size()), line, column);
+        }
+        if (!found_match) {
+            runtimeError("Unable to match argument name '" + name + "'", line, column);
+        }
+    }
+
+    if (num_args != args.size()) {
+        if (num_args > args.size()) {
+            if (default_arg_values.size() > 0) {
+                runtimeError(std::format("Function takes from {} to {} arguments but {} were given", args.size() - default_arg_values.size(), args.size(), num_args), line, column);
+            } else {
+                runtimeError(std::format("Function takes {} arguments but {} were given", args.size(), num_args), line, column);
+            }
+        } else if (num_args < args.size() - default_arg_values.size()) {
+            runtimeError(std::format("Missing {} required arguments", args.size() - default_arg_values.size() - num_args), line, column);
         }
     }
 
     for (size_t i = 0; i < args.size(); i++) {
         if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(args.at(i))) {
             std::string arg_string = ident_node->name;
-            if (i < values.size()) {
+            if (values.at(i)) {
                 local_scope.set(arg_string, values.at(i));
             } else {
                 local_scope.set(arg_string, default_arg_values.at(arg_string));
@@ -1517,12 +1542,14 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_
     return;
 }
 
-std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env, bool member_func) {
+std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values,
+                                                        std::map<std::string, std::shared_ptr<Value>> pairs,
+                                                        Environment& global_env, bool member_func) {
     Scope local_scope;
     if (!member_func) {
         local_scope.set(*func_name, global_env.get(*func_name, member_func));
     }
-    setArgs(values, local_scope);
+    setArgs(values, pairs, local_scope);
     if (global_env.isClassEnv()) {
         local_env.setClassEnv();
         local_env.setClassAttrs(global_env.getClassAttrs());
@@ -1562,15 +1589,23 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
-            return func->callFunc(evaluateArgs(env), env, ident_node->member_variable);
+            std::vector<std::shared_ptr<Value>> args;
+            std::map<std::string, std::shared_ptr<Value>> pairs;
+            evaluateArgs(args, pairs, env);
+            return func->callFunc(args, pairs, env, ident_node->member_variable);
         } else {
             runtimeError("Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(identifier)->name, line, column);
         }
     } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
         auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
-        std::vector<std::shared_ptr<Value>> values = evaluateArgs(env);
+        std::vector<std::shared_ptr<Value>> args;
+        std::map<std::string, std::shared_ptr<Value>> pairs;
+        evaluateArgs(args, pairs, env);
+        if (pairs.size() != 0) {
+            runtimeError("Builtin functions do not accept labeled arguments", line, column);
+        }
         try {
-            return (*func_value)(values, env);
+            return (*func_value)(args, env);
         }
         catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
@@ -1583,7 +1618,10 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             auto node = constructor->get<std::shared_ptr<ASTNode>>();
             auto func_node = std::static_pointer_cast<FuncNode>(node);
             instance->getEnvironment().setThis(std::make_shared<Value>(instance));
-            func_node->callFunc(evaluateArgs(env), instance->getEnvironment(), true);
+            std::vector<std::shared_ptr<Value>> args;
+            std::map<std::string, std::shared_ptr<Value>> pairs;
+            evaluateArgs(args, pairs, env);
+            func_node->callFunc(args, pairs, instance->getEnvironment(), true);
             auto scopes = instance->getEnvironment().copyScopes();
             for (const auto& pair : scopes.at(0).getPairs()) {
                 env.setGlobalValue(pair.first, pair.second);
@@ -1614,10 +1652,12 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
-            auto values = evaluateArgs(env);
+            std::vector<std::shared_ptr<Value>> args;
+            std::map<std::string, std::shared_ptr<Value>> pairs;
+            evaluateArgs(args, pairs, env);
             if (member_type == ValueType::Instance) {
                 environment.setThis(member_value);
-                auto result = func->callFunc(values, environment, true);
+                auto result = func->callFunc(args, pairs, environment, true);
                 auto inst_node = member_value->get<std::shared_ptr<Instance>>();
                 inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
                 auto scopes = environment.copyScopes();
@@ -1627,18 +1667,22 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
                 return result;
             }
             else {
-                values.insert(values.begin(), member_value);
-                return func->callFunc(values, environment);
+                args.insert(args.begin(), member_value);
+                return func->callFunc(args, pairs, environment);
             }
         } else {
             runtimeError("Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(identifier)->name, line, column);
         }
     } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
         auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
-        auto values = evaluateArgs(env);
-        values.insert(values.begin(), member_value);
+        std::vector<std::shared_ptr<Value>> args;
+        std::map<std::string, std::shared_ptr<Value>> pairs;
+        evaluateArgs(args, pairs, env);
+        if (pairs.size() != 0) {
+            runtimeError("Builtin functions do not accept labeled arguments", line, column);
+        }
         try {
-            return (*func_value)(values, environment);
+            return (*func_value)(args, environment);
         }
         catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
@@ -1650,17 +1694,34 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
     return std::nullopt;
 }
 
-std::vector<std::shared_ptr<Value>> MethodCallNode::evaluateArgs(Environment& env) {
-    std::vector<std::shared_ptr<Value>> evaluated_values;
+void MethodCallNode::evaluateArgs(std::vector<std::shared_ptr<Value>>& args,
+                                std::map<std::string, std::shared_ptr<Value>>& pairs, Environment& env) {
+    std::map<std::shared_ptr<Value>, std::string> given_values;
+    bool found_default_arg = false;
     for (auto value_node : values) {
-        auto result = value_node->evaluate(env);
-        if (!result.has_value()) {
-            runtimeError("Unable to evaluate function argument", line, column);
+        if (auto binary_node = std::dynamic_pointer_cast<BinaryOpNode>(value_node)) {
+            auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(binary_node->left);
+            if (ident_node && binary_node->op == TokenType::_Equals) {
+                auto value = binary_node->right->evaluate(env);
+                if (!value) {
+                    runtimeError("Unable to evaluate argument", line, column);
+                }
+                pairs[ident_node->name] = value.value();
+                found_default_arg = true;
+            } else {
+                runtimeError("Invalid argument", line, column);
+            }
+        } else {
+            if (found_default_arg) {
+                runtimeError("Unlabeled argument cannot follow a labeled argument", line, column);
+            }
+            auto value = value_node->evaluate(env);
+            if (!value) {
+                runtimeError("Unable to evaluate argument", line, column);
+            }
+            args.push_back(value.value());
         }
-        evaluated_values.push_back(result.value());
     }
-
-    return evaluated_values;
 }
 
 std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env) {

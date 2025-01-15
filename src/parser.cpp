@@ -685,7 +685,11 @@ std::shared_ptr<ASTNode> Parser::parseFuncCall(std::shared_ptr<ASTNode> identifi
     consumeToken();
     std::vector<std::shared_ptr<ASTNode>> arguments;
     while (!tokenIs(")") && !tokenIs("EndOfFile") && !tokenIs(";")) {
-        arguments.push_back(parseLogicalOr());
+        if (tokenIs("identifier") && peekToken() && nextTokenIs("=")) {
+            arguments.push_back(parseStatement());
+        } else {
+            arguments.push_back(parseLogicalOr());
+        }
         if (!tokenIs(")") && !tokenIs(",")) {
             parsingError("Expected ','", getToken().line, getToken().column);
         } else if (tokenIs(",")) {

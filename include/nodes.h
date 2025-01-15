@@ -182,8 +182,10 @@ public:
     ~FuncNode() noexcept override = default;
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
-    void setArgs(std::vector<std::shared_ptr<Value>> values, Scope& local_scope);
-    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values, Environment& global_env, bool member_func = false);
+    void setArgs(std::vector<std::shared_ptr<Value>> values, std::map<std::string, std::shared_ptr<Value>> pairs, Scope& local_scope);
+    std::optional<std::shared_ptr<Value>> callFunc(std::vector<std::shared_ptr<Value>> values,
+                                                    std::map<std::string, std::shared_ptr<Value>> pairs,
+                                                    Environment& global_env, bool member_func = false);
     
     Environment local_env;
     std::shared_ptr<std::string> func_name;
@@ -204,7 +206,8 @@ public:
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env, ValueType member_type);
-    std::vector<std::shared_ptr<Value>> evaluateArgs(Environment& env);
+    void evaluateArgs(std::vector<std::shared_ptr<Value>>& args,
+                    std::map<std::string, std::shared_ptr<Value>>& pairs, Environment& env);
 
     std::shared_ptr<ASTNode> identifier;
     std::vector<std::shared_ptr<ASTNode>> values;
