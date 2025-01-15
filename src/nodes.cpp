@@ -1085,12 +1085,19 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         }
     } else if (keyword == TokenType::_Import) {
         std::string path = currentExecutionContext();
-        std::string new_path = path.substr(0, path.find_last_of('/'));
+        auto index = path.find_last_of('/');
+        std::string new_path = "";
+        if (index != std::string::npos) {
+            new_path = path.substr(0, index);
+        }
         auto right_value = right->evaluate(env);
         if (!right_value.has_value() || right_value.value()->getType() != ValueType::String) {
             runtimeError("Import expected filename string", line, column);
         }
-        new_path = new_path + "/" + right_value.value()->get<std::string>();
+        if (new_path != "") {
+            new_path = new_path + "/";
+        }
+        new_path = new_path + right_value.value()->get<std::string>();
         if (new_path == path) {
             runtimeError("A file cannot import itself", line, column);
         }
