@@ -1090,7 +1090,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         if (!right_value.has_value() || right_value.value()->getType() != ValueType::String) {
             runtimeError("Import expected filename string", line, column);
         }
-        new_path = new_path + "/" + right_value.value()->get<std::string>() + ".fy";
+        new_path = new_path + "/" + right_value.value()->get<std::string>();
         if (new_path == path) {
             runtimeError("A file cannot import itself", line, column);
         }
