@@ -322,6 +322,40 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
   import "module.fy";
   ```
 
+## Errors
+
+Funcy allows users to explicitly throw errors during execution using the `throw` keyword. The `throw` keyword can be followed by any value, including strings, numbers, objects, or any expression.
+
+### Syntax:
+```funcy
+throw <expression>;
+```
+
+### Example Usage:
+
+1. Throwing an error message:
+   ```funcy
+   throw "Error: Invalid operation";
+   ```
+
+2. Throwing a computed value:
+   ```funcy
+   throw 2 + 5;  # Throws the value 7
+   ```
+
+3. Using `throw` in a function:
+   ```funcy
+   func validateInput(input) {
+       if not input {
+           throw "Error: Input cannot be null";
+       }
+   }
+
+   validateInput(Null);  # Throws "Error: Input cannot be null"
+   ```
+
+Thrown errors halt the execution of the program.
+
 ---
 
 ## Built-in Functions
