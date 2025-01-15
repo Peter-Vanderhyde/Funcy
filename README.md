@@ -35,6 +35,7 @@ Funcy.exe example.fy -IgnoreOverflow
 - [Functions](#functions)
 - [Classes](#classes)
 - [Keywords](#keywords)
+- [Errors](#errors)
 - [Built-in Functions](#built-in-functions)
 - [Examples](#examples)
 - [Additional Features](#additional-features)
