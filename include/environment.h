@@ -97,4 +97,11 @@ public:
 
     std::optional<std::shared_ptr<Value>> value;
 };
+class ErrorException : public std::exception {
+public:
+    ErrorException(std::shared_ptr<Value> value)
+        : value{value} {}
+    
+    std::shared_ptr<Value> value;
+};
 class StackOverflowException : public std::exception {};

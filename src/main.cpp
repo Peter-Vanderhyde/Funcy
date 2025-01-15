@@ -87,6 +87,10 @@ int main(int argc, char* argv[]) {
             catch (const ContinueException) {
                 runtimeError("Continue was used outside of loop");
             }
+            catch (const ErrorException& e) {
+                printValue(e.value, true);
+                return 1;
+            }
             catch (const StackOverflowException) {
                 handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
 the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");

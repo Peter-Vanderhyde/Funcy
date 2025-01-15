@@ -36,35 +36,58 @@ std::string readSourceCodeFromFile(const std::string& filename) {
     return buffer.str(); // Return the contents as a std::string
 }
 
-void printValue(const std::shared_ptr<Value> value) {
+void printValue(const std::shared_ptr<Value> value, bool error) {
     Style style{};
     switch(value->getType()) {
         case ValueType::Integer: {
             int int_value = value->get<int>();
-            std::cout << style.light_blue << int_value << style.reset;
+            if (error) {
+                std::cout << style.red << int_value << style.reset;
+            } else {
+                std::cout << style.light_blue << int_value << style.reset;
+            }
             return;
         }
         case ValueType::Float: {
             double float_value = value->get<double>();
             if (float_value == static_cast<int>(float_value)) {
-                std::cout << style.light_blue << float_value << ".0" << style.reset;
+                if (error) {
+                    std::cout << style.red << float_value << ".0" << style.reset;
+                } else {
+                    std::cout << style.light_blue << float_value << ".0" << style.reset;
+                }
             } else {
-                std::cout << style.light_blue << float_value << style.reset;
+                if (error) {
+                    std::cout << style.red << float_value << style.reset;
+                } else {
+                    std::cout << style.light_blue << float_value << style.reset;
+                }
             }
             return;
         }
         case ValueType::Boolean: {
             bool bool_value = value->get<bool>();
-            std::cout << style.purple << std::boolalpha << bool_value << style.reset;
+            if (error) {
+                std::cout << style.red << std::boolalpha << bool_value << style.reset;
+            } else {
+                std::cout << style.purple << std::boolalpha << bool_value << style.reset;
+            }
             return;
         }
         case ValueType::String: {
             std::string string_value = value->get<std::string>();
-            std::cout << style.green << "'" << string_value << "'" << style.reset;
+            if (error) {
+                std::cout << style.red << string_value << style.reset;
+            } else {
+                std::cout << style.green << "'" << string_value << "'" << style.reset;
+            }
             return;
         }
         case ValueType::List: {
             std::shared_ptr<List> list_value = value->get<std::shared_ptr<List>>();
+            if (error) {
+                std::cout << style.red;
+            }
             std::cout << "[";
             bool first = true;
             for (int i = 0; i < list_value->size(); i++) {
@@ -74,13 +97,20 @@ void printValue(const std::shared_ptr<Value> value) {
                 } else {
                     first = false;
                 }
-                printValue(item);
+                printValue(item, error);
             }
-            std::cout << "]";
+            if (error) {
+                std::cout << style.red << "]" << style.reset;
+            } else {
+                std::cout << "]";
+            }
             return;
         }
         case ValueType::Dictionary: {
             auto dict_value = value->get<std::shared_ptr<Dictionary>>();
+            if (error) {
+                std::cout << style.red;
+            }
             std::cout << "{";
             bool first = true;
             for (const auto pair : *dict_value) {
@@ -89,39 +119,70 @@ void printValue(const std::shared_ptr<Value> value) {
                 } else {
                     first = false;
                 }
-                printValue(pair.first);
+                printValue(pair.first, error);
+                if (error) {
+                    std::cout << style.red;
+                }
                 std::cout << ":";
-                printValue(pair.second);
+                printValue(pair.second, error);
             }
-            std::cout << "}";
+            if (error) {
+                std::cout << style.red << "}" << style.reset;
+            } else {
+                std::cout << "}";
+            }
             return;
         }
         case ValueType::None: {
-            std::cout << style.blue << "Null" << style.reset;
+            if (error) {
+                std::cout << style.red << "Null" << style.reset;
+            } else {
+                std::cout << style.blue << "Null" << style.reset;
+            }
             return;
         }
         case ValueType::Function: {
             auto node = value->get<std::shared_ptr<ASTNode>>();
             auto func_node = std::static_pointer_cast<FuncNode>(node);
-            std::cout << style.blue << "Function:" << *func_node->func_name << style.reset;
+            if (error) {
+                std::cout << style.red << "Function:" << *func_node->func_name << style.reset;
+            } else {
+                std::cout << style.blue << "Function:" << *func_node->func_name << style.reset;
+            }
             return;
         }
         case ValueType::BuiltInFunction: {
-            std::cout << style.blue << "Type:BuiltInFunction" << style.reset;
+            if (error) {
+                std::cout << style.red << "Type:BuiltInFunction" << style.reset;
+            } else {
+                std::cout << style.blue << "Type:BuiltInFunction" << style.reset;
+            }
             return;
         }
         case ValueType::Class: {
             auto node = value->get<std::shared_ptr<Class>>();
-            std::cout << style.blue << "Class:" << node->getName() << style.reset;
+            if (error) {
+                std::cout << style.red << "Class:" << node->getName() << style.reset;
+            } else {
+                std::cout << style.blue << "Class:" << node->getName() << style.reset;
+            }
             return;
         }
         case ValueType::Instance: {
             auto node = value->get<std::shared_ptr<Instance>>();
-            std::cout << style.blue << node->getClassName() << ":Instance" << style.reset;
+            if (error) {
+                std::cout << style.red << node->getClassName() << ":Instance" << style.reset;
+            } else {
+                std::cout << style.blue << node->getClassName() << ":Instance" << style.reset;
+            }
             return;
         }
         case ValueType::Type: {
-            std::cout << style.blue << getTypeStr(value->get<ValueType>()) << style.reset;
+            if (error) {
+                std::cout << style.red << getTypeStr(value->get<ValueType>()) << style.reset;
+            } else {
+                std::cout << style.blue << getTypeStr(value->get<ValueType>()) << style.reset;
+            }
             return;
         }
         default:
@@ -1862,6 +1923,9 @@ BuiltInFunctionReturn stringToJson(const std::vector<std::shared_ptr<Value>>& ar
     std::vector<std::shared_ptr<ASTNode>> statements;
     try {
         statements = parser.parse();
+    }
+    catch (const ErrorException& e) {
+        throw ErrorException(e.value);
     }
     catch (const std::exception& e) {
         std::string message = e.what();

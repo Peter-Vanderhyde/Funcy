@@ -1,11 +1,4 @@
-func testFunc() {
-    return "Default string";
+x = 10;
+if x == 10 {
+    throw str(23.6988);
 }
-
-func otherFunc(x=1, y=testFunc()) {
-    print(x, y);
-}
-
-otherFunc(y=3, x=6);
-otherFunc(y=5);
-otherFunc(8);

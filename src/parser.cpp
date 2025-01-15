@@ -310,6 +310,11 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
             auto right = parseIdentifier();
             node = std::make_shared<KeywordNode>(TokenType::_Global, right, token.line, token.column);
         }
+        else if (tokenIs("throw")) {
+            consumeToken();
+            auto right = parseLogicalOr();
+            node = std::make_shared<KeywordNode>(TokenType::_Throw, right, token.line, token.column);
+        }
 
         else {
             node = std::make_shared<KeywordNode>(getToken().type, nullptr, token.line, token.column);

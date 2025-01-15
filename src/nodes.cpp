@@ -1077,6 +1077,12 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         } else {
             throw ReturnException(std::nullopt);
         }
+    } else if (keyword == TokenType::_Throw) {
+        auto message = right->evaluate(env);
+        if (!message) {
+            runtimeError("Thrown error requires an message", line, column);
+        }
+        throw ErrorException(message.value());
     } else if (keyword == TokenType::_Global) {
         if (auto ident = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             env.addGlobal(ident->name);
@@ -1134,6 +1140,9 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
             catch (const StackOverflowException) {
                 handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
 the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
+            }
+            catch (const ErrorException& e) {
+                throw ErrorException(e.value);
             }
             catch (const std::exception& e) {
                 runtimeError(e.what(), line, column);
@@ -1635,6 +1644,9 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             }
             return std::make_shared<Value>(instance);
         }
+        catch (const ErrorException& e) {
+            throw ErrorException(e.value);
+        }
         catch (const std::exception& e) {
             runtimeError(e.what(), line, column);
         }
@@ -1770,6 +1782,9 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
     catch (const StackOverflowException) {
         handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
 the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
+    }
+    catch (const ErrorException& e) {
+        throw ErrorException(e.value);
     }
     catch (const std::exception& e) {
         runtimeError(e.what(), line, column);

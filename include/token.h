@@ -72,7 +72,8 @@ enum class TokenType{
     _Class,
     _Instance,
     _Ampersand,
-    _This
+    _This,
+    _Throw
 };
 
 std::string getTokenTypeLabel(TokenType type);
