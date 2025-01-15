@@ -469,4 +469,17 @@ print(obj.getPrivateAttr());  # Output: 20
   ```funcy
   my_list = [1, 2, 3, 4, 5];
   sublist = my_list[1:4];  # Output: [2, 3, 4]
+  sublist = my_list[-3:-1]; # Output: [3, 4]
   ```
+
+- **Argument Ordering:**  
+    Arguments can be set in any order, as long as they are labeled.
+    ```funcy
+    func Foo(x, y, z) {
+        # Code
+    }
+
+    Foo(x=5, y=2, z="string");
+    Foo(z="string", y=8, x=3);
+    Foo(1, z="string", y=7);
+    ```
