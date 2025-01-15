@@ -43,12 +43,13 @@ int main(int argc, char* argv[]) {
             runtimeError("File " + filename + " is empty or could not be read");
         }
         catch (const std::exception& e) {
+            // Throwing and then catching the error allows for proper error formating
             std::cerr << e.what();
             return 1;
         }
     }
 
-    pushExecutionContext(filename);
+    pushExecutionContext(filename); // Keeps the current running code's file on top of the stack
 
     Lexer lexer{source_code};
     std::vector<Token> tokens;
@@ -70,8 +71,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    Environment env = buildStartingEnvironment();
-    DETECT_RECURSION = !ignore_overflow;
+    Environment env = buildStartingEnvironment(); // Create environment and inject the global builtin functions
+    DETECT_RECURSION = !ignore_overflow; // Suppress recursion warning if flag disables it
 
     try {
         for (auto statement : statements) {
@@ -87,13 +88,13 @@ int main(int argc, char* argv[]) {
             catch (const ContinueException) {
                 runtimeError("Continue was used outside of loop");
             }
-            catch (const ErrorException& e) {
-                printValue(e.value, true);
-                return 1;
-            }
             catch (const StackOverflowException) {
                 handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
 the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
+            }
+            catch (const ErrorException& e) {
+                printValue(e.value, true);
+                return 1;
             }
         }
     }
