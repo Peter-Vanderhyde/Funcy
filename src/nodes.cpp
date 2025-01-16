@@ -1697,6 +1697,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
         std::vector<std::shared_ptr<Value>> args;
         std::map<std::string, std::shared_ptr<Value>> pairs;
         evaluateArgs(args, pairs, env);
+        args.insert(args.begin(), member_value);
         if (pairs.size() != 0) {
             runtimeError("Builtin functions do not accept labeled arguments", line, column);
         }
