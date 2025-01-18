@@ -468,26 +468,27 @@ func factorial(n) {
 print(factorial(5));  # Output: 120
 ```
 
-### Example 2: Class with Public and Private Attributes
+### Example 2: Class with Public Attributes
 
 ```funcy
 class Example {
     func &Example(value) {
         &public_attr = value;
-        private_attr = value * 2;
     }
 
-    func &getPrivateAttr() {
-        return private_attr;
+    func secretValue() {
+        return "Shhh";
+    }
+
+    func &getSecretValue() {
+        return secretValue();
     }
 }
 
 obj = Example(10);
 print(obj.public_attr);  # Output: 10
-print(obj.getPrivateAttr());  # Output: 20
+print(obj.getSecretValue());  # Output: "Shhh"
 ```
-
-### Example 3: 
 
 ---
 
