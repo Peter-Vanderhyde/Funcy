@@ -81,6 +81,7 @@ public:
     
     std::shared_ptr<Value> getConstructor(std::shared_ptr<Instance> this_reference);
     Environment& getEnvironment();
+    Environment copyEnvironment();
     std::string getClassName() const;
 };
 

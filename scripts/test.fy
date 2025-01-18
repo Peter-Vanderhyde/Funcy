@@ -1,4 +1,22 @@
-x = 10;
-if x == 10 {
-    throw str(23.6);
+class Test {
+    func &Test() {
+        &position = 0;
+    }
+
+    func &consume() {
+        &position += 1;
+    }
+
+    func &parse(index) {
+        if index == 0 {
+            return;
+        }
+        index -= 1;
+        &consume();
+        print(&position);
+        &parse(index);
+    }
 }
+
+t = Test();
+t.parse(3);

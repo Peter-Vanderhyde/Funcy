@@ -13,8 +13,8 @@ struct Style {
     std::string underline = "\033[4m";
 };
 
-[[noreturn]] void handleError(std::string message, int line, int column, std::string prefix);
+[[noreturn]] void handleError(std::string message, int line, int column, std::string prefix, std::string filename = "");
 
-[[noreturn]] void runtimeError(std::string message, int line, int column);
+[[noreturn]] void runtimeError(std::string message, int line, int column, std::string filename = "");
 
-[[noreturn]] void runtimeError(std::string message);
+[[noreturn]] void runtimeError(std::string message, std::string filename = "");

@@ -72,7 +72,7 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
         handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     } else {
         if (is_member_var && class_depth == 0 && class_env == false) {
-            runtimeError("Unable to set class attribute '" + name + "' outside of class");
+            runtimeError("Unable to set class attribute '" + name + "' outside of class", "");
         } else if (is_member_var) {
             class_attrs.set(name, value);
             return;
@@ -97,7 +97,7 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
         handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
     }
     if (is_member_var && class_depth == 0 && class_env == false) {
-        runtimeError("Unable to get class attribute '" + name + "' outside of class");
+        runtimeError("Unable to get class attribute '" + name + "' outside of class", "");
     } else if (is_member_var) {
         return class_attrs.get(name);
     }
@@ -105,7 +105,7 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
         if (scopes.front().contains(name)) {
             return scopes.front().get(name);
         } else {
-            runtimeError("Unrecognized variable " + name);
+            runtimeError("Unrecognized variable " + name, "");
         }
     }
     
@@ -116,7 +116,7 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
         }
     }
 
-    runtimeError(std::format("Unrecognized variable {}", name));
+    runtimeError(std::format("Unrecognized variable {}", name), "");
 }
 
 
@@ -208,7 +208,7 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
         return func->second;
     }
 
-    runtimeError("Unrecognized built-in function: " + name);
+    runtimeError("Unrecognized built-in function: " + name, "");
 }
 
 bool Environment::hasFunction(const std::string& name) const {
@@ -233,7 +233,7 @@ std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string&
         }
     }
 
-    runtimeError("Unrecognized member function: " + name);
+    runtimeError("Unrecognized member function: " + name, "");
 }
 
 std::shared_ptr<Value> Environment::getMember(const std::string& name) const {
@@ -300,7 +300,7 @@ void Environment::setThis(std::shared_ptr<Value> inst_ref) {
 
 std::shared_ptr<Value> Environment::getThis() {
     if (!this_ref) {
-        runtimeError("'this' may only be used inside a member function");
+        runtimeError("'this' may only be used inside a member function", "");
         return std::make_shared<Value>();
     }
     return this_ref;

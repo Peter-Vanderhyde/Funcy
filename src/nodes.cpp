@@ -417,13 +417,13 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         else if (operation == TokenType::_Multiply || operation == TokenType::_MultiplyEquals) {op_result = new_left * new_right;}
         else if (operation == TokenType::_Divide || operation == TokenType::_DivideEquals) {
             if (new_right == 0.0) {
-                handleError("Attempted division by zero", line, column, "Zero Division Error");
+                handleError("Attempted division by zero", line, column, "Zero Division Error", "");
             }
             return std::make_shared<Value>(new_left / new_right);
         }
         else if (operation == TokenType::_DoubleDivide) {
             if (new_right == 0.0) {
-                handleError("Attempted division by zero", line, column, "Zero Division Error");
+                handleError("Attempted division by zero", line, column, "Zero Division Error", "");
             }
             int result = static_cast<int>(new_left / new_right);
             return std::make_shared<Value>(result);
@@ -1139,7 +1139,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
             }
             catch (const StackOverflowException) {
                 handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
-the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
+the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", "");
             }
             catch (const ErrorException& e) {
                 throw ErrorException(e.value);
@@ -1499,11 +1499,14 @@ std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
         i++;
         auto value = pair.second->evaluate(local_env);
         if (!value) {
-            runtimeError("Unable to evaluate default argument " + std::to_string(i), line, column);
+            std::shared_ptr<Value> func_value = std::make_shared<Value>(std::make_shared<FuncNode>(*this));
+            runtimeError("Unable to evaluate default argument " + std::to_string(i), line, column, getFuncContext(func_value));
         }
         default_arg_values[pair.first] = value.value();
     }
-    return std::make_shared<Value>(std::static_pointer_cast<ASTNode>(std::make_shared<FuncNode>(*this)));
+    std::shared_ptr<Value> func_value = std::make_shared<Value>(std::make_shared<FuncNode>(*this));
+    setFuncContext(func_value);
+    return func_value;
 }
 
 void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values,
@@ -1561,41 +1564,64 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values,
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values,
                                                         std::map<std::string, std::shared_ptr<Value>> pairs,
                                                         Environment& global_env, bool member_func) {
+    Environment local_env_copy{local_env};
     Scope local_scope;
     if (!member_func) {
         local_scope.set(*func_name, global_env.get(*func_name, member_func));
+        pushExecutionContext(getFuncContext(local_scope.get(*func_name)));
     }
     setArgs(values, pairs, local_scope);
     if (global_env.isClassEnv()) {
-        local_env.setClassEnv();
-        local_env.setClassAttrs(global_env.getClassAttrs());
-        local_env.setThis(global_env.getThis());
+        local_env_copy.setClassEnv();
+        local_env_copy.setClassAttrs(global_env.getClassAttrs());
+        local_env_copy.setThis(global_env.getThis());
+        if (global_env.getClassAttrs().contains(*func_name)) {
+            pushExecutionContext(getFuncContext(global_env.getClassAttrs().get(*func_name)));
+        } else {
+            pushExecutionContext(getFuncContext(local_env_copy.get(*func_name)));
+        }
     }
-    local_env.addScope(local_scope);
+    local_env_copy.addScope(local_scope);
     recursion += 1;
-    if (recursion > 500 && detect_recursion_limit) {
+    std::optional<std::shared_ptr<Value>> return_value = std::nullopt;
+    if (recursion > 1000 && detect_recursion_limit) {
         throw StackOverflowException();
     }
     try {
         for (auto statement : block) {
-            auto result = statement->evaluate(local_env);
+            auto result = statement->evaluate(local_env_copy);
         }
     }
     catch (const ReturnException& e) {
-        return e.value;
+        return_value = e.value;
+    }
+    catch (const std::exception& e) {
+        if (!member_func) {
+            runtimeError(e.what(), line, column, getFuncContext(local_scope.get(*func_name)));
+        } else {
+            if (global_env.getClassAttrs().contains(*func_name)) {
+                runtimeError(e.what(), line, column, getFuncContext(global_env.getClassAttrs().get(*func_name)));
+            } else {
+                runtimeError(e.what(), line, column, getFuncContext(local_env_copy.get(*func_name)));
+            }
+        }
     }
 
     if (global_env.isClassEnv()) {
-        global_env.setClassAttrs(local_env.getClassAttrs());
+        auto attrs = local_env_copy.getClassAttrs();
+        global_env.setClassAttrs(attrs);
     }
 
-    auto scopes = local_env.copyScopes();
+    auto scopes = local_env_copy.copyScopes();
     for (const auto& pair : scopes.at(0).getPairs()) {
         global_env.setGlobalValue(pair.first, pair.second);
     }
     recursion -= 1;
 
-    return std::nullopt;
+    local_env_copy.removeScope();
+    popExecutionContext();
+
+    return return_value;
 }
 
 std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env) {
@@ -1608,7 +1634,8 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             std::vector<std::shared_ptr<Value>> args;
             std::map<std::string, std::shared_ptr<Value>> pairs;
             evaluateArgs(args, pairs, env);
-            return func->callFunc(args, pairs, env, ident_node->member_variable);
+            auto result = func->callFunc(args, pairs, env, func->member_func);
+            return result;
         } else {
             runtimeError("Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(identifier)->name, line, column);
         }
@@ -1663,7 +1690,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
     Environment environment{env};
     if (member_value->getType() == ValueType::Instance) {
         auto inst_node = member_value->get<std::shared_ptr<Instance>>();
-        environment = inst_node->getEnvironment();
+        environment = inst_node->copyEnvironment();
         ident_node->member_variable = true;
     }
     std::shared_ptr<Value> mapped_value;
@@ -1729,7 +1756,11 @@ void MethodCallNode::evaluateArgs(std::vector<std::shared_ptr<Value>>& args,
                 pairs[ident_node->name] = value.value();
                 found_default_arg = true;
             } else {
-                runtimeError("Invalid argument", line, column);
+                auto value = value_node->evaluate(env);
+                if (!value) {
+                    runtimeError("Unable to evaluate argument", line, column);
+                }
+                args.push_back(value.value());
             }
         } else {
             if (found_default_arg) {
@@ -1782,7 +1813,7 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
     }
     catch (const StackOverflowException) {
         handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
-the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
+the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", "");
     }
     catch (const ErrorException& e) {
         throw ErrorException(e.value);
