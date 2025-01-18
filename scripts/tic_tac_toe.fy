@@ -125,7 +125,7 @@ func main() {
     return answer in ['yes', 'y'];
 }
 
-func main() {
+func start() {
     print("Welcome to Tic-Tac-Toe!");
     replay = true;
     while replay {
@@ -134,3 +134,5 @@ func main() {
 
     print("Thanks for playing!");
 }
+
+start();
