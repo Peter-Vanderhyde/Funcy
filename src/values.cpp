@@ -278,6 +278,10 @@ Environment& Instance::getEnvironment() {
     return instance_env;
 }
 
+Environment Instance::copyEnvironment() {
+    return Environment{instance_env};
+}
+
 std::string Instance::getClassName() const {
     return class_name;
 }

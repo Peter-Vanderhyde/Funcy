@@ -264,7 +264,8 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             // If 'in' was used, only for_initialization will not be nullptr and will contain the variable and list
             return std::make_shared<ForNode>(keyword.type, for_initialization, variable_str, comparison_expr, for_increment, block, keyword.line, keyword.column);
         } else if (t_str == "func") {
-            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(name_str, func_args, default_arg_values, block, keyword.line, keyword.column), keyword.line, keyword.column);
+            bool member_func = std::static_pointer_cast<IdentifierNode>(func_name)->member_variable;
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(member_func, name_str, func_args, default_arg_values, block, keyword.line, keyword.column), keyword.line, keyword.column);
         } else if (t_str == "class") {
             return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<ClassNode>(name_str, block, keyword.line, keyword.column), keyword.line, keyword.column);
         } else {

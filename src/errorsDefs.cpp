@@ -8,7 +8,7 @@
 std::string getLine(const std::string& filename, int line) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        throw std::runtime_error("Could not open file: " + filename);
+        runtimeError("Could not open file: " + filename);
     }
 
     std::string currentLine;
@@ -22,13 +22,15 @@ std::string getLine(const std::string& filename, int line) {
     }
 
     if (currentLineNum < line) {
-        throw std::runtime_error("Line number out of range in file: " + filename);
+        return "<Line number out of range in file: " + filename + ">";
     }
     return "";
 }
 
-void handleError(std::string message, int line, int column, std::string prefix) {
-    std::string filename = currentExecutionContext();
+void handleError(std::string message, int line, int column, std::string prefix, std::string filename) {
+    if (filename == "") {
+        filename = currentExecutionContext();
+    }
     Style style{};
     std::string error;
     if (line == 0 && column == 0) {
@@ -57,10 +59,16 @@ void handleError(std::string message, int line, int column, std::string prefix) 
     throw std::runtime_error(error);
 }
 
-void runtimeError(std::string message, int line, int column) {
-    handleError(message, line, column, "Runtime Error");
+void runtimeError(std::string message, int line, int column, std::string filename) {
+    if (filename == "") {
+        filename = currentExecutionContext();
+    }
+    handleError(message, line, column, "Runtime Error", filename);
 }
 
-void runtimeError(std::string message) {
-    handleError(message, 0, 0, "Runtime Error");
+void runtimeError(std::string message, std::string filename) {
+    if (filename == "") {
+        filename = currentExecutionContext();
+    }
+    handleError(message, 0, 0, "Runtime Error", filename);
 }

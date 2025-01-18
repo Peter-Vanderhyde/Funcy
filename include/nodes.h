@@ -12,8 +12,8 @@ class ASTNode;
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>>;
 
-[[noreturn]] void runtimeError(std::string message, int line, int column);
-[[noreturn]] void runtimeError(std::string message);
+[[noreturn]] void runtimeError(std::string message, int line, int column, std::string filename);
+[[noreturn]] void runtimeError(std::string message, std::string filename);
 
 bool check_truthy(const Value& value);
 
@@ -174,10 +174,10 @@ public:
 
 class FuncNode : public ASTNode {
 public:
-    FuncNode(std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args,
+    FuncNode(bool member_func, std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args,
             std::map<std::string, std::shared_ptr<ASTNode>> default_arg_values, std::vector<std::shared_ptr<ASTNode>> block,
             int line, int column)
-        : ASTNode{line, column}, func_name{func_name}, args{args}, default_arg_nodes{default_arg_values}, block{block} {}
+        : ASTNode{line, column}, member_func{member_func}, func_name{func_name}, args{args}, default_arg_nodes{default_arg_values}, block{block} {}
     
     ~FuncNode() noexcept override = default;
 
@@ -188,6 +188,7 @@ public:
                                                     Environment& global_env, bool member_func = false);
     
     Environment local_env;
+    bool member_func;
     std::shared_ptr<std::string> func_name;
     std::vector<std::shared_ptr<ASTNode>> args;
     std::map<std::string, std::shared_ptr<ASTNode>> default_arg_nodes;

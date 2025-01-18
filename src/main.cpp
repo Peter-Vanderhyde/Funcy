@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
             }
             catch (const StackOverflowException) {
                 handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
-the program execution to ignore this warning)", 0, 0, "StackOverflowWarning");
+the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", "");
             }
             catch (const ErrorException& e) {
                 printValue(e.value, true);
