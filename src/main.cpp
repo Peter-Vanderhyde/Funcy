@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 
     bool ignore_overflow = false;
     if (!TESTING && argc < 2) {
-        runtimeError("Program Usage: Funcy <program_path> [-IgnoreOverflow]");
+        runtimeError("Program Usage: Funcy <program_path> [-IgnoreOverflow]", "");
         return 0;
     }
 
@@ -33,14 +33,14 @@ int main(int argc, char* argv[]) {
         if (flag == "-IgnoreOverflow") {
             ignore_overflow = true;
         } else {
-            runtimeError("Program Usage: Unrecognized flag " + flag);
+            runtimeError("Program Usage: Unrecognized flag " + flag, "");
         }
     }
     std::string source_code = readSourceCodeFromFile(filename);
 
     if (source_code.empty()) {
         try {
-            runtimeError("File " + filename + " is empty or could not be read");
+            runtimeError("File " + filename + " is empty or could not be read", "");
         }
         catch (const std::exception& e) {
             // Throwing and then catching the error allows for proper error formating
@@ -80,13 +80,13 @@ int main(int argc, char* argv[]) {
                 auto result = statement->evaluate(env);
             }
             catch (const ReturnException) {
-                runtimeError("Return was used outside of function");
+                runtimeError("Return was used outside of function", "");
             }
             catch (const BreakException) {
-                runtimeError("Break was used outside of loop");
+                runtimeError("Break was used outside of loop", "");
             }
             catch (const ContinueException) {
-                runtimeError("Continue was used outside of loop");
+                runtimeError("Continue was used outside of loop", "");
             }
             catch (const StackOverflowException) {
                 handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
