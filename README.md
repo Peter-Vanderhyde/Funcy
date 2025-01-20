@@ -79,8 +79,9 @@ if x > 5 {
 5. **List**
 6. **Dictionary**
 7. **Function**
-8. **Class**
-9. **Instance**
+8. **BuiltInFunction**
+9. **Class**
+10. **Instance**
 
 ---
 
