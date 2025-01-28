@@ -395,7 +395,7 @@ Thrown errors halt the execution of the program.
 - `time() -> int` - Returns system time in milliseconds as an integer.
 - `type(var) -> Type` - Returns the type of the variable.
 - `write(file_path_str, contents) -> Null` - Writes a string to a file. Creates a new file if it does not already exist.
-- `zip(list1, list1, ...) -> list` - Combines lists into a list of value pair lists.
+- `zip(list1, list2, ...) -> list` - Combines lists into a list of value pair lists.
 
 ### List Functions:
 
