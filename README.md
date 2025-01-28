@@ -289,7 +289,7 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 
 ### Type Keywords:
 
-- `Integer`, `Float`, `Boolean`, `String`, `List`, `Dictionary`, `Function`, `Class`, `Instance`, `Null`: Used to define and compare types.
+- `Integer`, `Float`, `Boolean`, `String`, `List`, `Dictionary`, `Function`, `BuiltInFunction`, `Class`, `Instance`, `Null`: Used to define and compare types.
   ```funcy
   x = 10;
   print(type(x) == Integer);  # true
