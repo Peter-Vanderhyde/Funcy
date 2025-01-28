@@ -224,7 +224,7 @@ class ClassName {
     }
 }
 
-obj = ClassName("value");
+obj = ClassName("value", "data");
 print(obj.getPrivateVar());
 print(obj.public_var);
 ```
