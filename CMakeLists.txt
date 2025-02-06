@@ -1,7 +1,7 @@
 # Minimum CMake version required
 cmake_minimum_required(VERSION 3.15)
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--stack,8388608")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static -Wl,--stack,8388608")
 
 # Project name and version
 project(Funcy VERSION 2.0)
