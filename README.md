@@ -79,8 +79,9 @@ if x > 5 {
 5. **List**
 6. **Dictionary**
 7. **Function**
-8. **Class**
-9. **Instance**
+8. **BuiltInFunction**
+9. **Class**
+10. **Instance**
 
 ---
 
@@ -223,7 +224,7 @@ class ClassName {
     }
 }
 
-obj = ClassName("value");
+obj = ClassName("value", "data");
 print(obj.getPrivateVar());
 print(obj.public_var);
 ```
@@ -288,7 +289,7 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 
 ### Type Keywords:
 
-- `Integer`, `Float`, `Boolean`, `String`, `List`, `Dictionary`, `Function`, `Class`, `Instance`, `Null`: Used to define and compare types.
+- `Integer`, `Float`, `Boolean`, `String`, `List`, `Dictionary`, `Function`, `BuiltInFunction`, `Class`, `Instance`, `Null`: Used to define and compare types.
   ```funcy
   x = 10;
   print(type(x) == Integer);  # true
@@ -394,7 +395,7 @@ Thrown errors halt the execution of the program.
 - `time() -> int` - Returns system time in milliseconds as an integer.
 - `type(var) -> Type` - Returns the type of the variable.
 - `write(file_path_str, contents) -> Null` - Writes a string to a file. Creates a new file if it does not already exist.
-- `zip(list1, list1, ...) -> list` - Combines lists into a list of value pair lists.
+- `zip(list1, list2, ...) -> list` - Combines lists into a list of value pair lists.
 
 ### List Functions:
 
