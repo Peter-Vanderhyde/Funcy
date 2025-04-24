@@ -4,10 +4,34 @@
 
 ---
 
-### VSCode Extension
-Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` file can be downloaded from the [funcy-lang Github Repository](https://github.com/Peter-Vanderhyde/funcy-lang).
+## Introduction
 
-### Running a Funcy File
+Funcy is a dynamically-typed programming language based off of Python and written in C++. It supports features like object-oriented programming, control flow structures, built-in functions, and several data types.  
+This language was an experimentation on creating dynamic typing in a static-type language. This project was made purely for fun and is not intended or advised to be used for serious projects.
+
+---
+
+## Quick Links
+
+- [Introduction](#introduction)
+- [Syntax Overview](#syntax-overview)
+- [Data Types](#data-types)
+- [Operators](#operators)
+- [Control Flow](#control-flow)
+- [Functions](#functions)
+- [Classes](#classes)
+- [Keywords](#keywords)
+- [Errors](#errors)
+- [Built-in Functions](#built-in-functions)
+- [Examples](#examples)
+- [Additional Features](#additional-features)
+
+---
+
+> ### VSCode Extension
+> Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` file can be downloaded from the [funcy-lang Github Repository](https://github.com/Peter-Vanderhyde/funcy-lang).
+
+## Running a Funcy File
 
 To execute a Funcy program, in the command-line, run the `Funcy.exe` executable with the following syntax:
 
@@ -24,28 +48,6 @@ Run a Funcy file with the `-IgnoreOverflow` flag:
 ```bash
 Funcy.exe example.fy -IgnoreOverflow
 ```
-
-## Quick Links
-
-- [Introduction](#introduction)
-- [Syntax Overview](#syntax-overview)
-- [Data Types](#data-types)
-- [Operators](#operators)
-- [Control Flow](#control-flow)
-- [Functions](#functions)
-- [Classes](#classes)
-- [Keywords](#keywords)
-- [Errors](#errors)
-- [Built-in Functions](#built-in-functions)
-- [Examples](#examples)
-- [Additional Features](#additional-features)
-- [Conclusion](#conclusion)
-
----
-
-## Introduction
-
-Funcy is a dynamically-typed programming language based off of Python and designed for simplicity, flexibility and expressiveness. It supports features like object-oriented programming, control flow structures, built-in functions, and several data types.
 
 ---
 
