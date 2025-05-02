@@ -68,26 +68,13 @@ int main(int argc, char* argv[]) {
     std::vector<Token> tokens;
     try {
         tokens = lexer.tokenize();
-    }
-    catch (const std::exception& e) {
-        std::cerr << e.what();
-        return 1;
-    }
 
-    Parser parser{tokens};
-    std::vector<std::shared_ptr<ASTNode>> statements;
-    try {
+        Parser parser{tokens};
+        std::vector<std::shared_ptr<ASTNode>> statements;
         statements = parser.parse();
-    }
-    catch (const std::exception& e) {
-        std::cerr << e.what();
-        return 1;
-    }
 
-    Environment env = buildStartingEnvironment(); // Create environment and inject the global builtin functions
-    DETECT_RECURSION = !ignore_overflow; // Suppress recursion warning if flag disables it
-
-    try {
+        Environment env = buildStartingEnvironment(); // Create environment and inject the global builtin functions
+        DETECT_RECURSION = !ignore_overflow; // Suppress recursion warning if flag disables it
         for (auto statement : statements) {
             try {
                 auto result = statement->evaluate(env);
@@ -112,7 +99,7 @@ the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", ""
         }
     }
     catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
+        std::cerr << e.what();
         return 1;
     }
 
