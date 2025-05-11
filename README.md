@@ -391,7 +391,7 @@ Thrown errors halt the execution of the program.
 - `round(value, precision=0) -> float` - Rounds a number to the given precision.
 - `str(value) -> string` - Converts a value to a string. Dictionaries converted into a string will maintain json compatible formatting so they can be saved in json files.
 - `sum(list) -> int|float` - Returns the sum of all elements in a list.
-- `time() -> int` - Returns system time in milliseconds as an integer.
+- `time() -> int` - Returns milliseconds since the start of the application as an integer.
 - `type(var) -> Type` - Returns the type of the variable.
 - `write(file_path_str, contents) -> Null` - Writes a string to a file. Creates a new file if it does not already exist.
 - `zip(list1, list1, ...) -> list` - Combines lists into a list of value pair lists.

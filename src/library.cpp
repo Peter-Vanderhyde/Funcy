@@ -18,6 +18,8 @@
 #include "parser.h"
 #include "lexer.h"
 
+static const auto appStartTime = std::chrono::steady_clock::now();
+
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
         runtimeError("File must have a .fy extension");
@@ -477,11 +479,12 @@ BuiltInFunctionReturn callable(const std::vector<std::shared_ptr<Value>>& args, 
 BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     using namespace std::chrono;
 
-    // Get the current time since epoch in milliseconds
-    auto now = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+    // Get the current time since the application started in milliseconds
+    auto now = steady_clock::now();
+    auto elapsed = duration_cast<milliseconds>(now - appStartTime).count();
 
     // Return it as an int
-    return std::make_shared<Value>(static_cast<int>(now));
+    return std::make_shared<Value>(static_cast<int>(elapsed));
 }
 
 BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
