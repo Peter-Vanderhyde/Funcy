@@ -393,7 +393,7 @@ Thrown errors halt the execution of the program.
 - `sum(list) -> int|float` - Returns the sum of all elements in a list.
 - `time() -> int` - Returns milliseconds since the start of the application as an integer.
 - `type(var) -> Type` - Returns the type of the variable.
-- `write(file_path_str, contents) -> Null` - Writes a string to a file. Creates a new file if it does not already exist.
+- `writeFile(file_path_str, contents) -> Null` - Writes a string to a file. Creates a new file if it does not already exist.
 - `zip(list1, list1, ...) -> list` - Combines lists into a list of value pair lists.
 
 ### List Functions:
