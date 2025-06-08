@@ -1247,14 +1247,14 @@ BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Envir
 
 BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 2) {
-        throw std::runtime_error("write() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error("writeFile() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
 
     if (args[0]->getType() != ValueType::String) {
-        throw std::runtime_error("write() expected an argument 1 of Type:String but got " + getTypeStr(args[0]->getType()));
+        throw std::runtime_error("writeFile() expected an argument 1 of Type:String but got " + getTypeStr(args[0]->getType()));
     }
     if (args[1]->getType() != ValueType::String) {
-        throw std::runtime_error("write() expected an argument 2 of Type:String but got " + getTypeStr(args[1]->getType()));
+        throw std::runtime_error("writeFile() expected an argument 2 of Type:String but got " + getTypeStr(args[1]->getType()));
     }
 
     std::string new_path;
@@ -1472,7 +1472,6 @@ BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, 
     auto list = args[0]->get<std::shared_ptr<List>>();
     int size = list->size();
     return std::make_shared<Value>(size);
-    return std::nullopt;
 }
 
 
