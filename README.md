@@ -39,13 +39,12 @@ Funcy.exe example.fy -IgnoreOverflow
 - [Built-in Functions](#built-in-functions)
 - [Examples](#examples)
 - [Additional Features](#additional-features)
-- [Conclusion](#conclusion)
 
 ---
 
 ## Introduction
 
-Funcy is a dynamically-typed programming language based off of Python and designed for simplicity, flexibility and expressiveness. It supports features like object-oriented programming, control flow structures, built-in functions, and rich data types.
+Funcy is a dynamically-typed, object-oriented programming language based off of Python and designed for simplicity and flexibility. It supports features like control flow structures, built-in functions, and rich data types.
 
 ---
 
