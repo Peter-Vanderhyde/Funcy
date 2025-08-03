@@ -6,7 +6,7 @@
 
 ## Introduction
 
-Funcy is a dynamically-typed programming language based off of Python and written in C++. It supports features like object-oriented programming, control flow structures, built-in functions, and several data types.  
+Funcy is a dynamically-typed, object-oriented programming language based off of Python and written in C++. It supports features like control flow structures, built-in functions, and several data types.  
 This language was an experimentation on creating dynamic typing in a static-type language. This project was made purely for fun and is not intended or advised to be used for serious projects.
 
 ---
