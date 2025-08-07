@@ -66,6 +66,9 @@ int main(int argc, char* argv[]) {
 
     Lexer lexer{source_code};
     std::vector<Token> tokens;
+    for (int i = 0; i < tokens.size(); i++) {
+        tokens[i].display();
+    }
     try {
         tokens = lexer.tokenize();
 

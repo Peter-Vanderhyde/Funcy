@@ -1,5 +1,6 @@
 #include "token.h"
 #include <unordered_map>
+#include <iostream>
 
 
 std::unordered_map<TokenType, std::string> token_labels{
@@ -157,3 +158,20 @@ Token::Token(TokenType type, TokenValue value, int line, int column)
 
 Token::Token(TokenType type, int line, int column)
     : type{type}, value{0}, line{line}, column{column} {}
+
+const void Token::display() {
+    if (type == TokenType::_String) {
+        std::cout << std::get<std::string>(value) << std::endl;
+    }
+    else if (type == TokenType::_Boolean) {
+        std::cout << std::boolalpha << std::get<bool>(value) << std::endl;
+    }
+    else if (type == TokenType::_Integer) {
+        std::cout << std::to_string(std::get<int>(value)) << std::endl;
+    }
+    else if (type == TokenType::_Float) {
+        std::cout << std::to_string(std::get<double>(value)) << std::endl;
+    } else {
+        throw std::runtime_error("Token Error: Unable to display token of type " + getTokenTypeLabel(type) + ".");
+    }
+}

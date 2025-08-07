@@ -90,4 +90,5 @@ public:
 
     Token(TokenType type, TokenValue value, int line, int column);
     Token(TokenType type, int line, int column);
+    const void display();
 };

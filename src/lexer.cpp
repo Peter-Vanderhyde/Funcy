@@ -42,7 +42,13 @@ std::vector<Token> Lexer::tokenize() {
             continue;
         }
         else if (character == '#') { // Ignore line after comment sign
-            while (grabNextCharacter() != '\n') {
+            if (current_position + 1 >= source_code.length()) {
+                continue;
+            }
+            while (grabNextCharacter() != '\n' && current_position < source_code.length()) {
+                continue;
+            }
+            if (current_position >= source_code.length()) {
                 continue;
             }
         }
