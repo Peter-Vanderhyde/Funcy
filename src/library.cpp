@@ -20,6 +20,8 @@
 
 static const auto appStartTime = std::chrono::steady_clock::now();
 
+bool debuggingAST = AtomNode{"temp", 0, 0}.debug;
+
 std::string readSourceCodeFromFile(const std::string& filename) {
     if (filename.size() < 3 || filename.substr(filename.size() - 3) != ".fy") {
         runtimeError("File must have a .fy extension");
@@ -40,6 +42,9 @@ std::string readSourceCodeFromFile(const std::string& filename) {
 
 void printValue(const std::shared_ptr<Value> value, bool error) {
     Style style{};
+    if (debuggingAST) {
+        std::cout << style.underline << "Output ->" << style.reset << " ";
+    }
     switch(value->getType()) {
         case ValueType::Integer: {
             int int_value = value->get<int>();

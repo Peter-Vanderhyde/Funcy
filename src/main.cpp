@@ -11,6 +11,8 @@
 #include "errorDefs.h"
 
 bool TESTING = false;
+bool DISPLAY_TOKENS = false;
+bool DISPLAY_AST = true;
 
 
 #ifdef _WIN32
@@ -66,15 +68,22 @@ int main(int argc, char* argv[]) {
 
     Lexer lexer{source_code};
     std::vector<Token> tokens;
-    for (int i = 0; i < tokens.size(); i++) {
-        tokens[i].display();
-    }
     try {
         tokens = lexer.tokenize();
+        if (DISPLAY_TOKENS) {
+            for (int i = 0; i < tokens.size(); i++) {
+                tokens[i].display();
+            }
+        }
 
         Parser parser{tokens};
         std::vector<std::shared_ptr<ASTNode>> statements;
         statements = parser.parse();
+        // if (DISPLAY_AST) {
+        //     for (int i = 0; i < statements.size(); i++) {
+        //         statements[i]
+        //     }
+        // }
 
         Environment env = buildStartingEnvironment(); // Create environment and inject the global builtin functions
         DETECT_RECURSION = !ignore_overflow; // Suppress recursion warning if flag disables it

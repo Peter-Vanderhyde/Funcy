@@ -10,6 +10,8 @@ class Value;
 // Thread-local storage for execution context
 extern thread_local std::stack<std::string> execution_context;
 
+extern thread_local int debug_tabs;
+
 extern std::map<std::shared_ptr<Value>, std::string> function_contexts;
 
 void pushExecutionContext(const std::string& filename);

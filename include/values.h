@@ -15,6 +15,7 @@ enum class SpecialIndex {
     End
 };
 
+class FuncNode;
 class Value;
 class ASTNode;
 class Environment;
@@ -30,6 +31,7 @@ using Dictionary = std::map<std::shared_ptr<Value>, std::shared_ptr<Value>, Valu
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
     const std::vector<std::shared_ptr<Value>>& args, Environment& env
 )>;
+using ValueList = std::vector<std::shared_ptr<Value>>;
 
 class List {
 private:
@@ -133,6 +135,8 @@ public:
         }
         return std::get<T>(value);
     }
+
+    std::string getPrintable(int tabs=0);
 
 };
 

@@ -269,7 +269,7 @@ std::string Class::getName() const {
 std::shared_ptr<Value> Instance::getConstructor(std::shared_ptr<Instance> this_reference) {
     auto constructor = instance_env.get(class_name, true);
     if (constructor->getType() != ValueType::Function) {
-        runtimeError(class_name + " Class constructor does not exist");
+        runtimeError(class_name + " Class constructor does not exist", "");
     }
     return constructor;
 }
@@ -331,6 +331,81 @@ ValueType Value::getType() const {
     return value_type;
 }
 
+std::string Value::getPrintable(int tabs) {
+    Style style{}; // assumes fields like .light_blue, .purple, .green, .blue, .red, .reset
+
+    switch (value_type) {
+        case ValueType::Integer: {
+            return style.light_blue + std::to_string(std::get<int>(value)) + style.reset;
+        }
+
+        case ValueType::Float: {
+            // keep your existing formatting (std::to_string), just color it
+            return style.light_blue + std::to_string(std::get<double>(value)) + style.reset;
+        }
+
+        case ValueType::Boolean: {
+            const bool b = std::get<bool>(value);
+            return style.purple + std::string(b ? "true" : "false") + style.reset;
+        }
+
+        case ValueType::String: {
+            // keep double quotes, just color the whole token like printValue (green)
+            const auto& s = std::get<std::string>(value);
+            return style.green + "'" + s + "'" + style.reset;
+        }
+
+        case ValueType::List: {
+            auto list = std::get<std::shared_ptr<List>>(value);
+            std::string str = "[";
+            for (int i = 0; i < list->size(); ++i) {
+                if (i != 0) str += ", ";
+                // elements print with their own colors
+                str += list->at(i)->getPrintable();
+            }
+            str += "]";
+            return str;
+        }
+
+        case ValueType::Dictionary: {
+            auto dict = std::get<std::shared_ptr<Dictionary>>(value);
+            std::string str = "{\n";
+            for (const auto& pair : *dict) {
+                // keep your formatting & indent; keys/values color via recursion
+                str += std::string(tabs, ' ')
+                    + pair.first->getPrintable()
+                    + " : "
+                    + pair.second->getPrintable()
+                    + "\n";
+            }
+            str += std::string(tabs, ' ') + "}";
+            return str;
+        }
+
+        case ValueType::Function:
+            return style.blue + std::string("<function>") + style.reset;
+
+        case ValueType::BuiltInFunction:
+            return style.blue + std::string("<builtin_function>") + style.reset;
+
+        case ValueType::Type:
+            return style.blue + getTypeStr(std::get<ValueType>(value)) + style.reset;
+
+        case ValueType::Class:
+            return style.blue + std::string("<class>") + style.reset;
+
+        case ValueType::Instance:
+            return style.blue + std::string("<instance>") + style.reset;
+
+        case ValueType::None:
+            return style.blue + std::string("null") + style.reset;
+
+        default:
+            runtimeError("Attempted to get printable string of unrecognized Value type.", "");
+            return "";
+    }
+}
+
 
 std::string getValueStr(Value value) {
     switch(value.getType()) {
@@ -359,7 +434,7 @@ std::string getValueStr(Value value) {
         case ValueType::None:
             return "null";
         default:
-            runtimeError("Attempted to get string of unrecognized Value type.");
+            runtimeError("Attempted to get string of unrecognized Value type.", "");
     }
 }
 
@@ -385,6 +460,6 @@ std::string getTypeStr(ValueType type) {
     if (types.count(type) != 0) {
         return types[type];
     } else {
-        runtimeError("No such type string found");
+        runtimeError("No such type string found", "");
     }
 }

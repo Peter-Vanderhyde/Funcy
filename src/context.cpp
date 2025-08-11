@@ -4,6 +4,8 @@
 // Thread-local storage for execution context
 thread_local std::stack<std::string> execution_context;
 
+thread_local int debug_tabs = 0;
+
 std::map<std::shared_ptr<Value>, std::string> function_contexts;
 
 void pushExecutionContext(const std::string& filename) {

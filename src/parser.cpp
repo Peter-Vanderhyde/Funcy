@@ -522,7 +522,7 @@ std::shared_ptr<ASTNode> Parser::parseLogicalNot() {
 }
 
 std::shared_ptr<ASTNode> Parser::parseMemberAccess(std::shared_ptr<std::string> var_string) {
-    if (debug) std::cout << "Parse Member" << std::endl;
+    if (debug) std::cout << "Parse Member " << getTokenStr() << std::endl;
     std::shared_ptr<ASTNode> node = parseIndexing();
 
     while (true) {

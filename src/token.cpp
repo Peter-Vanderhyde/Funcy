@@ -160,18 +160,24 @@ Token::Token(TokenType type, int line, int column)
     : type{type}, value{0}, line{line}, column{column} {}
 
 const void Token::display() {
-    if (type == TokenType::_String) {
-        std::cout << std::get<std::string>(value) << std::endl;
-    }
-    else if (type == TokenType::_Boolean) {
-        std::cout << std::boolalpha << std::get<bool>(value) << std::endl;
-    }
-    else if (type == TokenType::_Integer) {
-        std::cout << std::to_string(std::get<int>(value)) << std::endl;
-    }
-    else if (type == TokenType::_Float) {
-        std::cout << std::to_string(std::get<double>(value)) << std::endl;
+    std::cout << getTokenTypeLabel(type);
+    if (type == TokenType::_Integer || !std::holds_alternative<int>(value)) {
+        std::cout << " : ";
+        if (std::holds_alternative<std::string>(value)) {
+            std::cout << std::get<std::string>(value) << std::endl;
+        }
+        else if (std::holds_alternative<bool>(value)) {
+            std::cout << std::boolalpha << std::get<bool>(value) << std::endl;
+        }
+        else if (std::holds_alternative<int>(value)) {
+            std::cout << std::to_string(std::get<int>(value)) << std::endl;
+        }
+        else if (std::holds_alternative<double>(value)) {
+            std::cout << std::to_string(std::get<double>(value)) << std::endl;
+        } else {
+            throw std::runtime_error("Token Error: Unable to display token of type " + getTokenTypeLabel(type) + ".");
+        }
     } else {
-        throw std::runtime_error("Token Error: Unable to display token of type " + getTokenTypeLabel(type) + ".");
+        std::cout << std::endl;
     }
 }
