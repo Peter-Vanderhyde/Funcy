@@ -42,9 +42,6 @@ std::string readSourceCodeFromFile(const std::string& filename) {
 
 void printValue(const std::shared_ptr<Value> value, bool error) {
     Style style{};
-    if (debuggingAST) {
-        std::cout << style.underline << "Output ->" << style.reset << " ";
-    }
     switch(value->getType()) {
         case ValueType::Integer: {
             int int_value = value->get<int>();
@@ -1334,25 +1331,16 @@ BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args
 
 BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 2) {
-        throw std::runtime_error("append() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
+        throw std::runtime_error(
+            "append() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
 
-    auto list = args[0]->get<std::shared_ptr<List>>();
-    if (args[1]->getType() == ValueType::List) {
-        auto orig = args[1]->get<std::shared_ptr<List>>();
-        auto copy = std::make_shared<List>(*orig);
-        list->push_back(std::make_shared<Value>(copy));
-    }
-    else if (args[1]->getType() == ValueType::Dictionary) {
-        auto orig = args[1]->get<std::shared_ptr<Dictionary>>();
-        auto copy = std::make_shared<Dictionary>(*orig);
-        list->push_back(std::make_shared<Value>(copy));
-    }
-    else {
-        list->push_back(args[1]);
-    }
+    auto list = args.at(0)->get<std::shared_ptr<List>>();
+    list->push_back(args[1]);
+
     return std::make_shared<Value>();
 }
+
 
 BuiltInFunctionReturn listClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() != 1) {

@@ -26,18 +26,24 @@ std::unordered_map<TokenType, ValueType> type_map{
 };
 
 std::string getTabs() {
-    return std::string(debug_tabs, ' ');
+    Style style{};
+    std::string str = style.grey;
+    for (int i = 0; i < debug_tabs; i++) {
+        str += "|   ";
+    }
+    return str + style.reset;
 }
 
 void setTabs() {
-    std::cout << getTabs();
+    Style style{};
+    std::cout << style.grey << getTabs() << style.reset;
 }
 
-void addTab(int tabs=4) {
+void addTab(int tabs=1) {
     debug_tabs += tabs;
 }
 
-void subTab(int tabs=4) {
+void subTab(int tabs=1) {
     debug_tabs -= tabs;
     if (debug_tabs < 0) {
         debug_tabs = 0;
@@ -256,12 +262,20 @@ void UnaryOpNode::debugPrint(ValueList values) {
     setTabs();
     std::cout << "Evaluating UnaryOp: ";
     std::cout << getTokenTypeLabel(op);
+    if (op == TokenType::_Not) {
+        std::cout << " ";
+    }
     std::cout << values.at(0)->getPrintable(debug_tabs);
     std::cout << std::endl;
 }
 
 std::string UnaryOpNode::getPrintable() {
-    return getTokenTypeLabel(op) + right->getPrintable();
+    std::string str = getTokenTypeLabel(op);
+    if (op == TokenType::_Not) {
+        str += " ";
+    }
+    str += right->getPrintable();
+    return str;
 }
 
 
@@ -689,16 +703,19 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         if (!left_value.has_value()) {
             runtimeError("Failed to get member function. Identifier could not be computed", line, column);
         }
-        if (debug) {debugPrint(ValueList{left_value.value(), std::make_shared<Value>(right->getPrintable())});}
+        if (debug) {debugPrint(ValueList{left_value.value()});}
 
         // Get the type of the member
         ValueType member_type = left_value.value()->getType();
         if (auto func_node = std::dynamic_pointer_cast<MethodCallNode>(right)) {
             // It's a member function
             // Save the result of the member to pass into the function
+            auto saved_object = func_node->member_value; // The object node on the left of the '.' that the right side function operates on
             func_node->member_value = left_value.value();
-            // Pass member type so evaluate knows to search for functions of that type
-            return func_node->evaluate(env, member_type);
+            // Pass member type so evaluate knows to search for functions in that type's built-in library
+            auto returned = func_node->evaluate(env, member_type);
+            func_node->member_value = saved_object; // Restore old value so nested function calls don't overwrite it
+            return returned;
         }
         else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             Environment environment{env};
@@ -828,7 +845,7 @@ void BinaryOpNode::debugPrint(ValueList values) {
     subTab();
     setTabs();
     std::cout << "Evaluating BinaryOp: ";
-    if (values.size() == 1) {
+    if (values.size() == 1 && op != TokenType::_Dot) {
         std::cout << left->getPrintable();
     } else {
         std::cout << values.at(0)->getPrintable(debug_tabs);
@@ -836,12 +853,13 @@ void BinaryOpNode::debugPrint(ValueList values) {
 
     if (op != TokenType::_Dot) {
         std::cout << " " << getTokenTypeLabel(op) << " ";
+        std::cout << values.at(values.size() - 1)->getPrintable(debug_tabs);
+        if (values.size() == 1) {
+            std::cout << " -> saving value";
+        }
     } else {
         std::cout << ".";
-    }
-    std::cout << values.at(values.size() - 1)->getPrintable(debug_tabs);
-    if (values.size() == 1) {
-        std::cout << " -> saving value";
+        std::cout << right->getPrintable();
     }
     std::cout << std::endl;
 }
@@ -963,38 +981,98 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
 }
 
 std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
-    if (if_link) {
-        // It's connected to a former if statement
-        if (if_link->last_comparison_result) {
-            // The previous if was true, so skip
-            last_comparison_result = true;
-            return {};
-        }
+    // If this scope is linked to a previous 'if'/'elif' and that was already true, skip this one
+    if (debug && if_link) std::cout << getTabs() + "Checking if I should enter Scope: " + getPrintable() << std::endl;
+    if (if_link && if_link->last_comparison_result) {
+        last_comparison_result = true;
+        return {};
     }
+
     if (debug) {
         std::cout << getTabs() + "Entering Scope: " + getPrintable() << std::endl;
         addTab();
     }
 
-    if (comparison && getComparisonValue(env) == false) {
-        last_comparison_result = false;
-        return std::nullopt;
-    } else if (comparison) {
-        last_comparison_result = true;
+    // Condition evaluation
+    std::shared_ptr<Value> evaluated_condition_value;
+    bool is_condition_truthy = true;                   // Default for blocks without a comparison (like 'else')
+
+    if (comparison) {
+        auto condition_value = comparison->evaluate(env);
+        if (!condition_value.has_value()) {
+            runtimeError("Missing a boolean comparison for keyword to evaluate", line, column);
+        }
+
+        evaluated_condition_value = condition_value.value();
+
+        auto determineTruthy = [](const Value& value) -> bool {
+            switch (value.getType()) {
+                case ValueType::Boolean:    return value.get<bool>();
+                case ValueType::Integer:    return value.get<int>() != 0;
+                case ValueType::Float:      return value.get<double>() != 0.0;
+                case ValueType::String:     return !value.get<std::string>().empty();
+                case ValueType::List:       return !value.get<std::shared_ptr<List>>()->empty();
+                case ValueType::Dictionary: return !value.get<std::shared_ptr<Dictionary>>()->empty();
+                case ValueType::None:       return false;
+                default:                    return true; // Functions, classes, instances, types -> truthy
+            }
+        };
+
+        is_condition_truthy = determineTruthy(*evaluated_condition_value);
+        last_comparison_result = is_condition_truthy;
     }
 
-    if (debug) debugPrint(ValueList{std::make_shared<Value>(getComparisonValue(env))});
+    if (debug && comparison) {
+        debugPrint(ValueList{ evaluated_condition_value });
+    } else if (debug) {
+        debugPrint(ValueList{});
+    }
 
-    std::string str = getTokenTypeLabel(keyword);
-    if (str == "if" || str == "elif" || str == "else" || str == "while" || str == "for") {
+    if (comparison && !is_condition_truthy) {
+        return std::nullopt;
+    }
+
+    std::string keyword_string = getTokenTypeLabel(keyword);
+    if (keyword_string == "if" || keyword_string == "elif" ||
+        keyword_string == "else" || keyword_string == "while" ||
+        keyword_string == "for") 
+    {
         env.addScope();
 
-        if (str == "while") {
+        if (keyword_string == "while") {
             env.addLoop();
-            while (getComparisonValue(env)) {
+
+            while (true) {
+                auto condition_value = comparison->evaluate(env);
+                if (!condition_value) {
+                    runtimeError("Unable to evaluate while condition", line, column);
+                }
+
+                if (debug) {
+                    debugPrint(ValueList{ condition_value.value() });
+                }
+
+                bool loop_condition_truthy = [&] {
+                    const Value& value = *condition_value.value();
+                    switch (value.getType()) {
+                        case ValueType::Boolean:    return value.get<bool>();
+                        case ValueType::Integer:    return value.get<int>() != 0;
+                        case ValueType::Float:      return value.get<double>() != 0.0;
+                        case ValueType::String:     return !value.get<std::string>().empty();
+                        case ValueType::List:       return !value.get<std::shared_ptr<List>>()->empty();
+                        case ValueType::Dictionary: return !value.get<std::shared_ptr<Dictionary>>()->empty();
+                        case ValueType::None:       return false;
+                        default:                    return true;
+                    }
+                }();
+
+                if (!loop_condition_truthy) {
+                    break;
+                }
+
                 try {
-                    for (int i = 0; i < statements_block.size(); i++) {
-                        auto result = statements_block[i]->evaluate(env);
+                    for (auto& statement : statements_block) {
+                        statement->evaluate(env);
                     }
                 }
                 catch (const BreakException) {
@@ -1004,11 +1082,12 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                     continue;
                 }
             }
+
             env.removeLoop();
         }
         else {
-            for (int i = 0; i < statements_block.size(); i++) {
-                std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
+            for (auto& statement : statements_block) {
+                statement->evaluate(env);
             }
         }
 
@@ -1022,37 +1101,45 @@ void ScopedNode::debugPrint(ValueList values) {
     subTab();
     setTabs();
     std::cout << "Evaluating Scope: ";
-    std::cout << getTokenTypeLabel(keyword) << " ";
-    std::cout << values.at(0)->getPrintable(debug_tabs) << " {...}" << std::endl;
+    std::cout << getTokenTypeLabel(keyword);
+    if (values.size() == 1) {
+        std::cout << " " << values.at(0)->getPrintable(debug_tabs);
+    }
+    std::cout << " {...}" << std::endl;
 }
 
 std::string ScopedNode::getPrintable() {
-    return getTokenTypeLabel(keyword) + " " + comparison->getPrintable() + " {...}";
+    std::string str = getTokenTypeLabel(keyword);
+    if (comparison) {
+        str += " " + comparison->getPrintable();
+    }
+    str += " {...}";
+    return str;
 }
 
-ForNode::ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string,
+ForNode::ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization,
         std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment,
         std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
-    : ASTNode{line, column}, keyword{keyword}, initialization{initialization}, init_string{init_string},
+    : ASTNode{line, column}, keyword{keyword}, initialization{initialization},
         condition_value{condition_value}, increment{increment}, block{block} {}
 
 std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering For Loop: " + getPrintable() << std::endl;
+        std::cout << getTabs() + "Initializing For Loop: " + getPrintable() << std::endl;
         addTab();
     }
     env.addScope();
     env.addLoop();
+    
     auto init_node = std::dynamic_pointer_cast<BinaryOpNode>(initialization);
-    if (init_node->op != TokenType::_In) {
+    if (!init_node || init_node->op != TokenType::_In) {
+        // Classic for loop formatting, not using 'in'
         initialization->evaluate(env);
-
-        int variable;
-        if (env.get(*init_string)->getType() == ValueType::Integer) {
-            variable = env.get(*init_string)->get<int>();
-        }
-        else {
-            runtimeError("For loop requires int variable", line, column);
+        if (debug) {
+            subTab();
+            setTabs();
+            std::cout << "Entering For Loop Conditional: " + condition_value->getPrintable() << std::endl;
+            addTab();
         }
 
         while (true) {
@@ -1062,13 +1149,17 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             }
 
             if (cond_value.value()->getType() == ValueType::Boolean) {
+                if (debug) {
+                    subTab();
+                    setTabs();
+                    std::cout << "Evaluating For Loop Conditional: " + cond_value.value()->getPrintable() << std::endl;
+                    addTab();
+                }
                 auto bool_value = cond_value.value()->get<bool>();
                 if (!bool_value) break;
             } else {
                 runtimeError("For loop requires boolean condition", line, column);
             }
-
-            int original_variable = variable;
 
             try {
                 for (auto statement : block) {
@@ -1082,17 +1173,26 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 // Does nothing but catches exception and proceeds to increment the variable
             }
 
-            variable = original_variable;
-            env.set(*init_string, std::make_shared<Value>(variable));
-            // increment them
+            if (debug) {
+                subTab();
+                setTabs();
+                std::cout << "Evaluating For Loop Increment: " + increment->getPrintable() << std::endl;
+                addTab();
+            }
             increment->evaluate(env);
-            if (env.get(*init_string)->getType() == ValueType::Integer) {
-                variable = env.get(*init_string)->get<int>();
+            if (debug) {
+                subTab();
+                setTabs();
+                std::cout << "Entering For Loop Conditional: " + condition_value->getPrintable() << std::endl;
+                addTab();
             }
         }
     } else {
         // in was used with for loop instead of integer
         auto container_result = init_node->right->evaluate(env);
+        if (debug && container_result) {
+            debugPrint(ValueList{container_result.value()});
+        }
         if (container_result.value()->getType() == ValueType::List) {
             auto list = container_result.value()->get<std::shared_ptr<List>>();
             auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(init_node->left);
@@ -1102,6 +1202,12 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 for (int i = 0; i < list->size(); i++) {
                     auto item = list->at(i);
                     env.set(var_string, item);
+                    if (debug) {
+                        subTab();
+                        setTabs();
+                        std::cout << "Assigning For Loop Value: " + ident_node->getPrintable() + " = " + item->getPrintable() << std::endl;
+                        addTab();
+                    }
                     try {
                         for (auto statement : block) {
                             auto result = statement->evaluate(env);
@@ -1237,13 +1343,34 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     return std::nullopt;
 }
 
-void ForNode::debugPrint(ValueList) {
-    return;
+void ForNode::debugPrint(ValueList values) {
+    subTab();
+    if (auto init_bin = std::dynamic_pointer_cast<BinaryOpNode>(initialization)) {
+        setTabs();
+        if (init_bin->op == TokenType::_In) {
+            std::cout << "Evaluating For Loop: for (";
+            std::cout << init_bin->left->getPrintable();
+            std::cout << " in " + values.at(0)->getPrintable() + ") {...}" << std::endl;
+        } else {
+            std::cout << "Check For Conditional: " << values.at(0)->getPrintable() << std::endl;
+        }
+    }
 }
 
 std::string ForNode::getPrintable() {
-    return "for (" + initialization->getPrintable() + "," + condition_value->getPrintable() + "," + increment->getPrintable() + ") {...}";
+    if (auto init_bin = std::dynamic_pointer_cast<BinaryOpNode>(initialization)) {
+        if (init_bin->op == TokenType::_In) {
+            return "for (" + init_bin->left->getPrintable() +
+                   " in " + init_bin->right->getPrintable() + ") {...}";
+        }
+    }
+    // classic for(init, cond, inc) — guard nulls just in case
+    auto a = initialization  ? initialization->getPrintable()  : "<null>";
+    auto b = condition_value ? condition_value->getPrintable() : "<null>";
+    auto c = increment       ? increment->getPrintable()       : "<null>";
+    return "for (" + a + ", " + b + ", " + c + ") {...}";
 }
+
 
 std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     if (debug) {
@@ -1293,6 +1420,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         } else {
             runtimeError("global expected an identifier", line, column);
         }
+        return std::nullopt;
     } else if (keyword == TokenType::_Import) {
         std::string path = currentExecutionContext();
         auto index = path.find_last_of('/');
@@ -1626,6 +1754,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                             return std::make_shared<Value>(str);
                         }
                     } else {
+                        if (debug) debugPrint(ValueList{std::make_shared<Value>(std::get<std::shared_ptr<List>>(distr)), result.value()});
                         auto value = std::get<std::shared_ptr<Value>>(getAtIndex(distr, int_val, line, column));
                         return value;
                     }

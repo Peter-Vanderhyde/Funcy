@@ -127,7 +127,7 @@ public:
 
 class ForNode : public ASTNode {
 public:
-    ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string,
+    ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization,
             std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment,
             std::vector<std::shared_ptr<ASTNode>> block, int line, int column);
     
@@ -139,7 +139,6 @@ public:
     
     TokenType keyword;
     std::shared_ptr<ASTNode> initialization;
-    std::shared_ptr<std::string> init_string;
     std::shared_ptr<ASTNode> condition_value;
     std::shared_ptr<ASTNode> increment;
     std::vector<std::shared_ptr<ASTNode>> block;

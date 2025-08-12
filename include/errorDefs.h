@@ -9,6 +9,7 @@ struct Style {
     std::string blue = "\033[34m";
     std::string light_blue = "\033[38;5;81m";
     std::string purple = "\033[38;5;129m";
+    std::string grey = "\033[38;5;235m";
     std::string reset = "\033[0m";
     std::string underline = "\033[4m";
 };

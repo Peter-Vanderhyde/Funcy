@@ -69,7 +69,7 @@ bool Environment::isClassEnv() const {
 
 void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_member_var) {
     if (scopes.empty()) {
-        handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
+        runtimeError("Attempted to access empty environment", "");
     } else {
         if (is_member_var && class_depth == 0 && class_env == false) {
             runtimeError("Unable to set class attribute '" + name + "' outside of class", "");
@@ -78,7 +78,7 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
             return;
         }
         if (isGlobal(name)) {
-            scopes.front().set(name, value);
+            setGlobalValue(name, value);
             return;
         }
         for (int i = scopes.size() - 1; i > -1; i--) {
@@ -87,9 +87,9 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
                 return;
             }
         }
-    }
 
-    scopes.back().set(name, value);
+        scopes.back().set(name, value);
+    }
 }
 
 std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) const {

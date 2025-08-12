@@ -372,8 +372,10 @@ std::string Value::getPrintable(int tabs) {
             std::string str = "{\n";
             for (const auto& pair : *dict) {
                 // keep your formatting & indent; keys/values color via recursion
-                str += std::string(tabs, ' ')
-                    + pair.first->getPrintable()
+                for (int i = 0; i < tabs; i++) {
+                    str += "|   ";
+                }
+                str += pair.first->getPrintable()
                     + " : "
                     + pair.second->getPrintable()
                     + "\n";
