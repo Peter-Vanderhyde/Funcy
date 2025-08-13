@@ -98,10 +98,10 @@ void AtomNode::debugPrint(ValueList values) {
         std::cout << "\"" + getString() + "\"";
     }
     else if (isIndex()) {
-        if (getIndex() == SpecialIndex::Begin) {
-            std::cout << "index:begin";
+        if (getIndex() == SpecialIndex::Front) {
+            std::cout << "<index:front>";
         } else {
-            std::cout << "index:end";
+            std::cout << "<index:back>";
         }
     }
     std::cout << " -> " << values.at(0)->getPrintable() << std::endl;
@@ -125,10 +125,10 @@ std::string AtomNode::getPrintable() {
         return "\"" + getString() + "\"";
     }
     else if (isIndex()) {
-        if (getIndex() == SpecialIndex::Begin) {
-            std::cout << "index:begin";
+        if (getIndex() == SpecialIndex::Front) {
+            return "<index:front>";
         } else {
-            std::cout << "index:end";
+            return "<index:back>";
         }
     }
     else {
@@ -1665,7 +1665,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                 }
                 return std::clamp(idx, 0, container_size); // Clamp within bounds
             } else if (index.getType() == ValueType::Index) {
-                if (index.get<SpecialIndex>() == SpecialIndex::End) {
+                if (index.get<SpecialIndex>() == SpecialIndex::Back) {
                     return container_size; // Resolve "end" to container size
                 }
             }
@@ -1985,6 +1985,10 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
                                                         std::map<std::string, std::shared_ptr<Value>> pairs,
                                                         Environment& global_env, bool member_func) {
     Environment local_env_copy{local_env};
+    std::vector<Scope> copied_scopes = global_env.copyScopes();
+    for (const auto& pair : copied_scopes.at(0).getPairs()) {
+        local_env_copy.setGlobalValue(pair.first, pair.second);
+    }
     Scope local_scope;
     if (!member_func) {
         local_scope.set(*func_name, global_env.get(*func_name, member_func));

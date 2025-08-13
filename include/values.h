@@ -11,8 +11,8 @@
 #include "environment.h"
 
 enum class SpecialIndex {
-    Begin,
-    End
+    Front,
+    Back
 };
 
 class FuncNode;

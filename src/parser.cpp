@@ -564,7 +564,7 @@ std::shared_ptr<ASTNode> Parser::parseIndexing(std::shared_ptr<ASTNode> left) {
             consumeToken();
             std::shared_ptr<ASTNode> end;
             if (tokenIs("]")) {
-                end = std::make_shared<AtomNode>(SpecialIndex::End, token.line, token.column);
+                end = std::make_shared<AtomNode>(SpecialIndex::Back, token.line, token.column);
             } else {
                 end = parseExpression();
             }

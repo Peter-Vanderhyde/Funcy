@@ -385,22 +385,31 @@ std::string Value::getPrintable(int tabs) {
         }
 
         case ValueType::Function:
-            return style.blue + std::string("<function>") + style.reset;
+            return style.blue + "<function>" + style.reset;
 
         case ValueType::BuiltInFunction:
-            return style.blue + std::string("<builtin_function>") + style.reset;
+            return style.blue + "<builtin_function>" + style.reset;
 
         case ValueType::Type:
             return style.blue + getTypeStr(std::get<ValueType>(value)) + style.reset;
 
         case ValueType::Class:
-            return style.blue + std::string("<class>") + style.reset;
+            return style.blue + "<class>" + style.reset;
 
         case ValueType::Instance:
-            return style.blue + std::string("<instance>") + style.reset;
+            return style.blue + "<instance>" + style.reset;
 
         case ValueType::None:
-            return style.blue + std::string("null") + style.reset;
+            return style.blue + "null" + style.reset;
+
+        case ValueType::Index: {
+            auto index_value = std::get<SpecialIndex>(value);
+            if (index_value == SpecialIndex::Front) {
+                return style.blue + "<index:front>" + style.reset;
+            } else {
+                return style.blue + "<index:back>" + style.reset;
+            }
+        }
 
         default:
             runtimeError("Attempted to get printable string of unrecognized Value type.", "");
