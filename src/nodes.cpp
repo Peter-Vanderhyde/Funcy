@@ -1416,7 +1416,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
             throwError(ErrorType::Runtime, "Thrown error requires a message", line, column);
         }
         if (debug) debugPrint(ValueList{message.value()});
-        throwError(ErrorType::Thrown, message.value()->getPrintable(0, true));
+        throwError(ErrorType::Thrown, message.value()->getPrintable(0, true), line, column);
     } else if (keyword == TokenType::_Global) {
         if (auto ident = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             env.addGlobal(ident->name);
@@ -1958,13 +1958,13 @@ void FuncNode::setArgs(ValueList values,
     if (num_args != args.size()) {
         if (num_args > args.size()) {
             if (default_arg_values.size() > 0) {
-                throwError(ErrorType::Runtime, std::format("Function takes from {} to {} arguments but {} were given",
+                throwError(ErrorType::ArityMismatch, std::format("Function takes from {} to {} arguments but {} were given",
                                                             args.size() - default_arg_values.size(), args.size(), num_args), line, column);
             } else {
-                throwError(ErrorType::Runtime, std::format("Function takes {} arguments but {} were given", args.size(), num_args), line, column);
+                throwError(ErrorType::ArityMismatch, std::format("Function takes {} arguments but {} were given", args.size(), num_args), line, column);
             }
         } else if (num_args < args.size() - default_arg_values.size()) {
-            throwError(ErrorType::Runtime, std::format("Missing {} required arguments", args.size() - default_arg_values.size() - num_args), line, column);
+            throwError(ErrorType::ArityMismatch, std::format("Missing {} required arguments", args.size() - default_arg_values.size() - num_args), line, column);
         }
     }
 
@@ -2068,8 +2068,17 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
                 }
                 debugPrint(debug_values);
             }
-            auto result = func->callFunc(args, pairs, env, func->member_func);
-            return result;
+            try {
+                auto result = func->callFunc(args, pairs, env, func->member_func);
+                return result;
+            }
+            catch (const ErrorException& e) {
+                if (e.error_type == ErrorType::ArityMismatch) {
+                    throwError(ErrorType::Runtime, e.message, line, column);
+                } else {
+                    throw e;
+                }
+            }
         } else {
             if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(stored_func)) {
                 throwError(ErrorType::Runtime, "Unable to call function " + ident_node->name, line, column);
@@ -2129,8 +2138,12 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             return std::make_shared<Value>(instance);
         }
         catch (const ErrorException& e) {
-            throwError(e.error_type, e.message, line, column);
-        }
+                if (e.error_type == ErrorType::ArityMismatch) {
+                    throwError(ErrorType::Runtime, e.message, line, column);
+                } else {
+                    throwError(e.error_type, e.message, line, column);
+                }
+            }
     }
     else {
         throwError(ErrorType::Runtime, "Object type " + getValueStr(mapped_value) + " is not callable", line, column);
@@ -2168,20 +2181,29 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
                 }
                 debugPrint(debug_values);
             }
-            if (member_type == ValueType::Instance) {
-                environment.setThis(member_value);
-                auto result = func->callFunc(args, pairs, environment, true);
-                auto inst_node = member_value->get<std::shared_ptr<Instance>>();
-                inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
-                auto scopes = environment.copyScopes();
-                for (const auto& pair : scopes.at(0).getPairs()) {
-                    env.setGlobalValue(pair.first, pair.second);
+            try {
+                if (member_type == ValueType::Instance) {
+                    environment.setThis(member_value);
+                    auto result = func->callFunc(args, pairs, environment, true);
+                    auto inst_node = member_value->get<std::shared_ptr<Instance>>();
+                    inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
+                    auto scopes = environment.copyScopes();
+                    for (const auto& pair : scopes.at(0).getPairs()) {
+                        env.setGlobalValue(pair.first, pair.second);
+                    }
+                    return result;
                 }
-                return result;
+                else {
+                    args.insert(args.begin(), member_value);
+                    return func->callFunc(args, pairs, environment);
+                }
             }
-            else {
-                args.insert(args.begin(), member_value);
-                return func->callFunc(args, pairs, environment);
+            catch (const ErrorException& e) {
+                if (e.error_type == ErrorType::ArityMismatch) {
+                    throwError(ErrorType::Runtime, e.message, line, column);
+                } else {
+                    throw e;
+                }
             }
         } else {
             throwError(ErrorType::Runtime, "Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(stored_func)->name, line, column);

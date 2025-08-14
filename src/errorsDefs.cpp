@@ -37,7 +37,8 @@ std::string buildError(ErrorType error_type, std::string message, int line, int 
         {ErrorType::Thrown, "Thrown Exception"},
         {ErrorType::StackOverflow, "Stack Overflow Warning"},
         {ErrorType::ZeroDivision, "Zero Division Error"},
-        {ErrorType::Syntax, "Syntax Error"}
+        {ErrorType::Syntax, "Syntax Error"},
+        {ErrorType::ArityMismatch, "Arity Mismatch Error"}
     };
 
     Style style{};

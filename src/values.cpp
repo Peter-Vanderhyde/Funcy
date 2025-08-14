@@ -332,32 +332,32 @@ ValueType Value::getType() const {
 }
 
 std::string Value::getPrintable(int tabs, bool error) {
-    Style style{}; // assumes fields like .light_blue, .purple, .green, .blue, .red, .reset
+    Style style{}; // assumes fields like .light_blue, .purple, .green, .blue, .orange, .reset
 
     switch (value_type) {
         case ValueType::Integer: {
             auto s = std::to_string(std::get<int>(value));
-            return error ? style.red + s + style.reset
+            return error ? style.orange + s + style.reset
                         : style.light_blue + s + style.reset;
         }
 
         case ValueType::Float: {
             auto s = std::to_string(std::get<double>(value));
-            return error ? style.red + s + style.reset
+            return error ? style.orange + s + style.reset
                         : style.light_blue + s + style.reset;
         }
 
         case ValueType::Boolean: {
             const bool b = std::get<bool>(value);
             auto s = b ? "true" : "false";
-            return error ? style.red + s + style.reset
+            return error ? style.orange + s + style.reset
                         : style.purple + s + style.reset;
         }
 
         case ValueType::String: {
             const auto& s = std::get<std::string>(value);
             auto quoted = "'" + s + "'";
-            return error ? style.red + quoted + style.reset
+            return error ? style.orange + quoted + style.reset
                         : style.green + quoted + style.reset;
         }
 
@@ -369,7 +369,7 @@ std::string Value::getPrintable(int tabs, bool error) {
                 str += list->at(i)->getPrintable();
             }
             str += "]";
-            return error ? style.red + str + style.reset : str;
+            return error ? style.orange + str + style.reset : str;
         }
 
         case ValueType::Dictionary: {
@@ -383,33 +383,33 @@ std::string Value::getPrintable(int tabs, bool error) {
                     + "\n";
             }
             str += std::string(tabs, ' ') + "}";
-            return error ? style.red + str + style.reset : str;
+            return error ? style.orange + str + style.reset : str;
         }
 
         case ValueType::Function:
-            return error ? style.red + "<function>" + style.reset
+            return error ? style.orange + "<function>" + style.reset
                         : style.blue + "<function>" + style.reset;
 
         case ValueType::BuiltInFunction:
-            return error ? style.red + "<builtin_function>" + style.reset
+            return error ? style.orange + "<builtin_function>" + style.reset
                         : style.blue + "<builtin_function>" + style.reset;
 
         case ValueType::Type: {
             auto s = getTypeStr(std::get<ValueType>(value));
-            return error ? style.red + s + style.reset
+            return error ? style.orange + s + style.reset
                         : style.blue + s + style.reset;
         }
 
         case ValueType::Class:
-            return error ? style.red + "<class>" + style.reset
+            return error ? style.orange + "<class>" + style.reset
                         : style.blue + "<class>" + style.reset;
 
         case ValueType::Instance:
-            return error ? style.red + "<instance>" + style.reset
+            return error ? style.orange + "<instance>" + style.reset
                         : style.blue + "<instance>" + style.reset;
 
         case ValueType::None:
-            return error ? style.red + "null" + style.reset
+            return error ? style.orange + "null" + style.reset
                         : style.blue + "null" + style.reset;
 
         case ValueType::Index: {
@@ -417,7 +417,7 @@ std::string Value::getPrintable(int tabs, bool error) {
             auto s = (index_value == SpecialIndex::Front)
                         ? "<index:front>"
                         : "<index:back>";
-            return error ? style.red + s + style.reset
+            return error ? style.orange + s + style.reset
                         : style.blue + s + style.reset;
         }
 

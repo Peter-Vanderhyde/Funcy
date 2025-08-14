@@ -14,7 +14,7 @@ struct Style {
     std::string underline = "\033[4m";
 };
 
-enum class ErrorType { Runtime, Thrown, StackOverflow, ZeroDivision, Syntax };
+enum class ErrorType { Runtime, Thrown, StackOverflow, ZeroDivision, Syntax, ArityMismatch };
 
 class ErrorException : public std::exception {
 public:
