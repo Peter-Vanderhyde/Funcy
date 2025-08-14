@@ -9,6 +9,7 @@
 #include <optional>
 #include <map>
 #include "environment.h"
+#include "errorDefs.h"
 
 enum class SpecialIndex {
     Front,
@@ -131,12 +132,12 @@ public:
     template <typename T>
     const T& get() const {
         if (!std::holds_alternative<T>(value)) {
-            throw std::runtime_error("Incorrect type access in Value");
+            throwError(ErrorType::Runtime, "Incorrect type access in value");
         }
         return std::get<T>(value);
     }
 
-    std::string getPrintable(int tabs=0);
+    std::string getPrintable(int tabs=0, bool error=false);
 
 };
 

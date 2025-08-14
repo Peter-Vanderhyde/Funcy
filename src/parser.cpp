@@ -10,7 +10,7 @@ Parser::Parser(const std::vector<Token>& tokens)
     : tokens{tokens}, current_index{0} {}
 
 void Parser::parsingError(std::string message, int line, int column) const {
-    handleError(message, line, column, "Syntax Error");
+    throwError(ErrorType::Syntax, message, line, column);
 }
 
 std::optional<const Token*> Parser::peekToken(int ahead) const {
@@ -45,7 +45,7 @@ std::string Parser::getTokenStr() const {
 
 bool Parser::tokenIs(std::string str) const {
     if (str == "ident") {
-        runtimeError("Found ident instead of identifier", "");
+        throwError(ErrorType::Runtime, "Found ident instead of identifier");
     }
     return str == getTokenStr();
 }

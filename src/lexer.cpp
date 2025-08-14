@@ -25,7 +25,7 @@ char Lexer::peekNextCharacter(int ahead) {
 }
 
 void Lexer::lexerError(std::string message, int line, int column) const {
-    handleError(message, line, column, "Syntax Error");
+    throwError(ErrorType::Syntax, message, line, column);
 }
 
 std::vector<Token> Lexer::tokenize() {
@@ -210,7 +210,7 @@ std::vector<Token> Lexer::tokenize() {
                         op = TokenType::_NotEqual;
                         break;
                     default:
-                        handleError("Unrecognized operator", line, column, "Syntax Error");
+                        throwError(ErrorType::Syntax, "Unrecognized operator", line, column);
                 }
 
                 Token token{op, line, column};

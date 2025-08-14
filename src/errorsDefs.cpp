@@ -8,7 +8,7 @@
 std::string getLine(const std::string& filename, int line) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        runtimeError("Could not open file: " + filename);
+        throwError(ErrorType::Runtime, "Could not open file: " + filename);
     }
 
     std::string currentLine;
@@ -27,22 +27,31 @@ std::string getLine(const std::string& filename, int line) {
     return "";
 }
 
-void handleError(std::string message, int line, int column, std::string prefix, std::string filename) {
+std::string buildError(ErrorType error_type, std::string message, int line, int column, std::string filename) {
     if (filename == "") {
         filename = currentExecutionContext();
     }
+
+    std::map<ErrorType, std::string> error_type_str{
+        {ErrorType::Runtime, "Runtime Error"},
+        {ErrorType::Thrown, "Thrown Exception"},
+        {ErrorType::StackOverflow, "Stack Overflow Warning"},
+        {ErrorType::ZeroDivision, "Zero Division Error"},
+        {ErrorType::Syntax, "Syntax Error"}
+    };
+
     Style style{};
     std::string error;
     if (line == 0 && column == 0) {
         error = std::format("{}{}:{} File {}{}{}:\n\n{}{}",
-                            style.red, prefix, style.reset, style.green, filename, style.reset,
+                            style.red, error_type_str[error_type], style.reset, style.green, filename, style.reset,
                             style.orange, message);
         if (!message.ends_with(style.reset)) {
             error = std::format("{}.{}", error, style.reset);
         }
     } else {
         error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",
-                                        style.red, prefix, style.reset, style.green, filename, style.reset,
+                                        style.red, error_type_str[error_type], style.reset, style.green, filename, style.reset,
                                         style.purple, style.underline, line, column, style.reset);
         error += std::format("        {}\n", getLine(filename, line));
         std::string spaces = "        ";
@@ -56,19 +65,15 @@ void handleError(std::string message, int line, int column, std::string prefix, 
             error = std::format("{}.{}", error, style.reset);
         }
     }
-    throw std::runtime_error(error);
+
+    return error;
 }
 
-void runtimeError(std::string message, int line, int column, std::string filename) {
+void throwError(ErrorType error_type, std::string message, int line, int column, std::string filename) {
     if (filename == "") {
         filename = currentExecutionContext();
     }
-    handleError(message, line, column, "Runtime Error", filename);
-}
 
-void runtimeError(std::string message, std::string filename) {
-    if (filename == "") {
-        filename = currentExecutionContext();
-    }
-    handleError(message, 0, 0, "Runtime Error", filename);
+    std::string error_message = buildError(error_type, message, line, column, filename);
+    throw ErrorException(error_type, error_message);
 }

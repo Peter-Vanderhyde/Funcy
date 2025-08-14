@@ -12,14 +12,11 @@ class ASTNode;
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>>;
 
-[[noreturn]] void runtimeError(std::string message, int line, int column, std::string filename);
-[[noreturn]] void runtimeError(std::string message, std::string filename);
-
-bool check_truthy(const Value& value);
+bool checkTruthy(const Value& value);
 
 class ASTNode {
 public:
-    bool debug = true;
+    bool debug = false;
     int line, column;
 
     ASTNode(int line, int column);

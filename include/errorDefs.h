@@ -14,8 +14,17 @@ struct Style {
     std::string underline = "\033[4m";
 };
 
-[[noreturn]] void handleError(std::string message, int line, int column, std::string prefix, std::string filename = "");
+enum class ErrorType { Runtime, Thrown, StackOverflow, ZeroDivision, Syntax };
 
-[[noreturn]] void runtimeError(std::string message, int line, int column, std::string filename = "");
+class ErrorException : public std::exception {
+public:
+    ErrorException(ErrorType error_type, std::string message)
+        : error_type{error_type}, message{message} {}
+    
+    ErrorType error_type = ErrorType::Runtime;
+    std::string message = "";
+};
 
-[[noreturn]] void runtimeError(std::string message, std::string filename = "");
+std::string buildError(ErrorType error_type, std::string message, int line, int column, std::string filename="");
+
+[[noreturn]] void throwError(ErrorType error_type, std::string message, int line=0, int column=0, std::string filename="");

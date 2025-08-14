@@ -188,7 +188,7 @@ bool compareValues(std::shared_ptr<Value> left, std::shared_ptr<Value> right) {
             case ValueType::Type:
                 return left->get<ValueType>() == right->get<ValueType>();
             default:
-                throw std::runtime_error("Comparing unkown types");
+                throwError(ErrorType::Runtime, "Comparing unknown types");
         }
     } else if ((left->getType() == ValueType::Integer && right->getType() == ValueType::Float) ||
                 (left->getType() == ValueType::Float && right->getType() == ValueType::Integer)) {
@@ -214,7 +214,7 @@ void List::erase(const std::shared_ptr<Value> value) {
             return;
         }
     }
-    throw std::runtime_error(getValueStr(value) + " is not in list");
+    throwError(ErrorType::Runtime, getValueStr(value) + " is not in list");
 }
 
 int List::index(const std::shared_ptr<Value> value, int start, int end) const {
@@ -227,7 +227,7 @@ int List::index(const std::shared_ptr<Value> value, int start, int end) const {
             return i;
         }
     }
-    throw std::runtime_error(getValueStr(value) + " is not in list");
+    throwError(ErrorType::Runtime, getValueStr(value) + " is not in list");
 }
 
 std::shared_ptr<Value> List::at(size_t index) const {
@@ -269,7 +269,7 @@ std::string Class::getName() const {
 std::shared_ptr<Value> Instance::getConstructor(std::shared_ptr<Instance> this_reference) {
     auto constructor = instance_env.get(class_name, true);
     if (constructor->getType() != ValueType::Function) {
-        runtimeError(class_name + " Class constructor does not exist", "");
+        throwError(ErrorType::Runtime, class_name + " Class constructor does not exist");
     }
     return constructor;
 }
@@ -331,28 +331,34 @@ ValueType Value::getType() const {
     return value_type;
 }
 
-std::string Value::getPrintable(int tabs) {
+std::string Value::getPrintable(int tabs, bool error) {
     Style style{}; // assumes fields like .light_blue, .purple, .green, .blue, .red, .reset
 
     switch (value_type) {
         case ValueType::Integer: {
-            return style.light_blue + std::to_string(std::get<int>(value)) + style.reset;
+            auto s = std::to_string(std::get<int>(value));
+            return error ? style.red + s + style.reset
+                        : style.light_blue + s + style.reset;
         }
 
         case ValueType::Float: {
-            // keep your existing formatting (std::to_string), just color it
-            return style.light_blue + std::to_string(std::get<double>(value)) + style.reset;
+            auto s = std::to_string(std::get<double>(value));
+            return error ? style.red + s + style.reset
+                        : style.light_blue + s + style.reset;
         }
 
         case ValueType::Boolean: {
             const bool b = std::get<bool>(value);
-            return style.purple + std::string(b ? "true" : "false") + style.reset;
+            auto s = b ? "true" : "false";
+            return error ? style.red + s + style.reset
+                        : style.purple + s + style.reset;
         }
 
         case ValueType::String: {
-            // keep double quotes, just color the whole token like printValue (green)
             const auto& s = std::get<std::string>(value);
-            return style.green + "'" + s + "'" + style.reset;
+            auto quoted = "'" + s + "'";
+            return error ? style.red + quoted + style.reset
+                        : style.green + quoted + style.reset;
         }
 
         case ValueType::List: {
@@ -360,59 +366,63 @@ std::string Value::getPrintable(int tabs) {
             std::string str = "[";
             for (int i = 0; i < list->size(); ++i) {
                 if (i != 0) str += ", ";
-                // elements print with their own colors
                 str += list->at(i)->getPrintable();
             }
             str += "]";
-            return str;
+            return error ? style.red + str + style.reset : str;
         }
 
         case ValueType::Dictionary: {
             auto dict = std::get<std::shared_ptr<Dictionary>>(value);
             std::string str = "{\n";
             for (const auto& pair : *dict) {
-                // keep your formatting & indent; keys/values color via recursion
-                for (int i = 0; i < tabs; i++) {
-                    str += "|   ";
-                }
+                for (int i = 0; i < tabs; i++) str += "|   ";
                 str += pair.first->getPrintable()
                     + " : "
                     + pair.second->getPrintable()
                     + "\n";
             }
             str += std::string(tabs, ' ') + "}";
-            return str;
+            return error ? style.red + str + style.reset : str;
         }
 
         case ValueType::Function:
-            return style.blue + "<function>" + style.reset;
+            return error ? style.red + "<function>" + style.reset
+                        : style.blue + "<function>" + style.reset;
 
         case ValueType::BuiltInFunction:
-            return style.blue + "<builtin_function>" + style.reset;
+            return error ? style.red + "<builtin_function>" + style.reset
+                        : style.blue + "<builtin_function>" + style.reset;
 
-        case ValueType::Type:
-            return style.blue + getTypeStr(std::get<ValueType>(value)) + style.reset;
+        case ValueType::Type: {
+            auto s = getTypeStr(std::get<ValueType>(value));
+            return error ? style.red + s + style.reset
+                        : style.blue + s + style.reset;
+        }
 
         case ValueType::Class:
-            return style.blue + "<class>" + style.reset;
+            return error ? style.red + "<class>" + style.reset
+                        : style.blue + "<class>" + style.reset;
 
         case ValueType::Instance:
-            return style.blue + "<instance>" + style.reset;
+            return error ? style.red + "<instance>" + style.reset
+                        : style.blue + "<instance>" + style.reset;
 
         case ValueType::None:
-            return style.blue + "null" + style.reset;
+            return error ? style.red + "null" + style.reset
+                        : style.blue + "null" + style.reset;
 
         case ValueType::Index: {
             auto index_value = std::get<SpecialIndex>(value);
-            if (index_value == SpecialIndex::Front) {
-                return style.blue + "<index:front>" + style.reset;
-            } else {
-                return style.blue + "<index:back>" + style.reset;
-            }
+            auto s = (index_value == SpecialIndex::Front)
+                        ? "<index:front>"
+                        : "<index:back>";
+            return error ? style.red + s + style.reset
+                        : style.blue + s + style.reset;
         }
 
         default:
-            runtimeError("Attempted to get printable string of unrecognized Value type.", "");
+            throwError(ErrorType::Runtime, "Attempted to get printable string of unrecognized Value type");
             return "";
     }
 }
@@ -445,7 +455,7 @@ std::string getValueStr(Value value) {
         case ValueType::None:
             return "null";
         default:
-            runtimeError("Attempted to get string of unrecognized Value type.", "");
+            throwError(ErrorType::Runtime, "Attempted to get string of unrecognized Value type");
     }
 }
 
@@ -471,6 +481,6 @@ std::string getTypeStr(ValueType type) {
     if (types.count(type) != 0) {
         return types[type];
     } else {
-        runtimeError("No such type string found", "");
+        throwError(ErrorType::Runtime, "No such type string found");
     }
 }
