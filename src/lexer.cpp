@@ -117,6 +117,7 @@ std::vector<Token> Lexer::tokenize() {
                         case '\"': literal += '\"'; break;   // Double quote
                         case '\'': literal += '\''; break;   // Single quote
                         case '0': literal += '\0'; break;    // Null character
+                        case 'e': literal += '\x1b'; break;  // ESC (ANSI escape)
                         default:
                             // Invalid escape sequence
                             lexerError("Unknown escape sequence \\" + std::string(1, escape_char), l, c);
