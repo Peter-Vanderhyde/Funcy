@@ -1,6 +1,5 @@
 /* University Student Management System */
 
-# Define a Course class
 class Course {
     func &Course(course_name, max_students) {
         &course_name = course_name;
@@ -31,7 +30,6 @@ class Course {
     }
 }
 
-# Define a Student class
 class Student {
     func &Student(name, age) {
         &name = name;
@@ -69,7 +67,6 @@ class Student {
     }
 }
 
-# Define a University class
 class University {
     func &University(name) {
         &name = name;
@@ -114,9 +111,7 @@ class University {
     }
 }
 
-# Main program
 func main() {
-    # Create the university
     uni = University("Tech University");
 
     # Add courses
@@ -153,5 +148,4 @@ func main() {
     student_anna.listCourses();
 }
 
-# Run the program
 main();

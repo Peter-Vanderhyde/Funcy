@@ -12,7 +12,6 @@
 
 bool TESTING = false;
 bool DISPLAY_TOKENS = false;
-bool DISPLAY_AST = true;
 
 
 #ifdef _WIN32
