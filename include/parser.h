@@ -3,6 +3,7 @@
 #include "token.h"
 #include <memory>
 #include "nodes.h"
+#include "context.h"
 
 
 class Parser {

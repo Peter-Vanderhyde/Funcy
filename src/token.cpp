@@ -1,5 +1,6 @@
 #include "token.h"
 #include <unordered_map>
+#include <iostream>
 
 
 std::unordered_map<TokenType, std::string> token_labels{
@@ -157,3 +158,26 @@ Token::Token(TokenType type, TokenValue value, int line, int column)
 
 Token::Token(TokenType type, int line, int column)
     : type{type}, value{0}, line{line}, column{column} {}
+
+const void Token::display() {
+    std::cout << getTokenTypeLabel(type);
+    if (type == TokenType::_Integer || !std::holds_alternative<int>(value)) {
+        std::cout << " : ";
+        if (std::holds_alternative<std::string>(value)) {
+            std::cout << std::get<std::string>(value) << std::endl;
+        }
+        else if (std::holds_alternative<bool>(value)) {
+            std::cout << std::boolalpha << std::get<bool>(value) << std::endl;
+        }
+        else if (std::holds_alternative<int>(value)) {
+            std::cout << std::to_string(std::get<int>(value)) << std::endl;
+        }
+        else if (std::holds_alternative<double>(value)) {
+            std::cout << std::to_string(std::get<double>(value)) << std::endl;
+        } else {
+            throw std::runtime_error("Token Error: Unable to display token of type " + getTokenTypeLabel(type) + ".");
+        }
+    } else {
+        std::cout << std::endl;
+    }
+}

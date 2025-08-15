@@ -25,6 +25,31 @@ std::unordered_map<TokenType, ValueType> type_map{
     {TokenType::_NullType, ValueType::None}
 };
 
+std::string getTabs() {
+    Style style{};
+    std::string str = style.grey;
+    for (int i = 0; i < debug_tabs; i++) {
+        str += "|   ";
+    }
+    return str + style.reset;
+}
+
+void setTabs() {
+    Style style{};
+    std::cout << style.grey << getTabs() << style.reset;
+}
+
+void addTab(int tabs=1) {
+    debug_tabs += tabs;
+}
+
+void subTab(int tabs=1) {
+    debug_tabs -= tabs;
+    if (debug_tabs < 0) {
+        debug_tabs = 0;
+    }
+}
+
 ASTNode::ASTNode(int line, int column)
     : line{line}, column{column} {}
 
@@ -33,26 +58,83 @@ AtomNode::AtomNode(std::variant<int, double, bool, std::string, SpecialIndex> va
     : ASTNode{line, column}, value(std::move(value)) {}
 
 std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Atom" << std::endl;
-    else if (isInt()) {
-        return std::make_shared<Value>(getInt());
+    std::shared_ptr<Value> return_value;
+    if (isInt()) {
+        return_value = std::make_shared<Value>(getInt());
     }
     else if (isFloat()) {
-        return std::make_shared<Value>(getFloat());
+        return_value = std::make_shared<Value>(getFloat());
     }
     else if (isBool()) {
-        return std::make_shared<Value>(getBool());
+        return_value = std::make_shared<Value>(getBool());
     }
     else if (isString()) {
-        return std::make_shared<Value>(getString());
+        return_value = std::make_shared<Value>(getString());
     }
     else if (isIndex()) {
-        return std::make_shared<Value>(getIndex());
+        return_value = std::make_shared<Value>(getIndex());
     }
     else {
-        runtimeError("Unable to evaluate atom", line, column);
+        throwError(ErrorType::Runtime, "Unable to evaluate atom", line, column);
+        return std::nullopt;
     }
-    return std::nullopt;
+    if (debug) debugPrint(ValueList{return_value});
+    return return_value;
+}
+
+void AtomNode::debugPrint(ValueList values) {
+    setTabs();
+    std::cout << "Evaluating Atom: ";
+    if (isInt()) {
+        std::cout << std::to_string(getInt());
+    }
+    else if (isFloat()) {
+        std::cout << std::to_string(getFloat());
+    }
+    else if (isBool()) {
+        std::cout << std::boolalpha << getBool();
+    }
+    else if (isString()) {
+        std::cout << "\"" + getString() + "\"";
+    }
+    else if (isIndex()) {
+        if (getIndex() == SpecialIndex::Front) {
+            std::cout << "<index:front>";
+        } else {
+            std::cout << "<index:back>";
+        }
+    }
+    std::cout << " -> " << values.at(0)->getPrintable() << std::endl;
+}
+
+std::string AtomNode::getPrintable() {
+    if (isInt()) {
+        return std::to_string(getInt());
+    }
+    else if (isFloat()) {
+        return std::to_string(getFloat());
+    }
+    else if (isBool()) {
+        if (getBool()) {
+            return "true";
+        } else {
+            return "false";
+        }
+    }
+    else if (isString()) {
+        return "\"" + getString() + "\"";
+    }
+    else if (isIndex()) {
+        if (getIndex() == SpecialIndex::Front) {
+            return "<index:front>";
+        } else {
+            return "<index:back>";
+        }
+    }
+    else {
+        return "<atom_string_not_found>";
+    }
+    return "";
 }
 
 bool AtomNode::isInt() {
@@ -92,13 +174,17 @@ UnaryOpNode::UnaryOpNode(TokenType op, std::shared_ptr<ASTNode> right, int line,
     : ASTNode{line, column}, op{op}, right{right} {}
 
 std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Unary" << std::endl;
+    if (debug) {
+        std::cout << getTabs() + "Entering UnaryOp: " << getPrintable() << std::endl;
+        addTab();
+    }
     std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
     if (!right_value.has_value()) {
-        runtimeError(std::format("Failed to evaluate unary operand with operator '{}'", getTokenTypeLabel(op)), line, column);
+        throwError(ErrorType::Runtime, std::format("Failed to evaluate unary operand with operator '{}'", getTokenTypeLabel(op)), line, column);
     }
 
     std::shared_ptr<Value> value = right_value.value();
+    if (debug) debugPrint(ValueList{value});
     ValueType val_type = value->getType();
     if (val_type == ValueType::Integer) {
         int val = value->get<int>();
@@ -166,9 +252,30 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
         }
     }
 
-    runtimeError(std::format("Unsupported operand types for operation. Operation was '{}' {}",
-                                getTokenTypeLabel(op), getTypeStr(value->getType())), line, column);
+    throwError(ErrorType::Runtime, std::format("Unsupported operand types for operation. Operation was '{}' {}",
+                                                getTokenTypeLabel(op), getValueStr(value)), line, column);
     return std::nullopt;
+}
+
+void UnaryOpNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating UnaryOp: ";
+    std::cout << getTokenTypeLabel(op);
+    if (op == TokenType::_Not) {
+        std::cout << " ";
+    }
+    std::cout << values.at(0)->getPrintable(debug_tabs);
+    std::cout << std::endl;
+}
+
+std::string UnaryOpNode::getPrintable() {
+    std::string str = getTokenTypeLabel(op);
+    if (op == TokenType::_Not) {
+        str += " ";
+    }
+    str += right->getPrintable();
+    return str;
 }
 
 
@@ -215,7 +322,7 @@ bool checkTruthy(const Value& value) {
             return false; // None is always false
         }
         default: {
-            runtimeError("Check Truthy called on unknown value type");
+            throwError(ErrorType::Runtime, "Check Truthy called on unknown value type");
         }
     }
 };
@@ -417,13 +524,13 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         else if (operation == TokenType::_Multiply || operation == TokenType::_MultiplyEquals) {op_result = new_left * new_right;}
         else if (operation == TokenType::_Divide || operation == TokenType::_DivideEquals) {
             if (new_right == 0.0) {
-                handleError("Attempted division by zero", line, column, "Zero Division Error", "");
+                throwError(ErrorType::ZeroDivision, "Attempted division by zero", line, column);
             }
             return std::make_shared<Value>(new_left / new_right);
         }
         else if (operation == TokenType::_DoubleDivide) {
             if (new_right == 0.0) {
-                handleError("Attempted division by zero", line, column, "Zero Division Error", "");
+                throwError(ErrorType::ZeroDivision, "Attempted division by zero", line, column);
             }
             int result = static_cast<int>(new_left / new_right);
             return std::make_shared<Value>(result);
@@ -461,7 +568,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         } else if (operation == TokenType::_NotEqual) {
             return std::make_shared<Value>(left_class != right_class);
         } else {
-            runtimeError("Unsupported operation for Class types", line, column);
+            throwError(ErrorType::Runtime, "Unsupported operation for Class types", line, column);
         }
     } else if (left_str == "instance" && right_str == "instance") {
         auto left_instance = left_value->get<std::shared_ptr<Instance>>();
@@ -473,7 +580,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
         } else if (operation == TokenType::_NotEqual) {
             return std::make_shared<Value>(left_instance != right_instance);
         } else {
-            runtimeError("Unsupported operation for Instance types", line, column);
+            throwError(ErrorType::Runtime, "Unsupported operation for Instance types", line, column);
         }
     }
 
@@ -519,9 +626,12 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
                 } else if (operation == TokenType::_NotEqual) {
                     return std::make_shared<Value>(!result); // Negate result for "NotEqual"
                 }
+            } catch (const ErrorException& e) {
+                throwError(e.error_type, e.message);
+                return std::nullopt;
             } catch (const std::runtime_error& e) {
                 // Handle unexpected errors (e.g., type mismatch or invalid access)
-                runtimeError(e.what());
+                throwError(ErrorType::Runtime, e.what());
                 return std::nullopt;
             }
         }
@@ -531,12 +641,17 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 }
 
 std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
+    if (debug) {
+        std::cout << getTabs() + "Entering BinaryOp: " << getPrintable() << std::endl;
+        addTab();
+    }
     if (op == TokenType::_Equals) {
         // An equals is a special case
         std::optional<std::shared_ptr<Value>> right_value = right->evaluate(env);
         if (!right_value.has_value()) {
-            runtimeError("Failed to set variable. Operand could not be computed", line, column);
+            throwError(ErrorType::Runtime, "Failed to set variable. Operand could not be computed", line, column);
         }
+        if (debug) debugPrint(ValueList{right_value.value()});
 
         // Give it the actual left string, not the value of the variable
         if (auto node = std::dynamic_pointer_cast<BinaryOpNode>(left)) {
@@ -545,16 +660,16 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                 if (auto instance_ident = std::dynamic_pointer_cast<IdentifierNode>(node->left)) {
                     auto instance_value = env.get(instance_ident->name, instance_ident->member_variable);
                     if (instance_value->getType() != ValueType::Instance) {
-                        runtimeError(getTypeStr(instance_value->getType()) + " object has no attribute " + attr_ident->name, line, column);
+                        throwError(ErrorType::Runtime, getValueStr(instance_value) + " object has no attribute " + attr_ident->name, line, column);
                     }
                     auto instance = instance_value->get<std::shared_ptr<Instance>>();
                     instance->getEnvironment().set(attr_ident->name, right_value.value(), true);
                 } else {
                     auto left_value = node->left->evaluate(env);
-                    runtimeError(getValueStr(left_value.value()) + " object has no attribute " + attr_ident->name, line, column);
+                    throwError(ErrorType::Runtime, getValueStr(left_value.value()) + " object has no attribute " + attr_ident->name, line, column);
                 }
             } else {
-                runtimeError("Invalid syntax", line, column);
+                throwError(ErrorType::Runtime, "Invalid syntax", line, column);
             }
         } else if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
             env.set(identifier_node->name, right_value.value(), identifier_node->member_variable);
@@ -562,14 +677,14 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             index_node->assignIndex(env, right_value.value());
         } else if (auto list_node = std::dynamic_pointer_cast<ListNode>(left)) {
             if (right_value.value()->getType() != ValueType::List) {
-                runtimeError("Expected list. Cannot unpack " + getValueStr(right_value.value()), line, column);
+                throwError(ErrorType::Runtime, "Expected list. Cannot unpack " + getValueStr(right_value.value()), line, column);
             }
 
             auto right_list = right_value.value()->get<std::shared_ptr<List>>();
             if (right_list->size() > list_node->list.size()) {
-                runtimeError("Too many values to unpack", line, column);
+                throwError(ErrorType::Runtime, "Too many values to unpack", line, column);
             } else if (right_list->size() < list_node->list.size()) {
-                runtimeError("Too few values to unpack", line, column);
+                throwError(ErrorType::Runtime, "Too few values to unpack", line, column);
             }
 
             for (int i = 0; i < right_list->size(); i++) {
@@ -577,29 +692,33 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                     env.set(identifier_node->name, right_list->at(i), identifier_node->member_variable);
                 }
                 else {
-                    runtimeError("Cannot assign value to literal", line, column);
+                    throwError(ErrorType::Runtime, "Cannot assign value to literal", line, column);
                 }
             }
         }
         else {
-            runtimeError("The operator '=' can only be used with variables", line, column);
+            throwError(ErrorType::Runtime, "The operator '=' can only be used with variables", line, column);
         }
         
     } else if (op == TokenType::_Dot) {
         // Handle member functions of types
         std::optional<std::shared_ptr<Value>> left_value = left->evaluate(env);
         if (!left_value.has_value()) {
-            runtimeError("Failed to get member function. Identifier could not be computed", line, column);
+            throwError(ErrorType::Runtime, "Failed to get member function. Identifier could not be computed", line, column);
         }
+        if (debug) {debugPrint(ValueList{left_value.value()});}
 
         // Get the type of the member
         ValueType member_type = left_value.value()->getType();
         if (auto func_node = std::dynamic_pointer_cast<MethodCallNode>(right)) {
             // It's a member function
             // Save the result of the member to pass into the function
+            auto saved_object = func_node->member_value; // The object node on the left of the '.' that the right side function operates on
             func_node->member_value = left_value.value();
-            // Pass member type so evaluate knows to search for functions of that type
-            return func_node->evaluate(env, member_type);
+            // Pass member type so evaluate knows to search for functions in that type's built-in library
+            auto returned = func_node->evaluate(env, member_type);
+            func_node->member_value = saved_object; // Restore old value so nested function calls don't overwrite it
+            return returned;
         }
         else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             Environment environment{env};
@@ -610,14 +729,15 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             return ident_node->evaluate(environment, member_type);
         }
         else {
-            runtimeError("Invalid syntax", line, column);
+            throwError(ErrorType::Runtime, "Invalid syntax", line, column);
         }
     } else if (op == TokenType::_In) {
         auto left_value = left->evaluate(env);
         auto right_value = right->evaluate(env);
         if (!left_value.has_value() || !right_value.has_value()) {
-            runtimeError("Failed arguments of 'in'", line, column);
+            throwError(ErrorType::Runtime, "Failed arguments of 'in'", line, column);
         }
+        if (debug) {debugPrint(ValueList{left_value.value(), right_value.value()});}
 
         if (right_value.value()->getType() == ValueType::List) {
             auto list = right_value.value()->get<std::shared_ptr<List>>();
@@ -658,13 +778,14 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(false);
         }
         else {
-            runtimeError("Expected list or dictionary for 'in' evaluation", line, column);
+            throwError(ErrorType::Runtime, "Expected list or dictionary for 'in' evaluation", line, column);
         }
     } else if (op == TokenType::_And || op == TokenType::_Or) {
         auto left_value = left->evaluate(env);
         if (!left_value.has_value()) {
-            runtimeError("Unable to evaluate left operand for 'and' or 'or'", line, column);
+            throwError(ErrorType::Runtime, "Unable to evaluate left operand for 'and' or 'or'", line, column);
         }
+        if (debug) {debugPrint(ValueList{left_value.value(), std::make_shared<Value>("<check_left_first>")});}
 
         bool left_truthy = checkTruthy(*left_value.value());
 
@@ -684,18 +805,21 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         // Evaluate the right-hand side only if necessary
         auto right_value = right->evaluate(env);
         if (!right_value.has_value()) {
-            runtimeError("Unable to evaluate right operand for 'and' or 'or'", line, column);
+            throwError(ErrorType::Runtime, "Unable to evaluate right operand for 'and' or 'or'", line, column);
         }
+        if (debug) {debugPrint(ValueList{left_value.value(), right_value.value()});}
 
         bool right_truthy = checkTruthy(*right_value.value());
         return std::make_shared<Value>(right_truthy);
-    }else {
+    } else {
         std::optional<std::shared_ptr<Value>> left_opt = left->evaluate(env);
         std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
 
         if (!left_opt.has_value() || !right_opt.has_value()) {
-            runtimeError(std::format("Unable to evaluate binary operand for operator '{}'", getTokenTypeLabel(op)), line, column);
+            throwError(ErrorType::Runtime, std::format("Unable to evaluate binary operand for operator '{}", getTokenTypeLabel(op)), line, column);
         }
+        if (debug) {debugPrint(ValueList{left_opt.value(), right_opt.value()});}
+
         auto result = performOperation(left_opt.value(), right_opt.value());
         if (result) {
             if (op == TokenType::_PlusEquals || op == TokenType::_MinusEquals || op == TokenType::_MultiplyEquals || op == TokenType::_DivideEquals) {
@@ -706,18 +830,49 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                     index_node->assignIndex(env, result.value());
                 }
                 else {
-                    runtimeError("The operator '=' can only be used with variables or indexes", line, column);
+                    throwError(ErrorType::Runtime, "The operator '=' can only be used with variables or indexes", line, column);
                 }
             }
             else {
                 return result;
             }
         } else {
-            runtimeError(std::format("Unsupported operand types for operation. operation was {} '{}' {}",
-                                    getValueStr(left_opt.value()), getTokenTypeLabel(op), getValueStr(right_opt.value())), line, column);
+            throwError(ErrorType::Runtime, std::format("Unsupported operand types for operation. Operation was {} '{}' {}",
+                                                        getValueStr(left_opt.value()), getTokenTypeLabel(op), getValueStr(right_opt.value())), line, column);
         }
     }
     return std::nullopt;
+}
+
+void BinaryOpNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating BinaryOp: ";
+    if (values.size() == 1 && op != TokenType::_Dot) {
+        std::cout << left->getPrintable();
+    } else {
+        std::cout << values.at(0)->getPrintable(debug_tabs);
+    }
+
+    if (op != TokenType::_Dot) {
+        std::cout << " " << getTokenTypeLabel(op) << " ";
+        std::cout << values.at(values.size() - 1)->getPrintable(debug_tabs);
+        if (values.size() == 1) {
+            std::cout << " -> saving value";
+        }
+    } else {
+        std::cout << ".";
+        std::cout << right->getPrintable();
+    }
+    std::cout << std::endl;
+}
+
+std::string BinaryOpNode::getPrintable() {
+    if (op != TokenType::_Dot) {
+        return left->getPrintable() + " " + getTokenTypeLabel(op) + " " + right->getPrintable();
+    } else {
+        return left->getPrintable() + "." + right->getPrintable();
+    }
 }
 
 
@@ -725,9 +880,24 @@ ParenthesisOpNode::ParenthesisOpNode(std::shared_ptr<ASTNode> expr, int line, in
         : ASTNode{line, column}, expr{expr} {}
 
 std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Parenthesis" << std::endl;
+    if (debug) {
+        std::cout << getTabs() + "Entering Parenthesis: " + getPrintable() << std::endl;
+        addTab();
+    }
     std::optional<std::shared_ptr<Value>> expr_value = expr->evaluate(env);
+    if (debug && expr_value) debugPrint(ValueList{expr_value.value()});
     return expr_value;
+}
+
+void ParenthesisOpNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating Parenthesis: ";
+    std::cout << "(" + values.at(0)->getPrintable(debug_tabs) + ")" << std::endl;
+}
+
+std::string ParenthesisOpNode::getPrintable() {
+    return "(" + expr->getPrintable() + ")";
 }
 
 
@@ -735,30 +905,43 @@ IdentifierNode::IdentifierNode(std::string name, int line, int column)
     : ASTNode{line, column}, name{name} {}
 
 std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Identifier" << std::endl;
     if (env.contains(name, member_variable)) {
+        if (debug) std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.get(name, member_variable)->getPrintable(debug_tabs) << std::endl;
         return env.get(name, member_variable);
     } else if (!member_variable && env.hasFunction(name)) {
+        if (debug) std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.getFunction(name)->getPrintable(debug_tabs) << std::endl;
         return env.getFunction(name);
     } else if (!member_variable && env.isGlobal(name)) {
         return std::nullopt;
     } else {
         if (member_variable) {
-            runtimeError("Attribute '" + name + "' is not defined", line, column);
+            throwError(ErrorType::Runtime, "Attribute '" + name + "' is not defined", line, column);
         } else {
-            runtimeError(std::format("Name '{}' is not defined", name), line, column);
+            throwError(ErrorType::Runtime, std::format("Name '{}' is not defined", name), line, column);
         }
     }
 }
 
+void IdentifierNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating Identifier: ";
+    std::cout << values.at(0)->getPrintable(debug_tabs) << " -> finding value" << std::endl;
+}
+
+std::string IdentifierNode::getPrintable() {
+    return name;
+}
+
 std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env, ValueType member_type) {
-    if (debug) std::cout << "Evaluate Identifier" << std::endl;
     if (env.hasMember(member_type, name)) {
+        if (debug) std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.getMember(member_type, name)->getPrintable(debug_tabs) << std::endl;
         return env.getMember(member_type, name);
     } else if (env.hasMember(name)) {
+        if (debug) std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.getMember(name)->getPrintable(debug_tabs) << std::endl;
         return env.getMember(name);
     } else {
-        runtimeError(name + " is not defined", line, column);
+        throwError(ErrorType::Runtime, name + " is not defined", line, column);
     }
     return std::nullopt;
 }
@@ -795,39 +978,104 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
         return check_truthy(*result.value());
     }
     else {
-        runtimeError("Missing a boolean comparison for keyword to evaluate", line, column);
+        throwError(ErrorType::Runtime, "Missing a boolean comparison for keyword to evaluate", line, column);
         return false;
     }
 }
 
 std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Scoped" << std::endl;
-    if (if_link) {
-        // It's connected to a former if statement
-        if (if_link->last_comparison_result) {
-            // The previous if was true, so skip
-            last_comparison_result = true;
-            return {};
-        }
-    }
-
-    if (comparison && getComparisonValue(env) == false) {
-        last_comparison_result = false;
-        return std::nullopt;
-    } else if (comparison) {
+    // If this scope is linked to a previous 'if'/'elif' and that was already true, skip this one
+    if (debug && if_link) std::cout << getTabs() + "Checking if I should enter Scope: " + getPrintable() << std::endl;
+    if (if_link && if_link->last_comparison_result) {
         last_comparison_result = true;
+        return {};
     }
 
-    std::string str = getTokenTypeLabel(keyword);
-    if (str == "if" || str == "elif" || str == "else" || str == "while" || str == "for") {
+    if (debug) {
+        std::cout << getTabs() + "Entering Scope: " + getPrintable() << std::endl;
+        addTab();
+    }
+
+    // Condition evaluation
+    std::shared_ptr<Value> evaluated_condition_value;
+    bool is_condition_truthy = true;                   // Default for blocks without a comparison (like 'else')
+
+    if (comparison) {
+        auto condition_value = comparison->evaluate(env);
+        if (!condition_value.has_value()) {
+            throwError(ErrorType::Runtime, "Missing a boolean comparison for keyword to evaluate", line, column);
+        }
+
+        evaluated_condition_value = condition_value.value();
+
+        auto determineTruthy = [](const Value& value) -> bool {
+            switch (value.getType()) {
+                case ValueType::Boolean:    return value.get<bool>();
+                case ValueType::Integer:    return value.get<int>() != 0;
+                case ValueType::Float:      return value.get<double>() != 0.0;
+                case ValueType::String:     return !value.get<std::string>().empty();
+                case ValueType::List:       return !value.get<std::shared_ptr<List>>()->empty();
+                case ValueType::Dictionary: return !value.get<std::shared_ptr<Dictionary>>()->empty();
+                case ValueType::None:       return false;
+                default:                    return true; // Functions, classes, instances, types -> truthy
+            }
+        };
+
+        is_condition_truthy = determineTruthy(*evaluated_condition_value);
+        last_comparison_result = is_condition_truthy;
+    }
+
+    if (debug && comparison) {
+        debugPrint(ValueList{ evaluated_condition_value });
+    } else if (debug) {
+        debugPrint(ValueList{});
+    }
+
+    if (comparison && !is_condition_truthy) {
+        return std::nullopt;
+    }
+
+    std::string keyword_string = getTokenTypeLabel(keyword);
+    if (keyword_string == "if" || keyword_string == "elif" ||
+        keyword_string == "else" || keyword_string == "while" ||
+        keyword_string == "for") 
+    {
         env.addScope();
 
-        if (str == "while") {
+        if (keyword_string == "while") {
             env.addLoop();
-            while (getComparisonValue(env)) {
+
+            while (true) {
+                auto condition_value = comparison->evaluate(env);
+                if (!condition_value) {
+                    throwError(ErrorType::Runtime, "Unable to evaluate while condition", line, column);
+                }
+
+                if (debug) {
+                    debugPrint(ValueList{ condition_value.value() });
+                }
+
+                bool loop_condition_truthy = [&] {
+                    const Value& value = *condition_value.value();
+                    switch (value.getType()) {
+                        case ValueType::Boolean:    return value.get<bool>();
+                        case ValueType::Integer:    return value.get<int>() != 0;
+                        case ValueType::Float:      return value.get<double>() != 0.0;
+                        case ValueType::String:     return !value.get<std::string>().empty();
+                        case ValueType::List:       return !value.get<std::shared_ptr<List>>()->empty();
+                        case ValueType::Dictionary: return !value.get<std::shared_ptr<Dictionary>>()->empty();
+                        case ValueType::None:       return false;
+                        default:                    return true;
+                    }
+                }();
+
+                if (!loop_condition_truthy) {
+                    break;
+                }
+
                 try {
-                    for (int i = 0; i < statements_block.size(); i++) {
-                        auto result = statements_block[i]->evaluate(env);
+                    for (auto& statement : statements_block) {
+                        statement->evaluate(env);
                     }
                 }
                 catch (const BreakException) {
@@ -837,11 +1085,12 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                     continue;
                 }
             }
+
             env.removeLoop();
         }
         else {
-            for (int i = 0; i < statements_block.size(); i++) {
-                std::optional<std::shared_ptr<Value>> result = statements_block[i]->evaluate(env);
+            for (auto& statement : statements_block) {
+                statement->evaluate(env);
             }
         }
 
@@ -851,42 +1100,69 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     return std::nullopt;
 }
 
-ForNode::ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization, std::shared_ptr<std::string> init_string,
+void ScopedNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating Scope: ";
+    std::cout << getTokenTypeLabel(keyword);
+    if (values.size() == 1) {
+        std::cout << " " << values.at(0)->getPrintable(debug_tabs);
+    }
+    std::cout << " {...}" << std::endl;
+}
+
+std::string ScopedNode::getPrintable() {
+    std::string str = getTokenTypeLabel(keyword);
+    if (comparison) {
+        str += " " + comparison->getPrintable();
+    }
+    str += " {...}";
+    return str;
+}
+
+ForNode::ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization,
         std::shared_ptr<ASTNode> condition_value, std::shared_ptr<ASTNode> increment,
         std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
-    : ASTNode{line, column}, keyword{keyword}, initialization{initialization}, init_string{init_string},
+    : ASTNode{line, column}, keyword{keyword}, initialization{initialization},
         condition_value{condition_value}, increment{increment}, block{block} {}
 
 std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate For" << std::endl;
+    if (debug) {
+        std::cout << getTabs() + "Initializing For Loop: " + getPrintable() << std::endl;
+        addTab();
+    }
     env.addScope();
     env.addLoop();
+    
     auto init_node = std::dynamic_pointer_cast<BinaryOpNode>(initialization);
-    if (init_node->op != TokenType::_In) {
+    if (!init_node || init_node->op != TokenType::_In) {
+        // Classic for loop formatting, not using 'in'
         initialization->evaluate(env);
-
-        int variable;
-        if (env.get(*init_string)->getType() == ValueType::Integer) {
-            variable = env.get(*init_string)->get<int>();
-        }
-        else {
-            runtimeError("For loop requires int variable", line, column);
+        if (debug) {
+            subTab();
+            setTabs();
+            std::cout << "Entering For Loop Conditional: " + condition_value->getPrintable() << std::endl;
+            addTab();
         }
 
         while (true) {
             auto cond_value = condition_value->evaluate(env);
             if (!cond_value) {
-                runtimeError("Unable to evaluate for loop condition", line, column);
+                throwError(ErrorType::Runtime, "Unable to evaluate for loop condition", line, column);
             }
 
             if (cond_value.value()->getType() == ValueType::Boolean) {
+                if (debug) {
+                    subTab();
+                    setTabs();
+                    std::cout << "Evaluating For Loop Conditional: " + cond_value.value()->getPrintable() << std::endl;
+                    addTab();
+                }
                 auto bool_value = cond_value.value()->get<bool>();
                 if (!bool_value) break;
             } else {
-                runtimeError("For loop requires boolean condition", line, column);
+                throwError(ErrorType::Runtime, "For loop requires boolean condition", line, column);
             }
-
-            int original_variable = variable;
 
             try {
                 for (auto statement : block) {
@@ -900,17 +1176,26 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 // Does nothing but catches exception and proceeds to increment the variable
             }
 
-            variable = original_variable;
-            env.set(*init_string, std::make_shared<Value>(variable));
-            // increment them
+            if (debug) {
+                subTab();
+                setTabs();
+                std::cout << "Evaluating For Loop Increment: " + increment->getPrintable() << std::endl;
+                addTab();
+            }
             increment->evaluate(env);
-            if (env.get(*init_string)->getType() == ValueType::Integer) {
-                variable = env.get(*init_string)->get<int>();
+            if (debug) {
+                subTab();
+                setTabs();
+                std::cout << "Entering For Loop Conditional: " + condition_value->getPrintable() << std::endl;
+                addTab();
             }
         }
     } else {
         // in was used with for loop instead of integer
         auto container_result = init_node->right->evaluate(env);
+        if (debug && container_result) {
+            debugPrint(ValueList{container_result.value()});
+        }
         if (container_result.value()->getType() == ValueType::List) {
             auto list = container_result.value()->get<std::shared_ptr<List>>();
             auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(init_node->left);
@@ -920,6 +1205,12 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 for (int i = 0; i < list->size(); i++) {
                     auto item = list->at(i);
                     env.set(var_string, item);
+                    if (debug) {
+                        subTab();
+                        setTabs();
+                        std::cout << "Assigning For Loop Value: " + ident_node->getPrintable() + " = " + item->getPrintable() << std::endl;
+                        addTab();
+                    }
                     try {
                         for (auto statement : block) {
                             auto result = statement->evaluate(env);
@@ -935,25 +1226,25 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             } else {
                 auto list_node = std::dynamic_pointer_cast<ListNode>(init_node->left);
                 if (!list_node) {
-                    runtimeError("For loop expected identifier or list", line, column);
+                    throwError(ErrorType::Runtime, "For loop expected identifier or list", line, column);
                 }
 
                 for (int i = 0; i < list->size(); i++) {
                     auto list_result = list->at(i);
                     if (list_result->getType() != ValueType::List) {
-                        runtimeError("Expected a list, but got " + getTypeStr(list_result->getType()), line, column);
+                        throwError(ErrorType::Runtime, "Expected a list, but got " + getValueStr(list_result), line, column);
                     }
                     auto list = list_result->get<std::shared_ptr<List>>();
                     if (list->size() > list_node->list.size()) {
-                        runtimeError("Too many arguments to unpack", line, column);
+                        throwError(ErrorType::Runtime, "Too many arguments to unpack", line, column);
                     } else if (list->size() < list_node->list.size()) {
-                        runtimeError("Too few arguments to unpack", line, column);
+                        throwError(ErrorType::Runtime, "Too few arguments to unpack", line, column);
                     }
 
                     for (int index = 0; index < list->size(); index++) {
                         auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(index));
                         if (!ident_node) {
-                            runtimeError("Can only assign values to identifiers", line, column);
+                            throwError(ErrorType::Runtime, "Can only assign values to identifiers", line, column);
                         }
                         env.set(ident_node->name, list->at(index), ident_node->member_variable);
                     }
@@ -998,12 +1289,12 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             } else {
                 auto list_node = std::dynamic_pointer_cast<ListNode>(init_node->left);
                 if (!list_node) {
-                    runtimeError("For loop expected identifier or list", line, column);
+                    throwError(ErrorType::Runtime, "For loop expected identifier or list", line, column);
                 }
                 if (list_node->list.size() < 2) {
-                    runtimeError("Too many arguments to unpack", line, column);
+                    throwError(ErrorType::Runtime, "Too many arguments to unpack", line, column);
                 } else if (list_node->list.size() > 2) {
-                    runtimeError("Too few arguments to unpack", line, column);
+                    throwError(ErrorType::Runtime, "Too few arguments to unpack", line, column);
                 }
                 auto first_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(0));
                 auto second_node = std::dynamic_pointer_cast<IdentifierNode>(list_node->list.at(1));
@@ -1046,7 +1337,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
             }
         }
         else {
-            runtimeError("For loop expected iterable container", line, column);
+            throwError(ErrorType::Runtime, "For loop expected iterable container", line, column);
         }
     }
 
@@ -1055,40 +1346,84 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     return std::nullopt;
 }
 
+void ForNode::debugPrint(ValueList values) {
+    subTab();
+    if (auto init_bin = std::dynamic_pointer_cast<BinaryOpNode>(initialization)) {
+        setTabs();
+        if (init_bin->op == TokenType::_In) {
+            std::cout << "Evaluating For Loop: for (";
+            std::cout << init_bin->left->getPrintable();
+            std::cout << " in " + values.at(0)->getPrintable() + ") {...}" << std::endl;
+        } else {
+            std::cout << "Check For Conditional: " << values.at(0)->getPrintable() << std::endl;
+        }
+    }
+}
+
+std::string ForNode::getPrintable() {
+    if (auto init_bin = std::dynamic_pointer_cast<BinaryOpNode>(initialization)) {
+        if (init_bin->op == TokenType::_In) {
+            return "for (" + init_bin->left->getPrintable() +
+                   " in " + init_bin->right->getPrintable() + ") {...}";
+        }
+    }
+    // classic for(init, cond, inc) — guard nulls just in case
+    auto a = initialization  ? initialization->getPrintable()  : "<null>";
+    auto b = condition_value ? condition_value->getPrintable() : "<null>";
+    auto c = increment       ? increment->getPrintable()       : "<null>";
+    return "for (" + a + ", " + b + ", " + c + ") {...}";
+}
+
+
 std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Keyword" << std::endl;
+    if (debug) {
+        if (right == nullptr || keyword == TokenType::_Global) {
+            std::cout << getTabs() + "Evaluating Keyword: " + getPrintable() << std::endl;
+        } else {
+            std::cout << getTabs() + "Entering Keyword: " + getPrintable() << std::endl;
+            addTab();
+        }
+    }
     if (keyword == TokenType::_Break) {
         if (env.inLoop()) {
             throw BreakException();
         }
         else {
-            runtimeError("Break used outside of loop", line, column);
+            throwError(ErrorType::Runtime, "Break used outside of loop", line, column);
         }
     } else if (keyword == TokenType::_Continue) {
         if (env.inLoop()) {
             throw ContinueException();
         }
         else {
-            runtimeError("Continue used outside of loop", line, column);
+            throwError(ErrorType::Runtime, "Continue used outside of loop", line, column);
         }
     } else if (keyword == TokenType::_Return) {
         if (right != nullptr) {
-            throw ReturnException(right->evaluate(env));
+            BuiltInFunctionReturn value = right->evaluate(env);
+            if (debug && value.has_value()) {
+                debugPrint(ValueList{value.value()});
+            } else if (debug) {
+                debugPrint(ValueList{});
+            }
+            throw ReturnException(value);
         } else {
             throw ReturnException(std::nullopt);
         }
     } else if (keyword == TokenType::_Throw) {
         auto message = right->evaluate(env);
         if (!message) {
-            runtimeError("Thrown error requires an message", line, column);
+            throwError(ErrorType::Runtime, "Thrown error requires a message", line, column);
         }
-        throw ErrorException(message.value());
+        if (debug) debugPrint(ValueList{message.value()});
+        throwError(ErrorType::Thrown, message.value()->getPrintable(0, true), line, column);
     } else if (keyword == TokenType::_Global) {
         if (auto ident = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             env.addGlobal(ident->name);
         } else {
-            runtimeError("global expected an identifier", line, column);
+            throwError(ErrorType::Runtime, "'global' expected an identifier", line, column);
         }
+        return std::nullopt;
     } else if (keyword == TokenType::_Import) {
         std::string path = currentExecutionContext();
         auto index = path.find_last_of('/');
@@ -1098,20 +1433,21 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         }
         auto right_value = right->evaluate(env);
         if (!right_value.has_value() || right_value.value()->getType() != ValueType::String) {
-            runtimeError("Import expected filename string", line, column);
+            throwError(ErrorType::Runtime, "'import' expected filename string", line, column);
         }
+        if (debug) debugPrint(ValueList{right_value.value()});
         if (new_path != "") {
             new_path = new_path + "/";
         }
         new_path = new_path + right_value.value()->get<std::string>();
         if (new_path == path) {
-            runtimeError("A file cannot import itself", line, column);
+            throwError(ErrorType::Runtime, "A file cannot import itself", line, column);
         }
 
         std::string source_code = readSourceCodeFromFile(new_path);
 
         if (source_code.empty()) {
-            runtimeError("File " + new_path + " is empty or could not be read", line, column);
+            throwError(ErrorType::Runtime, "File " + new_path + " is empty or could not be read", line, column);
         }
 
         pushExecutionContext(new_path);
@@ -1119,6 +1455,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         Lexer lexer{source_code};
         auto tokens = lexer.tokenize();
 
+        pushParsingContext(new_path);
         Parser parser{tokens};
         std::vector<std::shared_ptr<ASTNode>> statements;
         statements = parser.parse();
@@ -1129,34 +1466,34 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
                 auto result = statement->evaluate(env);
             }
             catch (const ReturnException) {
-                runtimeError("Return was used outside of function");
+                throwError(ErrorType::Runtime, "Return was used outside of function", line, column);
             }
             catch (const BreakException) {
-                runtimeError("Break was used outside of loop");
+                throwError(ErrorType::Runtime, "Break was used outside of loop", line, column);
             }
             catch (const ContinueException) {
-                runtimeError("Continue was used outside of loop");
+                throwError(ErrorType::Runtime, "Continue was used outside of loop", line, column);
             }
             catch (const StackOverflowException) {
-                handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
-the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", "");
+                throwError(ErrorType::StackOverflow, "Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
+the program execution to ignore this warning)");
             }
             catch (const ErrorException& e) {
-                throw ErrorException(e.value);
-            }
-            catch (const std::exception& e) {
-                runtimeError(e.what(), line, column);
+                popParsingContext();
+                popExecutionContext();
+                throwError(e.error_type, e.message, line, column);
             }
         }
 
+        popParsingContext();
         popExecutionContext();
         return std::nullopt;
     } else if (keyword == TokenType::_This) {
         try {
             return env.getThis();
         }
-        catch (const std::exception& e) {
-            runtimeError(e.what(), line, column);
+        catch (const ErrorException& e) {
+            throwError(e.error_type, e.message, line, column);
         }
     } else if (type_map.contains(keyword)) {
         if (keyword == TokenType::_NullType) {
@@ -1166,14 +1503,34 @@ the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", ""
     }
 
     if (right) {
+        auto result = right->evaluate(env);
+        if (debug && result.has_value()) debugPrint(ValueList{result.value()});
         return right->evaluate(env);
     } else {
         return std::nullopt;
     }
 }
 
+void KeywordNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating Keyword: ";
+    std::cout << getTokenTypeLabel(keyword) + " " + values.at(0)->getPrintable(debug_tabs) << std::endl;
+}
+
+std::string KeywordNode::getPrintable() {
+    std::string keyword_str = getTokenTypeLabel(keyword);
+    if (right != nullptr) {
+        keyword_str += " " + right->getPrintable();
+    }
+    return keyword_str;
+}
+
 std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
-    if (debug) std::cout << "evaluate list" << std::endl;
+    if (debug) {
+        std::cout << getTabs() + "Entering List: " + getPrintable() << std::endl;
+        addTab();
+    }
     List evaluated_list;
 
     for (const auto element : list) {
@@ -1183,21 +1540,45 @@ std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
             if (result) {
                 evaluated_list.push_back(result.value());
             } else {
-                runtimeError("List element was unable to be evaluated", line, column);
+                throwError(ErrorType::Runtime, "List element was unable to be evaluated", line, column);
             }
         } else {
-            runtimeError("List contained a nullptr pointing to an ASTNode", line, column); // Null ASTNode pointer
+            throwError(ErrorType::Runtime, "List contained a nullptr pointing to an ASTNode", line, column);
         }
     }
+
+    if (debug) debugPrint(ValueList{std::make_shared<Value>(std::make_shared<List>(evaluated_list))});
 
     return std::make_shared<Value>(std::make_shared<List>(evaluated_list));
 }
 
+void ListNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating List: ";
+    std::cout << values.at(0)->getPrintable(debug_tabs) << std::endl;
+}
+
+std::string ListNode::getPrintable() {
+    std::string str = "[";
+    for (int i = 0; i < list.size(); i++) {
+        if (i != 0) {
+            str += ", ";
+        }
+        str += list.at(i)->getPrintable();
+    }
+    str += "]";
+    return str;
+}
+
 
 std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Index" << std::endl;
+    if (debug) {
+        std::cout << getTabs() + "Entering Index: " + getPrintable() << std::endl;
+        addTab();
+    }
     if (container == nullptr) {
-        runtimeError("Null object is not subscriptable", line, column);
+        throwError(ErrorType::Runtime, "Null object is not subscriptable", line, column);
     }
 
     auto eval = container->evaluate(env);
@@ -1215,10 +1596,30 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
             return getIndex(env, dict_val);
         }
         else {
-            runtimeError("Index node container was an unexpected type", line, column);
+            throwError(ErrorType::Runtime, "Index node container was of invalid type: " + getValueStr(eval.value()), line, column);
         }
     }
     return std::nullopt;
+}
+
+void IndexNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating Index: ";
+    std::cout << values.at(0)->getPrintable(debug_tabs) << "[" << values.at(1)->getPrintable(debug_tabs);
+    if (values.size() == 3) {
+        std::cout << ":" << values.at(2)->getPrintable(debug_tabs);
+    }
+    std::cout << "] -> retrieving value at index" << std::endl;
+}
+
+std::string IndexNode::getPrintable() {
+    std::string str = container->getPrintable() + "[" + start_index->getPrintable();
+    if (end_index) {
+        str += ":" + end_index->getPrintable();
+    }
+    str += "]";
+    return str;
 }
 
 std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_ptr<std::string>,
@@ -1234,7 +1635,7 @@ std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_p
         } else if (index >= string->length() * -1 && index < 0) {
             return string->at(string->length() - -index);
         } else {
-            runtimeError("String index out of range", line, column);
+            throwError(ErrorType::Runtime, "String index out of range", line, column);
         }
     } else if (std::holds_alternative<std::shared_ptr<List>>(distr)) {
         auto list = std::get<std::shared_ptr<List>>(distr);
@@ -1243,10 +1644,10 @@ std::variant<char, std::shared_ptr<Value>> getAtIndex(std::variant<std::shared_p
         } else if (index >= list->size() * -1 && index < 0) {
             return list->at(list->size() - -index);
         } else {
-            runtimeError("List index out of range", line, column);
+            throwError(ErrorType::Runtime, "List index out of range", line, column);
         }
     } else {
-        runtimeError("getAtIndex did not receive a string or list", line, column);
+        throwError(ErrorType::Runtime, "getAtIndex did not receive a string or list", line, column);
     }
     return nullptr;
 }
@@ -1257,7 +1658,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                                                                 std::shared_ptr<Dictionary>> distr) {
     if (end_index) {
         if (std::holds_alternative<std::shared_ptr<Dictionary>>(distr)) {
-            runtimeError("Dictionary is not subscriptable", line, column);
+            throwError(ErrorType::Runtime, "Dictionary is not subscriptable", line, column);
             return std::nullopt;
         }
         auto resolveIndex = [&](const Value& index, int container_size) -> int {
@@ -1268,11 +1669,11 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                 }
                 return std::clamp(idx, 0, container_size); // Clamp within bounds
             } else if (index.getType() == ValueType::Index) {
-                if (index.get<SpecialIndex>() == SpecialIndex::End) {
+                if (index.get<SpecialIndex>() == SpecialIndex::Back) {
                     return container_size; // Resolve "end" to container size
                 }
             }
-            runtimeError("Invalid index type");
+            throwError(ErrorType::Runtime, "Invalid index type: " + getValueStr(index), line, column);
         };
 
         auto start_result = start_index->evaluate(env);
@@ -1281,6 +1682,8 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
         if (start_result && end_result) {
             // Check if the container is a string or list
             if (std::holds_alternative<std::shared_ptr<std::string>>(distr)) {
+                if (debug) debugPrint(ValueList{std::make_shared<Value>(*std::get<std::shared_ptr<std::string>>(distr)),
+                                        start_result.value(), end_result.value()});
                 auto str = std::get<std::shared_ptr<std::string>>(distr);
                 int size = str->size();
 
@@ -1297,6 +1700,8 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                 std::string sub_str = str->substr(start_val, end_val - start_val);
                 return std::make_shared<Value>(sub_str);
             } else if (std::holds_alternative<std::shared_ptr<List>>(distr)) {
+                if (debug) debugPrint(ValueList{std::make_shared<Value>(std::get<std::shared_ptr<List>>(distr)),
+                                        start_result.value(), end_result.value()});
                 auto list_ptr = std::get<std::shared_ptr<List>>(distr);
                 int size = list_ptr->size();
 
@@ -1318,10 +1723,10 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                 }
                 return std::make_shared<Value>(new_list);
             } else {
-                runtimeError("Invalid type for getting index", line, column);
+                throwError(ErrorType::Runtime, "Dictionary cannot be indexed", line, column);
             }
         } else {
-            runtimeError("Failed to evaluate start_index or end_index", line, column);
+            throwError(ErrorType::Runtime, "Failed to evaluate start_index or end_index", line, column);
         }
     } else {
         if (std::holds_alternative<std::shared_ptr<Dictionary>>(distr)) {
@@ -1329,14 +1734,15 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
             auto dict = std::get<std::shared_ptr<Dictionary>>(distr);
             auto key = start_index->evaluate(env);
             if (key) {
+                if (debug) debugPrint(ValueList{std::make_shared<Value>(std::get<std::shared_ptr<Dictionary>>(distr)), key.value()});
                 auto it = dict->find(key.value());
                 if (it != dict->end()) {
                     return it->second;
                 } else {
-                    runtimeError("Unable to find key " + getValueStr(key.value()) + " in dictionary", line, column);
+                    throwError(ErrorType::Runtime, "Unable to find key " + key.value()->getPrintable() + " in dictionary", line, column);
                 }
             } else {
-                runtimeError("Failed to evaluate key", line, column);
+                throwError(ErrorType::Runtime, "Failed to evaluate key", line, column);
             }
         } else {
             auto result = start_index->evaluate(env);
@@ -1344,6 +1750,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                 if (result.value()->getType() == ValueType::Integer) {
                     int int_val = result.value()->get<int>();
                     if (std::holds_alternative<std::shared_ptr<std::string>>(distr)) {
+                       if (debug) debugPrint(ValueList{std::make_shared<Value>(*std::get<std::shared_ptr<std::string>>(distr)), result.value()});
                         auto get_char = getAtIndex(distr, int_val, line, column);
                         if (std::holds_alternative<char>(get_char)) {
                             auto c = std::get<char>(get_char);
@@ -1351,14 +1758,15 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                             return std::make_shared<Value>(str);
                         }
                     } else {
+                        if (debug) debugPrint(ValueList{std::make_shared<Value>(std::get<std::shared_ptr<List>>(distr)), result.value()});
                         auto value = std::get<std::shared_ptr<Value>>(getAtIndex(distr, int_val, line, column));
                         return value;
                     }
                 } else {
-                    runtimeError("The index was not given an int", line, column);
+                    throwError(ErrorType::Runtime, "The index was not given an int", line, column);
                 }
             } else {
-                runtimeError("Failed to evaluate start_index", line, column);
+                throwError(ErrorType::Runtime, "Failed to evaluate start_index", line, column);
                 return std::nullopt;
             }
         }
@@ -1417,7 +1825,7 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
     if (eval) {
         env_val = eval.value();
     } else {
-        runtimeError("Index assignment unable to evaluate the container", line, column);
+        throwError(ErrorType::Runtime, "Index assigment unable to evaluate the container", line, column);
         return;
     }
     if (env_val->getType() == ValueType::List) {
@@ -1434,13 +1842,13 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
                     } else if (index < 0 && index >= env_list->size() * -1) {
                         env_list->set(env_list->size() - index, value);
                     } else {
-                        runtimeError("Index assignment out of range", line, column);
+                        throwError(ErrorType::Runtime, "Index assigment out of range", line, column);
                     }
                 } else {
-                    runtimeError("Index assignment requires int", line, column);
+                    throwError(ErrorType::Runtime, "Index assigment requires int", line, column);
                 }
             } else {
-                runtimeError("Failed to evaluate assignment index", line, column);
+                throwError(ErrorType::Runtime, "Failed to evaluate assigment index", line, column);
             }
         } else {
             // List slice index assignment
@@ -1461,13 +1869,13 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
                         }
                         setAtIndex(env_list, start_eval.value(), value);
                     } else {
-                        runtimeError("Assignment index end value is not an int", line, column);
+                        throwError(ErrorType::Runtime, "Assigment index end value is not an int", line, column);
                     }
                 } else {
-                    runtimeError("Assignment index start value is not an int", line, column);
+                    throwError(ErrorType::Runtime, "Assignment index start value is not an int", line, column);
                 }
             } else {
-                runtimeError("Assignment index was unable to evaluate", line, column);
+                throwError(ErrorType::Runtime, "Assigment index was unable to evaluate", line, column);
             }
         }
     }
@@ -1479,20 +1887,20 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
             if (key_eval) {
                 setAtIndex(env_dict, key_eval.value(), value);
             } else {
-                runtimeError("Failed to evaluate assignment key", line, column);
+                throwError(ErrorType::Runtime, "Failed to evaluate assigment key", line, column);
             }
         } else {
-            runtimeError("Dictionary is not subscriptable", line, column);
+            throwError(ErrorType::Runtime, "Dictionary is not subscriptable", line, column);
         }
     }
     else {
-        runtimeError(getValueStr(env_val) + " object does not support item assignment", line, column);
+        throwError(ErrorType::Runtime, getValueStr(env_val) + " object does not support item assigment", line, column);
         return;
     }
 }
 
 std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Function" << std::endl;
+    if (debug) std::cout << getTabs() + "Evaluating Function: " + getPrintable() << std::endl;
     local_env = Environment{env};
     int i = 0;
     for (auto pair : default_arg_nodes) {
@@ -1500,16 +1908,31 @@ std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
         auto value = pair.second->evaluate(local_env);
         if (!value) {
             std::shared_ptr<Value> func_value = std::make_shared<Value>(std::make_shared<FuncNode>(*this));
-            runtimeError("Unable to evaluate default argument " + std::to_string(i), line, column, getFuncContext(func_value));
+            throwError(ErrorType::Runtime, "Unable to evaluate default argument " + std::to_string(i), line, column);
         }
         default_arg_values[pair.first] = value.value();
     }
     std::shared_ptr<Value> func_value = std::make_shared<Value>(std::make_shared<FuncNode>(*this));
-    setFuncContext(func_value);
     return func_value;
 }
 
-void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values,
+void FuncNode::debugPrint(ValueList) {
+    return;
+}
+
+std::string FuncNode::getPrintable() {
+    std::string str = *func_name + "(";
+    for (int i = 0; i < args.size(); i++) {
+        if (i != 0) {
+            str += ", ";
+        }
+        str += args.at(i)->getPrintable();
+    }
+    str += ") {...}";
+    return str;
+}
+
+void FuncNode::setArgs(ValueList values,
                         std::map<std::string, std::shared_ptr<Value>> pairs, Scope& local_scope) {
 
     int num_args = values.size();
@@ -1524,26 +1947,28 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values,
             auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(args.at(i));
             if (ident_node->name == name) {
                 if (values.at(i) != nullptr) {
-                    runtimeError("Cannot assign multiple values to " + name, line, column);
+                    throwError(ErrorType::Runtime, "Cannot assign mutliple values to " + name, line, column);
                 }
                 values[i] = value;
                 found_match = true;
             }
         }
         if (!found_match) {
-            runtimeError("Unable to match argument name '" + name + "'", line, column);
+            throwError(ErrorType::Runtime, "Unable to match argument name '" + name + "'", line, column);
         }
     }
 
     if (num_args != args.size()) {
+        popFunctionContext();
         if (num_args > args.size()) {
             if (default_arg_values.size() > 0) {
-                runtimeError(std::format("Function takes from {} to {} arguments but {} were given", args.size() - default_arg_values.size(), args.size(), num_args), line, column);
+                throwError(ErrorType::ArityMismatch, std::format("Function takes from {} to {} arguments but {} were given",
+                                                            args.size() - default_arg_values.size(), args.size(), num_args), line, column);
             } else {
-                runtimeError(std::format("Function takes {} arguments but {} were given", args.size(), num_args), line, column);
+                throwError(ErrorType::ArityMismatch, std::format("Function takes {} arguments but {} were given", args.size(), num_args), line, column);
             }
         } else if (num_args < args.size() - default_arg_values.size()) {
-            runtimeError(std::format("Missing {} required arguments", args.size() - default_arg_values.size() - num_args), line, column);
+            throwError(ErrorType::ArityMismatch, std::format("Missing {} required arguments", args.size() - default_arg_values.size() - num_args), line, column);
         }
     }
 
@@ -1561,25 +1986,24 @@ void FuncNode::setArgs(std::vector<std::shared_ptr<Value>> values,
     return;
 }
 
-std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared_ptr<Value>> values,
+std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
                                                         std::map<std::string, std::shared_ptr<Value>> pairs,
                                                         Environment& global_env, bool member_func) {
     Environment local_env_copy{local_env};
+    std::vector<Scope> copied_scopes = global_env.copyScopes();
+    for (const auto& pair : copied_scopes.at(0).getPairs()) {
+        local_env_copy.setGlobalValue(pair.first, pair.second);
+    }
     Scope local_scope;
+    pushFunctionContext(*func_name, file_context);
     if (!member_func) {
         local_scope.set(*func_name, global_env.get(*func_name, member_func));
-        pushExecutionContext(getFuncContext(local_scope.get(*func_name)));
     }
     setArgs(values, pairs, local_scope);
     if (global_env.isClassEnv()) {
         local_env_copy.setClassEnv();
         local_env_copy.setClassAttrs(global_env.getClassAttrs());
         local_env_copy.setThis(global_env.getThis());
-        if (global_env.getClassAttrs().contains(*func_name)) {
-            pushExecutionContext(getFuncContext(global_env.getClassAttrs().get(*func_name)));
-        } else {
-            pushExecutionContext(getFuncContext(local_env_copy.get(*func_name)));
-        }
     }
     local_env_copy.addScope(local_scope);
     recursion += 1;
@@ -1595,16 +2019,9 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     catch (const ReturnException& e) {
         return_value = e.value;
     }
-    catch (const std::exception& e) {
-        if (!member_func) {
-            runtimeError(e.what(), line, column, getFuncContext(local_scope.get(*func_name)));
-        } else {
-            if (global_env.getClassAttrs().contains(*func_name)) {
-                runtimeError(e.what(), line, column, getFuncContext(global_env.getClassAttrs().get(*func_name)));
-            } else {
-                runtimeError(e.what(), line, column, getFuncContext(local_env_copy.get(*func_name)));
-            }
-        }
+    catch (const ErrorException& e) {
+        popFunctionContext();
+        throw;
     }
 
     if (global_env.isClassEnv()) {
@@ -1619,39 +2036,69 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(std::vector<std::shared
     recursion -= 1;
 
     local_env_copy.removeScope();
-    popExecutionContext();
+    popFunctionContext();
 
     return return_value;
 }
 
 std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Method Call" << std::endl;
-    auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(identifier);
-    auto mapped_value = ident_node->evaluate(env).value();
+    if (debug) {
+        std::cout << getTabs() + "Entering Method Call: " + getPrintable() << std::endl;
+        addTab();
+    }
+    auto mapped_value = stored_func->evaluate(env).value();
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
-            std::vector<std::shared_ptr<Value>> args;
+            ValueList args;
             std::map<std::string, std::shared_ptr<Value>> pairs;
             evaluateArgs(args, pairs, env);
-            auto result = func->callFunc(args, pairs, env, func->member_func);
-            return result;
+            if (debug) {
+                ValueList debug_values{mapped_value};
+                for (auto value : args) {
+                    debug_values.push_back(value);
+                }
+                debugPrint(debug_values);
+            }
+            try {
+                auto result = func->callFunc(args, pairs, env, func->member_func);
+                return result;
+            }
+            catch (const ErrorException& e) {
+                throwError(e.error_type, e.message, line, column);
+            }
         } else {
-            runtimeError("Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(identifier)->name, line, column);
+            if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(stored_func)) {
+                throwError(ErrorType::Runtime, "Unable to call function " + ident_node->name, line, column);
+            } else {
+                auto func_value = stored_func->evaluate(env);
+                if (func_value.has_value()) {
+                    throwError(ErrorType::Runtime, "Unable to call function " + func_value.value()->getPrintable(debug_tabs), line, column);
+                } else {
+                    throwError(ErrorType::Runtime, "Unable to call function", line, column);
+                }
+            }
         }
     } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
         auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
-        std::vector<std::shared_ptr<Value>> args;
+        ValueList args;
         std::map<std::string, std::shared_ptr<Value>> pairs;
         evaluateArgs(args, pairs, env);
+        if (debug) {
+            ValueList debug_values{mapped_value};
+            for (auto value : args) {
+                debug_values.push_back(value);
+            }
+            debugPrint(debug_values);
+        }
         if (pairs.size() != 0) {
-            runtimeError("Builtin functions do not accept labeled arguments", line, column);
+            throwError(ErrorType::Runtime, "Builtin functions do not accept labeled arguments", line, column);
         }
         try {
             return (*func_value)(args, env);
         }
-        catch (const std::exception& e) {
-            runtimeError(e.what(), line, column);
+        catch (const ErrorException& e) {
+            throwError(e.error_type, e.message, line, column);
         }
     } else if (mapped_value->getType() == ValueType::Class) {
         auto class_value = mapped_value->get<std::shared_ptr<Class>>();
@@ -1661,9 +2108,16 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             auto node = constructor->get<std::shared_ptr<ASTNode>>();
             auto func_node = std::static_pointer_cast<FuncNode>(node);
             instance->getEnvironment().setThis(std::make_shared<Value>(instance));
-            std::vector<std::shared_ptr<Value>> args;
+            ValueList args;
             std::map<std::string, std::shared_ptr<Value>> pairs;
             evaluateArgs(args, pairs, env);
+            if (debug) {
+                ValueList debug_values{mapped_value};
+                for (auto value : args) {
+                    debug_values.push_back(value);
+                }
+                debugPrint(debug_values);
+            }
             func_node->callFunc(args, pairs, instance->getEnvironment(), true);
             auto scopes = instance->getEnvironment().copyScopes();
             for (const auto& pair : scopes.at(0).getPairs()) {
@@ -1672,21 +2126,24 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             return std::make_shared<Value>(instance);
         }
         catch (const ErrorException& e) {
-            throw ErrorException(e.value);
-        }
-        catch (const std::exception& e) {
-            runtimeError(e.what(), line, column);
-        }
+                throwError(e.error_type, e.message, line, column);
+            }
     }
     else {
-        runtimeError("Object type " + getValueStr(mapped_value) + " is not callable", line, column);
+        throwError(ErrorType::Runtime, "Object type " + getValueStr(mapped_value) + " is not callable", line, column);
     }
     return std::nullopt;
 }
 
 std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env, ValueType member_type) {
-    if (debug) std::cout << "Evaluate Function Call" << std::endl;
-    auto ident_node = std::static_pointer_cast<IdentifierNode>(identifier);
+    if (debug) {
+        std::cout << getTabs() + "Entering Method Call: " + getPrintable() << std::endl;
+        addTab();
+    }
+    auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(stored_func);
+    if (!ident_node) {
+        throwError(ErrorType::Runtime, "Unable to call function", line, column);
+    }
     Environment environment{env};
     if (member_value->getType() == ValueType::Instance) {
         auto inst_node = member_value->get<std::shared_ptr<Instance>>();
@@ -1698,50 +2155,95 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
-            std::vector<std::shared_ptr<Value>> args;
+            ValueList args;
             std::map<std::string, std::shared_ptr<Value>> pairs;
             evaluateArgs(args, pairs, env);
-            if (member_type == ValueType::Instance) {
-                environment.setThis(member_value);
-                auto result = func->callFunc(args, pairs, environment, true);
-                auto inst_node = member_value->get<std::shared_ptr<Instance>>();
-                inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
-                auto scopes = environment.copyScopes();
-                for (const auto& pair : scopes.at(0).getPairs()) {
-                    env.setGlobalValue(pair.first, pair.second);
+            if (debug) {
+                ValueList debug_values{mapped_value};
+                for (auto value : args) {
+                    debug_values.push_back(value);
                 }
-                return result;
+                debugPrint(debug_values);
             }
-            else {
-                args.insert(args.begin(), member_value);
-                return func->callFunc(args, pairs, environment);
+            try {
+                if (member_type == ValueType::Instance) {
+                    environment.setThis(member_value);
+                    auto result = func->callFunc(args, pairs, environment, true);
+                    auto inst_node = member_value->get<std::shared_ptr<Instance>>();
+                    inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
+                    auto scopes = environment.copyScopes();
+                    for (const auto& pair : scopes.at(0).getPairs()) {
+                        env.setGlobalValue(pair.first, pair.second);
+                    }
+                    return result;
+                }
+                else {
+                    args.insert(args.begin(), member_value);
+                    return func->callFunc(args, pairs, environment);
+                }
+            }
+            catch (const ErrorException& e) {
+                throwError(e.error_type, e.message, line, column);
             }
         } else {
-            runtimeError("Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(identifier)->name, line, column);
+            throwError(ErrorType::Runtime, "Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(stored_func)->name, line, column);
         }
     } else if (mapped_value->getType() == ValueType::BuiltInFunction) {
         auto func_value = mapped_value->get<std::shared_ptr<BuiltInFunction>>();
-        std::vector<std::shared_ptr<Value>> args;
+        ValueList args;
         std::map<std::string, std::shared_ptr<Value>> pairs;
         evaluateArgs(args, pairs, env);
+        if (debug) {
+            ValueList debug_values{mapped_value};
+            for (auto value : args) {
+                debug_values.push_back(value);
+            }
+            debugPrint(debug_values);
+        }
         args.insert(args.begin(), member_value);
         if (pairs.size() != 0) {
-            runtimeError("Builtin functions do not accept labeled arguments", line, column);
+            throwError(ErrorType::Runtime, "Builtin functions do not accept labeled arguments", line, column);
         }
         try {
             return (*func_value)(args, environment);
         }
-        catch (const std::exception& e) {
-            runtimeError(e.what(), line, column);
+        catch (const ErrorException& e) {
+            throwError(e.error_type, e.message, line, column);
         }
     }
     else {
-        runtimeError("Object type " + getTypeStr(member_type) + " has no member function " + ident_node->name, line, column);
+        throwError(ErrorType::Runtime, "Object type " + getTypeStr(member_type) + " has no member function " + ident_node->name, line, column);
     }
     return std::nullopt;
 }
 
-void MethodCallNode::evaluateArgs(std::vector<std::shared_ptr<Value>>& args,
+void MethodCallNode::debugPrint(ValueList debug_values) {
+    subTab();
+    setTabs();
+    std::cout << "Evaluating Method Call: ";
+    std::cout << debug_values.at(0)->getPrintable(debug_tabs) + "(";
+    for (int i = 1; i < debug_values.size(); i++) {
+        if (i != 1) {
+            std::cout << ", ";
+        }
+        std::cout << debug_values.at(i)->getPrintable(debug_tabs);
+    }
+    std::cout << ")" << std::endl;
+}
+
+std::string MethodCallNode::getPrintable() {
+    std::string str = stored_func->getPrintable() + "(";
+    for (int i = 0; i < values.size(); i++) {
+        if (i != 0) {
+            str += ", ";
+        }
+        str += values.at(i)->getPrintable();
+    }
+    str += ")";
+    return str;
+}
+
+void MethodCallNode::evaluateArgs(ValueList& args,
                                 std::map<std::string, std::shared_ptr<Value>>& pairs, Environment& env) {
     std::map<std::shared_ptr<Value>, std::string> given_values;
     bool found_default_arg = false;
@@ -1751,24 +2253,24 @@ void MethodCallNode::evaluateArgs(std::vector<std::shared_ptr<Value>>& args,
             if (ident_node && binary_node->op == TokenType::_Equals) {
                 auto value = binary_node->right->evaluate(env);
                 if (!value) {
-                    runtimeError("Unable to evaluate argument", line, column);
+                    throwError(ErrorType::Runtime, "Unable to evaluate argument", line, column);
                 }
                 pairs[ident_node->name] = value.value();
                 found_default_arg = true;
             } else {
                 auto value = value_node->evaluate(env);
                 if (!value) {
-                    runtimeError("Unable to evaluate argument", line, column);
+                    throwError(ErrorType::Runtime, "Unable to evaluate argument", line, column);
                 }
                 args.push_back(value.value());
             }
         } else {
             if (found_default_arg) {
-                runtimeError("Unlabeled argument cannot follow a labeled argument", line, column);
+                throwError(ErrorType::Runtime, "Unlabeled argument cannot follow a labeled argument", line, column);
             }
             auto value = value_node->evaluate(env);
             if (!value) {
-                runtimeError("Unable to evaluate argument", line, column);
+                throwError(ErrorType::Runtime, "Unable to evaluate argument", line, column);
             }
             args.push_back(value.value());
         }
@@ -1776,7 +2278,10 @@ void MethodCallNode::evaluateArgs(std::vector<std::shared_ptr<Value>>& args,
 }
 
 std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Dict" << std::endl;
+    if (debug) {
+        std::cout << getTabs() + "Entering Dictionary: " + getPrintable() << std::endl;
+        addTab();
+    }
     std::shared_ptr<Dictionary> evaluated_dict = std::make_shared<Dictionary>();
 
     for (const auto& pair : dictionary) {
@@ -1785,15 +2290,39 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
         if (key && value) {
             evaluated_dict->insert({key.value(), value.value()});
         } else {
-            runtimeError("Dictionary key or value was unable to be evaluated", line, column);
+            throwError(ErrorType::Runtime, "Dictionary key or value was unable to be evaluated", line, column);
         }
     }
+    if (debug) debugPrint(ValueList{std::make_shared<Value>(evaluated_dict)});
 
     return std::make_shared<Value>(evaluated_dict);
 }
 
+void DictionaryNode::debugPrint(ValueList values) {
+    subTab();
+    setTabs();
+    const auto& dict_ptr = values.at(0)->get<std::shared_ptr<Dictionary>>();
+    std::cout << "Evaluating Dictionary: {\n";
+    for (const auto& [key, val] : *dict_ptr) {
+        std::cout << getTabs() << key->getPrintable(debug_tabs) << " : " << val->getPrintable(debug_tabs) << '\n';
+    }
+    std::cout << getTabs() + "}" << std::endl;
+}
+
+std::string DictionaryNode::getPrintable() {
+    std::string str = "{\n";
+    for (const auto& [key, val] : dictionary) {
+        str += getTabs() + key->getPrintable() + " : " + val->getPrintable() + "\n";
+    }
+    str += getTabs() + "}";
+    return str;
+}
+
 std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
-    if (debug) std::cout << "Evaluate Class" << std::endl;
+    if (debug) {
+        std::cout << getTabs() + "Entering Class: " + getPrintable() << std::endl;
+        addTab();
+    }
     // Prevent the constructor overwriting the class name in the env
     Scope prev_attrs = env.getClassAttrs();
     env.addClassScope();
@@ -1803,23 +2332,20 @@ std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
         }
     }
     catch (const ReturnException) {
-        runtimeError("Return was used outside of function");
+        throwError(ErrorType::Runtime, "Return was used outside of function", line, column);
     }
     catch (const BreakException) {
-        runtimeError("Break was used outside of loop");
+        throwError(ErrorType::Runtime, "Break was used outside of loop", line, column);
     }
     catch (const ContinueException) {
-        runtimeError("Continue was used outside of loop");
+        throwError(ErrorType::Runtime, "Continue was used outside of loop", line, column);
     }
     catch (const StackOverflowException) {
-        handleError("Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
-the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", "");
+        throwError(ErrorType::StackOverflow, "Excessive recursion depth reached. (Add the -IgnoreOverflow flag to the end of \
+the program execution to ignore this warning)");
     }
     catch (const ErrorException& e) {
-        throw ErrorException(e.value);
-    }
-    catch (const std::exception& e) {
-        runtimeError(e.what(), line, column);
+        throwError(e.error_type, e.message, line, column);
     }
 
     Environment class_env{env};
@@ -1827,8 +2353,17 @@ the program execution to ignore this warning)", 0, 0, "StackOverflowWarning", ""
 
     class_env.setClassEnv();
     if (!class_env.contains(name, true)) {
-        runtimeError("Class " + name + " is missing a constructor", line, column);
+        throwError(ErrorType::Runtime, "Class " + name + " is missing a constructor", line, column);
     }
+    if (debug) subTab();
 
     return std::make_shared<Value>(std::make_shared<Class>(name, class_env));
+}
+
+void ClassNode::debugPrint(ValueList) {
+    return;
+}
+
+std::string ClassNode::getPrintable() {
+    return name;
 }

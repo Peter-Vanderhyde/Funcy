@@ -9,12 +9,23 @@ struct Style {
     std::string blue = "\033[34m";
     std::string light_blue = "\033[38;5;81m";
     std::string purple = "\033[38;5;129m";
+    std::string dull_blue = "\033[38;2;100;150;255m";
+    std::string grey = "\033[38;5;235m";
     std::string reset = "\033[0m";
     std::string underline = "\033[4m";
 };
 
-[[noreturn]] void handleError(std::string message, int line, int column, std::string prefix, std::string filename = "");
+enum class ErrorType { Runtime, Thrown, StackOverflow, ZeroDivision, Syntax, ArityMismatch };
 
-[[noreturn]] void runtimeError(std::string message, int line, int column, std::string filename = "");
+class ErrorException : public std::exception {
+public:
+    ErrorException(ErrorType error_type, std::string message)
+        : error_type{error_type}, message{message} {}
+    
+    ErrorType error_type = ErrorType::Runtime;
+    std::string message = "";
+};
 
-[[noreturn]] void runtimeError(std::string message, std::string filename = "");
+std::string buildError(ErrorType error_type, std::string message, int line, int column);
+
+[[noreturn]] void throwError(ErrorType error_type, std::string message, int line=0, int column=0);

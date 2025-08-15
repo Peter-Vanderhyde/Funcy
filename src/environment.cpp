@@ -33,7 +33,7 @@ std::shared_ptr<Value> Scope::get(std::string name) const {
     if (contains(name)) {
         return variables.at(name);
     } else {
-        handleError(std::format("Bad environment access with key '{}'", name), 0, 0, "Runtime Error");
+        throwError(ErrorType::Runtime, std::format("Bad environment access with key '{}'", name));
     }
 }
 
@@ -69,16 +69,16 @@ bool Environment::isClassEnv() const {
 
 void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_member_var) {
     if (scopes.empty()) {
-        handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
+        throwError(ErrorType::Runtime, "Attempted to access empty environment");
     } else {
         if (is_member_var && class_depth == 0 && class_env == false) {
-            runtimeError("Unable to set class attribute '" + name + "' outside of class", "");
+            throwError(ErrorType::Runtime, "Unable to set class attribute '" + name + "' outside of class");
         } else if (is_member_var) {
             class_attrs.set(name, value);
             return;
         }
         if (isGlobal(name)) {
-            scopes.front().set(name, value);
+            setGlobalValue(name, value);
             return;
         }
         for (int i = scopes.size() - 1; i > -1; i--) {
@@ -87,17 +87,17 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
                 return;
             }
         }
-    }
 
-    scopes.back().set(name, value);
+        scopes.back().set(name, value);
+    }
 }
 
 std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) const {
     if (scopes.empty()) {
-        handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
+        throwError(ErrorType::Runtime, "Attempted to access empty environment");
     }
     if (is_member_var && class_depth == 0 && class_env == false) {
-        runtimeError("Unable to get class attribute '" + name + "' outside of class", "");
+        throwError(ErrorType::Runtime, "Unable to get class attribute '" + name + "' outside of class");
     } else if (is_member_var) {
         return class_attrs.get(name);
     }
@@ -105,7 +105,7 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
         if (scopes.front().contains(name)) {
             return scopes.front().get(name);
         } else {
-            runtimeError("Unrecognized variable " + name, "");
+            throwError(ErrorType::Runtime, "Unrecognized variable " + name);
         }
     }
     
@@ -116,13 +116,13 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
         }
     }
 
-    runtimeError(std::format("Unrecognized variable {}", name), "");
+    throwError(ErrorType::Runtime, "Unrecognized variable " + name);
 }
 
 
 bool Environment::contains(std::string name, bool is_member_var) const {
     if (scopes.empty()) {
-        handleError("Attempted to access empty environment", 0, 0, "Runtime Error");
+        throwError(ErrorType::Runtime, "Attempted to access emtpy environment");
     }
     if (class_env == true || class_depth != 0) {
         if (is_member_var) {
@@ -208,7 +208,7 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
         return func->second;
     }
 
-    runtimeError("Unrecognized built-in function: " + name, "");
+    throwError(ErrorType::Runtime, "Unrecognized built-in function '" + name + "'");
 }
 
 bool Environment::hasFunction(const std::string& name) const {
@@ -233,7 +233,7 @@ std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string&
         }
     }
 
-    runtimeError("Unrecognized member function: " + name, "");
+    throwError(ErrorType::Runtime, "Unrecognized member function '" + name + "'");
 }
 
 std::shared_ptr<Value> Environment::getMember(const std::string& name) const {
@@ -300,7 +300,7 @@ void Environment::setThis(std::shared_ptr<Value> inst_ref) {
 
 std::shared_ptr<Value> Environment::getThis() {
     if (!this_ref) {
-        runtimeError("'this' may only be used inside a member function", "");
+        throwError(ErrorType::Runtime, "'this' may only be used inside a member function");
         return std::make_shared<Value>();
     }
     return this_ref;

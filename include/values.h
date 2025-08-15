@@ -9,12 +9,14 @@
 #include <optional>
 #include <map>
 #include "environment.h"
+#include "errorDefs.h"
 
 enum class SpecialIndex {
-    Begin,
-    End
+    Front,
+    Back
 };
 
+class FuncNode;
 class Value;
 class ASTNode;
 class Environment;
@@ -30,6 +32,7 @@ using Dictionary = std::map<std::shared_ptr<Value>, std::shared_ptr<Value>, Valu
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
     const std::vector<std::shared_ptr<Value>>& args, Environment& env
 )>;
+using ValueList = std::vector<std::shared_ptr<Value>>;
 
 class List {
 private:
@@ -129,10 +132,12 @@ public:
     template <typename T>
     const T& get() const {
         if (!std::holds_alternative<T>(value)) {
-            throw std::runtime_error("Incorrect type access in Value");
+            throwError(ErrorType::Runtime, "Incorrect type access in value");
         }
         return std::get<T>(value);
     }
+
+    std::string getPrintable(int tabs=0, bool error=false);
 
 };
 

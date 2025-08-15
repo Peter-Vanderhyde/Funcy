@@ -8,16 +8,26 @@
 class Value;
 
 // Thread-local storage for execution context
-extern thread_local std::stack<std::string> execution_context;
+extern thread_local std::stack<std::string> parsing_context; // File where the currently parsing code is from
+extern thread_local std::stack<std::string> execution_context; // File where the currently executing code is from
+extern thread_local std::stack<std::pair<std::string, std::string>> function_context; // Function that the currently executing code is inside
 
-extern std::map<std::shared_ptr<Value>, std::string> function_contexts;
+extern thread_local int debug_tabs;
 
-void pushExecutionContext(const std::string& filename);
+void pushParsingContext(std::string filename);
+
+void pushExecutionContext(std::string filename);
+
+void pushFunctionContext(std::string func_name, std::string filename);
+
+void popParsingContext();
 
 void popExecutionContext();
 
+void popFunctionContext();
+
+std::string currentParsingContext();
+
 std::string currentExecutionContext();
 
-void setFuncContext(std::shared_ptr<Value> func);
-
-std::string getFuncContext(std::shared_ptr<Value> func);
+std::pair<std::string, std::string> currentFunctionContext();
