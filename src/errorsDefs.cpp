@@ -27,9 +27,15 @@ std::string getLine(const std::string& filename, int line) {
     return "";
 }
 
-std::string buildError(ErrorType error_type, std::string message, int line, int column, std::string filename) {
-    if (filename == "") {
+std::string buildError(ErrorType error_type, std::string message, int line, int column) {
+    std::pair<std::string, std::string> function_context = currentFunctionContext(); // If it's inside a function, it gives the function name and file the function is in
+    std::string function, filename;
+    if (function_context.first == "") {
+        function = "";
         filename = currentExecutionContext();
+    } else {
+        function = function_context.first;
+        filename = function_context.second;
     }
 
     std::map<ErrorType, std::string> error_type_str{
@@ -51,30 +57,43 @@ std::string buildError(ErrorType error_type, std::string message, int line, int 
             error = std::format("{}.{}", error, style.reset);
         }
     } else {
-        error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",
-                                        style.red, error_type_str[error_type], style.reset, style.green, filename, style.reset,
-                                        style.purple, style.underline, line, column, style.reset);
-        error += std::format("        {}\n", getLine(filename, line));
-        std::string spaces = "        ";
-        for (int i = 0; i < column - 1; i++) {
-            spaces += " ";
-        }
-        spaces += style.orange + "^\n";
-        error += spaces;
-        error += message;
-        if (!message.ends_with(style.reset)) {
-            error = std::format("{}.{}", error, style.reset);
+        if (function != "") {
+            error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{} in {}{}(){}:\n",
+                                            style.red, error_type_str[error_type], style.reset, style.green, filename, style.reset,
+                                            style.purple, style.underline, line, column, style.reset, style.dull_blue, function, style.reset);
+            error += std::format("        {}\n", getLine(filename, line));
+            std::string spaces = "        ";
+            for (int i = 0; i < column - 1; i++) {
+                spaces += " ";
+            }
+            spaces += style.orange + "^\n";
+            error += spaces;
+            error += message;
+            if (!message.ends_with(style.reset)) {
+                error = std::format("{}.{}", error, style.reset);
+            }
+        } else {
+            error = std::format("{}{}:{} File {}{}{} at {}{}line {} column {}{}:\n",
+                                            style.red, error_type_str[error_type], style.reset, style.green, filename, style.reset,
+                                            style.purple, style.underline, line, column, style.reset);
+            error += std::format("        {}\n", getLine(filename, line));
+            std::string spaces = "        ";
+            for (int i = 0; i < column - 1; i++) {
+                spaces += " ";
+            }
+            spaces += style.orange + "^\n";
+            error += spaces;
+            error += message;
+            if (!message.ends_with(style.reset)) {
+                error = std::format("{}.{}", error, style.reset);
+            }
         }
     }
 
     return error;
 }
 
-void throwError(ErrorType error_type, std::string message, int line, int column, std::string filename) {
-    if (filename == "") {
-        filename = currentExecutionContext();
-    }
-
-    std::string error_message = buildError(error_type, message, line, column, filename);
+void throwError(ErrorType error_type, std::string message, int line, int column) {
+    std::string error_message = buildError(error_type, message, line, column);
     throw ErrorException(error_type, error_message);
 }

@@ -194,8 +194,8 @@ class FuncNode : public ASTNode {
 public:
     FuncNode(bool member_func, std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args,
             std::map<std::string, std::shared_ptr<ASTNode>> default_arg_values, std::vector<std::shared_ptr<ASTNode>> block,
-            int line, int column)
-        : ASTNode{line, column}, member_func{member_func}, func_name{func_name}, args{args}, default_arg_nodes{default_arg_values}, block{block} {}
+            int line, int column, std::string file_context)
+        : ASTNode{line, column}, member_func{member_func}, func_name{func_name}, args{args}, default_arg_nodes{default_arg_values}, block{block}, file_context{file_context} {}
     
     ~FuncNode() noexcept override = default;
 
@@ -214,6 +214,7 @@ public:
     std::map<std::string, std::shared_ptr<ASTNode>> default_arg_nodes;
     std::map<std::string, std::shared_ptr<Value>> default_arg_values;
     std::vector<std::shared_ptr<ASTNode>> block;
+    std::string file_context;
     int recursion = 0;
     bool detect_recursion_limit = local_env.detect_recursion;
 };
@@ -253,8 +254,8 @@ public:
 
 class ClassNode : public ASTNode {
 public:
-    ClassNode(std::shared_ptr<std::string> name, std::vector<std::shared_ptr<ASTNode>> block, int line, int column)
-        : ASTNode{line, column}, name{*name}, block{block} {}
+    ClassNode(std::shared_ptr<std::string> name, std::vector<std::shared_ptr<ASTNode>> block, int line, int column, std::string file_context)
+        : ASTNode{line, column}, name{*name}, block{block}, file_context{file_context} {}
 
     std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
     void debugPrint(ValueList values) override;
@@ -263,4 +264,5 @@ public:
     std::string name;
     std::vector<std::shared_ptr<ASTNode>> block;
     Scope local_scope;
+    std::string file_context;
 };

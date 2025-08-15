@@ -2,14 +2,29 @@
 #include "values.h"
 
 // Thread-local storage for execution context
+thread_local std::stack<std::string> parsing_context;
 thread_local std::stack<std::string> execution_context;
+thread_local std::stack<std::pair<std::string, std::string>> function_context;
 
 thread_local int debug_tabs = 0;
 
-std::map<std::shared_ptr<Value>, std::string> function_contexts;
+void pushParsingContext(std::string filename) {
+    parsing_context.push(filename);
+}
 
-void pushExecutionContext(const std::string& filename) {
+void pushExecutionContext(std::string filename) {
     execution_context.push(filename);
+}
+
+void pushFunctionContext(std::string func_name, std::string filename) {
+    function_context.push(std::make_pair(func_name, filename));
+    pushExecutionContext(filename);
+}
+
+void popParsingContext() {
+    if (!parsing_context.empty()) {
+        parsing_context.pop();
+    }
 }
 
 void popExecutionContext() {
@@ -18,19 +33,21 @@ void popExecutionContext() {
     }
 }
 
+void popFunctionContext() {
+    if (!function_context.empty()) {
+        function_context.pop();
+    }
+    popExecutionContext();
+}
+
+std::string currentParsingContext() {
+    return parsing_context.empty() ? "<unknown file>" : parsing_context.top();
+}
+
 std::string currentExecutionContext() {
     return execution_context.empty() ? "<unknown file>" : execution_context.top();
 }
 
-void setFuncContext(std::shared_ptr<Value> func) {
-    function_contexts[func] = currentExecutionContext();
-}
-
-std::string getFuncContext(std::shared_ptr<Value> func) {
-    if (function_contexts.contains(func)) {
-        return function_contexts[func];
-    } else {
-        throw std::runtime_error("Function definition file not found");
-        return "";
-    }
+std::pair<std::string, std::string> currentFunctionContext() {
+    return function_context.empty() ? std::make_pair("", "") : function_context.top();
 }

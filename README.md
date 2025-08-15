@@ -125,11 +125,11 @@ if x > 5 {
 
 ```funcy
 if condition {
-    # code block
+    ...
 } elif another_condition {
-    # code block
+    ...
 } else {
-    # code block
+    ...
 }
 ```
 
@@ -139,7 +139,7 @@ if condition {
 
 ```funcy
 while condition {
-    # code block
+    ...
 }
 ```
 
@@ -147,18 +147,36 @@ while condition {
 
 ```funcy
 for var = start, var < end, var += step {
-    # code block
+    ...
 }
 
-for item in list {     # for i in range(5)
-    # code block
+for item in list {
+    ...
+}
+
+for i in range(5) {
+    ...
 }
 
 # Multi-Variable assignment in for loops:
 for [key, value] in dictionary.items() {
-    # code block
+    ...
+}
+
+for [r, g, b] in pixels {
+    ...
 }
 ```
+>Syntax Note  
+>-
+>The for loop syntax does not require the format of  
+>```
+>for var = 0, var < max_val, var += 1 {...}
+>```
+>Just like the syntax of C/C++, the for loop allows any expression to be used for the initialization, conditional, and increment. For example, three functions could be used instead.
+>```
+>for initialize(), checkConditional(a, b), callEachIteration() {...}
+
 
 ---
 
@@ -168,7 +186,7 @@ for [key, value] in dictionary.items() {
 
 ```funcy
 func functionName(arg1, arg2) {
-    # code block
+    ...
     return result;
 }
 ```
@@ -179,6 +197,7 @@ func functionName(arg1, arg2) {
 func multiReturn() {
     return [val1, val2];
 }
+
 [x, y] = multiReturn();
 ```
 
@@ -186,14 +205,13 @@ func multiReturn() {
 
 ```funcy
 func showString(arg1, arg2="default string", arg3=Null) {
-    if arg3 {
-        print(arg2);
-    }
+    ...
 }
 
-showString(Null, "doesn't print");
-showString(Null, "does print", true);
-showString(arg2="shuffled", arg3=true, arg1=Null);
+# All valid calls
+showString(true, "second arg");
+showString(true, "second arg", value);
+showString(arg2="second arg", arg3=value, arg1=true);
 ```
 
 ---
@@ -235,7 +253,7 @@ print(obj.public_var);
 
 ## Keywords
 
-Keywords in Funcy are reserved words with predefined meanings and specific purposes in the language. They cannot be used as variable names or identifiers.
+Keywords in Funcy are reserved words with predefined meanings and specific purposes in the language. They cannot be used as variable names/identifiers.
 
 ---
 
@@ -305,6 +323,7 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 
   class Example {
       func &Example() {}
+
       func &modifyGlobal() {
           global x;
           x *= 2;
@@ -317,7 +336,7 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
   e.modifyGlobal();
   print(x);  # 40
   ```
-- `import`: Imports modules or libraries.
+- `import`: Imports modules or libraries. It will run the entire file upon importing it. There is not currently a way to only import specific functions or classes from a file.
   ```funcy
   import "module.fy";
   ```

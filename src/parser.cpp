@@ -257,9 +257,9 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
             return std::make_shared<ForNode>(keyword.type, for_initialization, comparison_expr, for_increment, block, keyword.line, keyword.column);
         } else if (t_str == "func") {
             bool member_func = std::static_pointer_cast<IdentifierNode>(func_name)->member_variable;
-            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(member_func, name_str, func_args, default_arg_values, block, keyword.line, keyword.column), keyword.line, keyword.column);
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<FuncNode>(member_func, name_str, func_args, default_arg_values, block, keyword.line, keyword.column, currentParsingContext()), keyword.line, keyword.column);
         } else if (t_str == "class") {
-            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<ClassNode>(name_str, block, keyword.line, keyword.column), keyword.line, keyword.column);
+            return std::make_shared<BinaryOpNode>(func_name, TokenType::_Equals, std::make_shared<ClassNode>(name_str, block, keyword.line, keyword.column, currentParsingContext()), keyword.line, keyword.column);
         } else {
             return std::make_shared<ScopedNode>(keyword.type, nullptr, comparison_expr, block, keyword.line, keyword.column);
         }

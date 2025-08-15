@@ -253,7 +253,7 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
     }
 
     throwError(ErrorType::Runtime, std::format("Unsupported operand types for operation. Operation was '{}' {}",
-                                                getTokenTypeLabel(op), getTypeStr(value->getType())), line, column);
+                                                getTokenTypeLabel(op), getValueStr(value)), line, column);
     return std::nullopt;
 }
 
@@ -660,7 +660,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                 if (auto instance_ident = std::dynamic_pointer_cast<IdentifierNode>(node->left)) {
                     auto instance_value = env.get(instance_ident->name, instance_ident->member_variable);
                     if (instance_value->getType() != ValueType::Instance) {
-                        throwError(ErrorType::Runtime, getTypeStr(instance_value->getType()) + " object has no attribute " + attr_ident->name, line, column);
+                        throwError(ErrorType::Runtime, getValueStr(instance_value) + " object has no attribute " + attr_ident->name, line, column);
                     }
                     auto instance = instance_value->get<std::shared_ptr<Instance>>();
                     instance->getEnvironment().set(attr_ident->name, right_value.value(), true);
@@ -1232,7 +1232,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 for (int i = 0; i < list->size(); i++) {
                     auto list_result = list->at(i);
                     if (list_result->getType() != ValueType::List) {
-                        throwError(ErrorType::Runtime, "Expected a list, but got " + getTypeStr(list_result->getType()), line, column);
+                        throwError(ErrorType::Runtime, "Expected a list, but got " + getValueStr(list_result), line, column);
                     }
                     auto list = list_result->get<std::shared_ptr<List>>();
                     if (list->size() > list_node->list.size()) {
@@ -1455,6 +1455,7 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         Lexer lexer{source_code};
         auto tokens = lexer.tokenize();
 
+        pushParsingContext(new_path);
         Parser parser{tokens};
         std::vector<std::shared_ptr<ASTNode>> statements;
         statements = parser.parse();
@@ -1478,10 +1479,13 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
 the program execution to ignore this warning)");
             }
             catch (const ErrorException& e) {
+                popParsingContext();
+                popExecutionContext();
                 throwError(e.error_type, e.message, line, column);
             }
         }
 
+        popParsingContext();
         popExecutionContext();
         return std::nullopt;
     } else if (keyword == TokenType::_This) {
@@ -1592,7 +1596,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
             return getIndex(env, dict_val);
         }
         else {
-            throwError(ErrorType::Runtime, "Index node container was of invalid type: " + getTypeStr(eval.value()->getType()), line, column);
+            throwError(ErrorType::Runtime, "Index node container was of invalid type: " + getValueStr(eval.value()), line, column);
         }
     }
     return std::nullopt;
@@ -1669,7 +1673,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(Environment& env,
                     return container_size; // Resolve "end" to container size
                 }
             }
-            throwError(ErrorType::Runtime, "Invalid index type: " + getTypeStr(index.getType()), line, column);
+            throwError(ErrorType::Runtime, "Invalid index type: " + getValueStr(index), line, column);
         };
 
         auto start_result = start_index->evaluate(env);
@@ -1904,12 +1908,11 @@ std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
         auto value = pair.second->evaluate(local_env);
         if (!value) {
             std::shared_ptr<Value> func_value = std::make_shared<Value>(std::make_shared<FuncNode>(*this));
-            throwError(ErrorType::Runtime, "Unable to evaluate default argument " + std::to_string(i), line, column, getFuncContext(func_value));
+            throwError(ErrorType::Runtime, "Unable to evaluate default argument " + std::to_string(i), line, column);
         }
         default_arg_values[pair.first] = value.value();
     }
     std::shared_ptr<Value> func_value = std::make_shared<Value>(std::make_shared<FuncNode>(*this));
-    setFuncContext(func_value);
     return func_value;
 }
 
@@ -1956,6 +1959,7 @@ void FuncNode::setArgs(ValueList values,
     }
 
     if (num_args != args.size()) {
+        popFunctionContext();
         if (num_args > args.size()) {
             if (default_arg_values.size() > 0) {
                 throwError(ErrorType::ArityMismatch, std::format("Function takes from {} to {} arguments but {} were given",
@@ -1991,20 +1995,15 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
         local_env_copy.setGlobalValue(pair.first, pair.second);
     }
     Scope local_scope;
+    pushFunctionContext(*func_name, file_context);
     if (!member_func) {
         local_scope.set(*func_name, global_env.get(*func_name, member_func));
-        pushExecutionContext(getFuncContext(local_scope.get(*func_name)));
     }
     setArgs(values, pairs, local_scope);
     if (global_env.isClassEnv()) {
         local_env_copy.setClassEnv();
         local_env_copy.setClassAttrs(global_env.getClassAttrs());
         local_env_copy.setThis(global_env.getThis());
-        if (global_env.getClassAttrs().contains(*func_name)) {
-            pushExecutionContext(getFuncContext(global_env.getClassAttrs().get(*func_name)));
-        } else {
-            pushExecutionContext(getFuncContext(local_env_copy.get(*func_name)));
-        }
     }
     local_env_copy.addScope(local_scope);
     recursion += 1;
@@ -2021,15 +2020,8 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
         return_value = e.value;
     }
     catch (const ErrorException& e) {
-        if (!member_func) {
-            throwError(e.error_type, e.message, line, column, getFuncContext(local_scope.get(*func_name)));
-        } else {
-            if (global_env.getClassAttrs().contains(*func_name)) {
-                throwError(e.error_type, e.message, line, column, getFuncContext(global_env.getClassAttrs().get(*func_name)));
-            } else {
-                throwError(e.error_type, e.message, line, column, getFuncContext(local_env_copy.get(*func_name)));
-            }
-        }
+        popFunctionContext();
+        throw;
     }
 
     if (global_env.isClassEnv()) {
@@ -2044,7 +2036,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
     recursion -= 1;
 
     local_env_copy.removeScope();
-    popExecutionContext();
+    popFunctionContext();
 
     return return_value;
 }
@@ -2073,11 +2065,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
                 return result;
             }
             catch (const ErrorException& e) {
-                if (e.error_type == ErrorType::ArityMismatch) {
-                    throwError(ErrorType::Runtime, e.message, line, column);
-                } else {
-                    throw e;
-                }
+                throwError(e.error_type, e.message, line, column);
             }
         } else {
             if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(stored_func)) {
@@ -2138,11 +2126,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             return std::make_shared<Value>(instance);
         }
         catch (const ErrorException& e) {
-                if (e.error_type == ErrorType::ArityMismatch) {
-                    throwError(ErrorType::Runtime, e.message, line, column);
-                } else {
-                    throwError(e.error_type, e.message, line, column);
-                }
+                throwError(e.error_type, e.message, line, column);
             }
     }
     else {
@@ -2199,11 +2183,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
                 }
             }
             catch (const ErrorException& e) {
-                if (e.error_type == ErrorType::ArityMismatch) {
-                    throwError(ErrorType::Runtime, e.message, line, column);
-                } else {
-                    throw e;
-                }
+                throwError(e.error_type, e.message, line, column);
             }
         } else {
             throwError(ErrorType::Runtime, "Unable to call function " + std::dynamic_pointer_cast<IdentifierNode>(stored_func)->name, line, column);

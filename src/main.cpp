@@ -76,6 +76,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
+        pushParsingContext(filename);
         Parser parser{tokens};
         std::vector<std::shared_ptr<ASTNode>> statements;
         statements = parser.parse();
@@ -105,11 +106,16 @@ the program execution to ignore this warning)");
             }
         }
     }
+    catch (const ErrorException& e) {
+        std::cerr << e.message;
+        return 1;
+    }
     catch (const std::exception& e) {
         std::cerr << e.what();
         return 1;
     }
 
+    popParsingContext();
     popExecutionContext();
 
     return 0;
