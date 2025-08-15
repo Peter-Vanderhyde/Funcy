@@ -36,8 +36,8 @@ XP_PER_KILL_BASE = 3;
 
 # Economy & shops
 GOLD_START = 0;
-REST_SHOP_CHANCE = 25;     # % chance to see rest-shop on descent
-TRADER_SPAWN_CHANCE = 20;  # % chance a trader 'T' appears in-level
+REST_SHOP_CHANCE = 75;     # % chance to see rest-shop on descent
+TRADER_SPAWN_CHANCE = 70;  # % chance a trader 'T' appears in-level
 SHOP_OFFER_COUNT = 5;
 
 PRICE_POTION_BASE    = 12; # + (heal-5)
