@@ -251,6 +251,34 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(false);
         }
     }
+    else if (val_type == ValueType::List) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            auto list = value->get<std::shared_ptr<List>>();
+            return std::make_shared<Value>(list->empty());
+        }
+    }
+    else if (val_type == ValueType::Dictionary) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            auto dict = value->get<std::shared_ptr<Dictionary>>();
+            return std::make_shared<Value>(dict->empty());
+        }
+    }
+    else if (val_type == ValueType::Function) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    else if (val_type == ValueType::BuiltInFunction) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    else if (val_type == ValueType::Type) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            auto type_val = value->get<ValueType>();
+            return std::make_shared<Value>(type_val == ValueType::None);
+        }
+    }
 
     throwError(ErrorType::Runtime, std::format("Unsupported operand types for operation. Operation was '{}' {}",
                                                 getTokenTypeLabel(op), getValueStr(value)), line, column);

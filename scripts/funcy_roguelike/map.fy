@@ -53,7 +53,181 @@ func centerOf(room) {
     return [cx, cy];
 }
 
-func generateMap() {
+# Theme-based map generation
+func getThemeForDepth(depth) {
+    if depth < THEME_DEPTHS[1] { return THEMES[0]; }  # Catacombs: 1-4
+    elif depth < THEME_DEPTHS[2] { return THEMES[1]; }  # Caves: 5-9
+    else { return THEMES[2]; }  # Forge: 10+
+}
+
+func generateCatacombsMap() {
+    # Catacombs: narrow rooms, long corridors, more structured
+    ROOM_ATTEMPTS = 80;
+    MIN_W = 3;  MAX_W = 8;   # narrower rooms
+    MIN_H = 2;  MAX_H = 6;
+    SEP_PAD = 2;              # more separation
+    
+    grid = makeGrid("#");
+    rooms = [];
+    
+    attempts = 0;
+    while attempts < ROOM_ATTEMPTS {
+        attempts = attempts + 1;
+        
+        rw = randInt(MIN_W, MAX_W);
+        rh = randInt(MIN_H, MAX_H);
+        
+        rx = randInt(1, MAP_W - rw - 2);
+        ry = randInt(1, MAP_H - rh - 2);
+        
+        newr = { "x": rx, "y": ry, "w": rw, "h": rh };
+        
+        ok = true;
+        for i = 0, i < length(rooms), i += 1 {
+            if rectsOverlap(newr, rooms[i], SEP_PAD) { ok = false; break; }
+        }
+        if not ok { continue; }
+        
+        carveRoom(grid, rx, ry, rw, rh);
+        rooms.append(newr);
+        
+        if length(rooms) > 1 {
+            prev = rooms[length(rooms) - 2];
+            c1 = centerOf(prev); c2 = centerOf(newr);
+            # Always connect with both tunnels for catacombs
+            carveHTunnel(grid, c1[0], c2[0], c1[1]);
+            carveVTunnel(grid, c1[1], c2[1], c2[0]);
+        }
+    }
+    
+    return { "grid": grid, "rooms": rooms };
+}
+
+func generateCavesMap() {
+    # Caves: organic, cellular rooms, fewer connections
+    ROOM_ATTEMPTS = 50;
+    MIN_W = 5;  MAX_W = 12;  # wider, more organic
+    MIN_H = 4;  MAX_H = 10;
+    SEP_PAD = 1;              # less separation
+    
+    grid = makeGrid("#");
+    rooms = [];
+    
+    attempts = 0;
+    while attempts < ROOM_ATTEMPTS {
+        attempts = attempts + 1;
+        
+        rw = randInt(MIN_W, MAX_W);
+        rh = randInt(MIN_H, MAX_H);
+        
+        rx = randInt(1, MAP_W - rw - 2);
+        ry = randInt(1, MAP_H - rh - 2);
+        
+        newr = { "x": rx, "y": ry, "w": rw, "h": rh };
+        
+        ok = true;
+        for i = 0, i < length(rooms), i += 1 {
+            if rectsOverlap(newr, rooms[i], SEP_PAD) { ok = false; break; }
+        }
+        if not ok { continue; }
+        
+        carveRoom(grid, rx, ry, rw, rh);
+        rooms.append(newr);
+        
+        if length(rooms) > 1 {
+            prev = rooms[length(rooms) - 2];
+            c1 = centerOf(prev); c2 = centerOf(newr);
+            # Always connect caves rooms, but vary the connection type
+            if randInt(0, 1) == 0 {
+                carveHTunnel(grid, c1[0], c2[0], c1[1]);
+                carveVTunnel(grid, c1[1], c2[1], c2[0]);
+            } else {
+                carveVTunnel(grid, c1[1], c2[1], c1[0]);
+                carveHTunnel(grid, c1[0], c2[0], c2[1]);
+            }
+        }
+    }
+    
+    return { "grid": grid, "rooms": rooms };
+}
+
+func generateForgeMap() {
+    # Forge: wide rooms, lava pockets, more open
+    ROOM_ATTEMPTS = 40;
+    MIN_W = 6;  MAX_W = 15;  # wider rooms
+    MIN_H = 5;  MAX_H = 12;
+    SEP_PAD = 1;
+    
+    grid = makeGrid("#");
+    rooms = [];
+    
+    attempts = 0;
+    while attempts < ROOM_ATTEMPTS {
+        attempts = attempts + 1;
+        
+        rw = randInt(MIN_W, MAX_W);
+        rh = randInt(MIN_H, MAX_H);
+        
+        rx = randInt(1, MAP_W - rw - 2);
+        ry = randInt(1, MAP_H - rh - 2);
+        
+        newr = { "x": rx, "y": ry, "w": rw, "h": rh };
+        
+        ok = true;
+        for i = 0, i < length(rooms), i += 1 {
+            if rectsOverlap(newr, rooms[i], SEP_PAD) { ok = false; break; }
+        }
+        if not ok { continue; }
+        
+        carveRoom(grid, rx, ry, rw, rh);
+        rooms.append(newr);
+        
+        if length(rooms) > 1 {
+            prev = rooms[length(rooms) - 2];
+            c1 = centerOf(prev); c2 = centerOf(newr);
+            # Wide connections for forge
+            carveHTunnel(grid, c1[0], c2[0], c1[1]);
+            carveVTunnel(grid, c1[1], c2[1], c2[0]);
+        }
+    }
+    
+    return { "grid": grid, "rooms": rooms };
+}
+
+func generateMap(theme) {
+    result = Null;
+    if theme == "catacombs" {
+        result = generateCatacombsMap();
+    } elif theme == "caves" {
+        result = generateCavesMap();
+    } elif theme == "forge" {
+        result = generateForgeMap();
+    } else {
+        # Fallback to original generation
+        result = generateClassicMap();
+    }
+    
+    grid = result["grid"];
+    rooms = result["rooms"];
+    
+    if length(rooms) == 0 {
+        rw = 6; rh = 4; rx = (MAP_W - rw) // 2; ry = (MAP_H - rh) // 2;
+        carveRoom(grid, rx, ry, rw, rh);
+        rooms.append({ "x": rx, "y": ry, "w": rw, "h": rh });
+    }
+    
+    start = centerOf(rooms[0]); px = start[0]; py = start[1];
+    if not inBounds(px, py) { px = 1; py = 1; }
+    
+    last = rooms[length(rooms) - 1]; exy = centerOf(last);
+    ex = exy[0]; ey = exy[1]; if not inBounds(ex, ey) { ex = MAP_W - 2; ey = MAP_H - 2; }
+    carveCell(grid, ex, ey, ">");
+    
+    return { "grid": grid, "rooms": rooms, "exit": [ex, ey], "player_start": [px, py] };
+}
+
+# Original map generation as fallback
+func generateClassicMap() {
     ROOM_ATTEMPTS = 60;
     MIN_W = 4;  MAX_W = 10;
     MIN_H = 3;  MAX_H = 8;
@@ -96,18 +270,5 @@ func generateMap() {
         }
     }
 
-    if length(rooms) == 0 {
-        rw = 6; rh = 4; rx = (MAP_W - rw) // 2; ry = (MAP_H - rh) // 2;
-        carveRoom(grid, rx, ry, rw, rh);
-        rooms.append({ "x": rx, "y": ry, "w": rw, "h": rh });
-    }
-
-    start = centerOf(rooms[0]); px = start[0]; py = start[1];
-    if not inBounds(px, py) { px = 1; py = 1; }
-
-    last = rooms[length(rooms) - 1]; exy = centerOf(last);
-    ex = exy[0]; ey = exy[1]; if not inBounds(ex, ey) { ex = MAP_W - 2; ey = MAP_H - 2; }
-    carveCell(grid, ex, ey, ">");
-
-    return { "grid": grid, "rooms": rooms, "exit": [ex, ey], "player_start": [px, py] };
+    return { "grid": grid, "rooms": rooms };
 }

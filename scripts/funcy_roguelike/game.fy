@@ -25,11 +25,29 @@ class Game {
         &seen = [];          # map memory (bool[y][x])
         &exit = [0,0];       # [x, y]
         &trader = Null;      # { "x":int, "y":int, "stock":[{ "it":Item, "price":int }] } or Null
+        
+        &current_theme = "catacombs";  # Current theme for this level
+
+
 
         &buildLevel(1);
     }
 
+    
+
     # ------------ UTILITIES ------------
+
+    func &getThemeInfo() {
+        if &current_theme == "caves" {
+            return "Natural caves with organic formations and cave-dwelling monsters";
+        } elif &current_theme == "catacombs" {
+            return "Stone catacombs with narrow corridors and undead creatures";
+        } elif &current_theme == "forge" {
+            return "Fiery forge with wide chambers and fire-based enemies";
+        } else {
+            return "Unknown theme";
+        }
+    }
 
     func &buildLineFromRow(row) {
         s = "";
@@ -39,17 +57,34 @@ class Game {
 
     func &applyColorVisibleTile(ch) {
         if not &color_enabled { return ch; }
-        if ch == "#" { return C_WALL + "#" + C_RESET; }
-        if ch == "." { return C_FLOOR + "." + C_RESET; }
+        if ch == "#" { 
+            # Apply theme-based wall colors
+            if &current_theme == "catacombs" { return C_CATACOMBS_WALL + "#" + C_RESET; }
+            elif &current_theme == "caves" { return C_CAVES_WALL + "#" + C_RESET; }
+            elif &current_theme == "forge" { return C_FORGE_WALL + "#" + C_RESET; }
+            else { return C_WALL + "#" + C_RESET; }
+        }
+        if ch == "." { 
+            # Apply theme-based floor colors
+            if &current_theme == "catacombs" { return C_CATACOMBS_FLOOR + "." + C_RESET; }
+            elif &current_theme == "caves" { return C_CAVES_FLOOR + "." + C_RESET; }
+            elif &current_theme == "forge" { return C_FORGE_FLOOR + "." + C_RESET; }
+            else { return C_FLOOR + "." + C_RESET; }
+        }
         if ch == ">" { return C_EXIT  + ">" + C_RESET; }
         if ch == "@" { return C_PLAYER+ "@" + C_RESET; }
         if ch == "!" { return C_POTION+ "!" + C_RESET; }
         if ch == ")" { return C_WEAPON+ ")" + C_RESET; }
         if ch == "[" { return C_WEAPON+ "[" + C_RESET; }  # reuse cyan for armor
         if ch == "=" { return C_POTION+ "=" + C_RESET; }  # reuse magenta for ring
-        # Monster letters (unique per type)
-        if ch == "M" or ch == "R" or ch == "B" or ch == "s" or ch == "G" or ch == "S" {
-            return C_MON + ch + C_RESET;
+        if ch == "$" { return C_GOLD + "$" + C_RESET; }   # gold piles
+        # Monster letters - check if it's a monster glyph by looking at monster positions
+        # This is more accurate than guessing based on character type
+        for i = 0, i < length(&monsters), i += 1 {
+            m = &monsters[i];
+            if m.glyph == ch { 
+                return C_MON + ch + C_RESET;
+            }
         }
         if ch == "T" { return C_TRADER + "T" + C_RESET; }
         return ch;
@@ -173,14 +208,39 @@ class Game {
             itm = Null;
             if roll < 3 {
                 heal = randInt(5, 10) + (&player.depth // 3);   # tiny depth bump
-                itm = Item("Red Potion", "potion", heal);
+                # Theme-specific potion names
+                potion_name = "Red Potion";
+                if &current_theme == "catacombs" { potion_name = "Soul Essence"; }
+                elif &current_theme == "caves" { potion_name = "Cave Dew"; }
+                elif &current_theme == "forge" { potion_name = "Molten Elixir"; }
+                itm = Item(potion_name, "potion", heal);
             } elif roll < 6 {
                 pwr = randInt(1, 3) + (&player.depth // 3);
-                wnames = ["Dagger", "Shortsword", "Club"];
+                # Theme-specific weapon names
+                wnames = [];
+                if &current_theme == "catacombs" {
+                    wnames = ["Bone Dagger", "Spectral Blade", "Soul Reaper"];
+                } elif &current_theme == "caves" {
+                    wnames = ["Crystal Shard", "Fungus Staff", "Cave Pick"];
+                } elif &current_theme == "forge" {
+                    wnames = ["Fire Brand", "Molten Hammer", "Ash Cleaver"];
+                } else {
+                    wnames = ["Dagger", "Shortsword", "Club"];
+                }
                 itm = Item(randChoice(wnames), "weapon", pwr);
             } elif roll < 8 {
                 defv = randInt(1, 2) + (&player.depth // 4);
-                anames = ["Cloth Armor", "Leather Armor", "Chain Shirt"];
+                # Theme-specific armor names
+                anames = [];
+                if &current_theme == "catacombs" {
+                    anames = ["Bone Armor", "Spectral Robes", "Soul Plate"];
+                } elif &current_theme == "caves" {
+                    anames = ["Crystal Mail", "Fungus Hide", "Cave Leather"];
+                } elif &current_theme == "forge" {
+                    anames = ["Fire Forged", "Molten Plate", "Ash Armor"];
+                } else {
+                    anames = ["Cloth Armor", "Leather Armor", "Chain Shirt"];
+                }
                 itm = Item(randChoice(anames), "armor", defv);
             } else {
                 rnames = ["Ring of Power", "Ring of Defense"];
@@ -243,7 +303,7 @@ class Game {
     }
 
     func &playerAdjacentToTrader() {
-        if not &trader { return false; }
+        if &trader == Null { return false; }
         dx = &player.x - &trader["x"]; if dx < 0 { dx = -dx; }
         dy = &player.y - &trader["y"]; if dy < 0 { dy = -dy; }
         return (dx + dy) == 1 or (dx == 0 and dy == 0);
@@ -261,8 +321,11 @@ class Game {
 
     func &buildLevel(depth) {
         &player.depth = depth;
+        
+        # Determine theme based on depth
+        &current_theme = getThemeForDepth(depth);
 
-        gen = generateMap();
+        gen = generateMap(&current_theme);
         &grid  = gen["grid"];
         &rooms = gen["rooms"];
         &exit  = gen["exit"];                # [x, y]
@@ -285,7 +348,7 @@ class Game {
         exitY = &exit[1];
 
         # spawn monsters — ONLY on floor ".", never on exit ">"
-        mcount = MONSTERS_PER_FLOOR + (&player.depth - 1);
+        mcount = MONSTERS_PER_FLOOR + (depth - 1);
         for i = 0, i < mcount, i += 1 {
             r = randChoice(&rooms);
             rx = randInt(r["x"], r["x"] + r["w"] - 1);
@@ -294,10 +357,22 @@ class Game {
                and not (&player.x == rx and &player.y == ry)
                and not (rx == exitX and ry == exitY)
                and not &monsterAt(rx, ry) {
-                base = 3 + (&player.depth - 1);
+                base = 3 + (depth - 1);
                 hp = randInt(base, base + 4);
-                atk = randInt(1 + (&player.depth // 2), 2 + (&player.depth // 2));
-                names = ["Rat", "Bat", "Slime", "Goblin", "Spider"];
+                atk = randInt(1 + (depth // 2), 2 + (depth // 2));
+                
+                # Theme-specific monster names
+                names = [];
+                if &current_theme == "catacombs" {
+                    names = ["Skeleton", "Zombie", "Ghost", "Wraith", "Specter"];
+                } elif &current_theme == "caves" {
+                    names = ["Slime", "Bat", "Spider", "Cave Rat", "Fungus"];
+                } elif &current_theme == "forge" {
+                    names = ["Golem", "Fire Imp", "Lava Spawn", "Ash Demon", "Ember Beast"];
+                } else {
+                    names = ["Rat", "Bat", "Slime", "Goblin", "Spider"];
+                }
+                
                 m = Monster(randChoice(names), rx, ry, hp, atk);
                 &monsters.append(m);
             }
@@ -320,24 +395,54 @@ class Game {
 
                 if roll < 3 {
                     heal = randInt(5, 10);
-                    itm = Item("Red Potion", "potion", heal);
+                    # Theme-specific potion names
+                    potion_name = "Red Potion";
+                    if &current_theme == "catacombs" { potion_name = "Soul Essence"; }
+                    elif &current_theme == "caves" { potion_name = "Cave Dew"; }
+                    elif &current_theme == "forge" { potion_name = "Molten Elixir"; }
+                    itm = Item(potion_name, "potion", heal);
                     glyph = "!";
                 } elif roll < 6 {
                     pwr = randInt(1, 3);
-                    wnames = ["Dagger", "Shortsword", "Club"];
+                    # Theme-specific weapon names
+                    wnames = [];
+                    if &current_theme == "catacombs" {
+                        wnames = ["Bone Dagger", "Spectral Blade", "Soul Reaper"];
+                    } elif &current_theme == "caves" {
+                        wnames = ["Crystal Shard", "Fungus Staff", "Cave Pick"];
+                    } elif &current_theme == "forge" {
+                        wnames = ["Fire Brand", "Molten Hammer", "Ash Cleaver"];
+                    } else {
+                        wnames = ["Dagger", "Shortsword", "Club"];
+                    }
                     itm = Item(randChoice(wnames), "weapon", pwr);
                     glyph = ")";
                 } elif roll < 8 {
                     defv = randInt(1, 2);
-                    anames = ["Cloth Armor", "Leather Armor", "Chain Shirt"];
+                    # Theme-specific armor names
+                    anames = [];
+                    if &current_theme == "catacombs" {
+                        anames = ["Bone Armor", "Spectral Robes", "Soul Plate"];
+                    } elif &current_theme == "caves" {
+                        anames = ["Crystal Mail", "Fungus Hide", "Cave Leather"];
+                    } elif &current_theme == "forge" {
+                        anames = ["Fire Forged", "Molten Plate", "Ash Armor"];
+                    } else {
+                        anames = ["Cloth Armor", "Leather Armor", "Chain Shirt"];
+                    }
                     itm = Item(randChoice(anames), "armor", defv);
                     glyph = "[";
-                } else {
+                } elif roll < 8 {
                     rnames = ["Ring of Power", "Ring of Defense"];
                     itm = Item(randChoice(rnames), "ring", 0);
                     if itm.name == "Ring of Power" { itm.subkind = "power"; }
                     else { itm.subkind = "defense"; }
                     glyph = "=";
+                } else {
+                    # Gold pile (roll 8-9)
+                    gold_amount = randInt(5, 15) + (&player.depth * 2);
+                    itm = Item("Gold Pile", "gold", gold_amount);
+                    glyph = "$";
                 }
 
                 &items.append({ "x": rx, "y": ry, "glyph": glyph, "it": itm });
@@ -347,7 +452,7 @@ class Game {
         # maybe spawn a trader in this level
         &spawnTraderMaybe();
 
-        &message = "You descend to depth " + str(&player.depth) + ".";
+        &message = "You descend to depth " + str(&player.depth) + " (" + &current_theme + ").";
         &dead = false;
     }
 
@@ -380,8 +485,14 @@ class Game {
         if idx == -1 { &message = "Nothing to pick up."; return; }
         rec = &items[idx];
         &items.pop(idx);
-        &player.inventory.append(rec["it"]);
-        &message = "Picked up " + rec["it"].toString() + ".";
+        
+        if rec["it"].kind == "gold" {
+            &player.gold = &player.gold + rec["it"].stats;
+            &message = "Picked up " + str(rec["it"].stats) + " gold!";
+        } else {
+            &player.inventory.append(rec["it"]);
+            &message = "Picked up " + rec["it"].toString() + ".";
+        }
     }
 
     # --- Equipment helpers ---
@@ -479,6 +590,8 @@ class Game {
     func &showStats() {
         print("=== Player Stats ===");
         print(&player.statsStr());
+        print("  Depth: " + str(&player.depth));
+        print("  Theme: " + &current_theme + " - " + &getThemeInfo());
         if &player.weapon { print("  Weapon: " + &player.weapon.toString()); }
         else { print("  Weapon: none"); }
         if &player.armor { print("  Armor: " + &player.armor.toString()); }
@@ -524,7 +637,7 @@ class Game {
         ex = &exit[0]; ey = &exit[1];
 
         lines = [];
-        header = "== Funcy Roguelike :: " + &player.statsStr() + " ==";
+        header = "== Funcy Roguelike :: " + &player.statsStr() + " :: " + &current_theme + " ==";
         lines.append(header);
         if &message != "" { lines.append(&message); }
         else { lines.append(" "); }  # keep board from shifting
@@ -561,7 +674,10 @@ class Game {
                     if &seen[y][x] {
                         if &grid[y][x] == "#" {
                             ch = "#";
-                            if &color_enabled { ch = C_WALL_DIM + ch + C_RESET; }
+                            if &color_enabled { 
+                                # All themes use the same dim gray for remembered walls
+                                ch = C_WALL_DIM_THEME + ch + C_RESET;
+                            }
                         } elif x == ex and y == ey {
                             ch = ">";
                             if &color_enabled { ch = C_EXIT + ch + C_RESET; }
