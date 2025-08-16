@@ -83,7 +83,25 @@ void printValue(const std::shared_ptr<Value> value, bool error) {
             if (error) {
                 std::cout << style.red << string_value << style.reset;
             } else {
-                std::cout << style.green << "'" << string_value << "'" << style.reset;
+                bool only_newlines = !string_value.empty() && string_value.find_first_not_of('\n') == std::string::npos;
+                if (only_newlines) {
+                    std::cout << style.green << string_value << style.reset;
+                } else {
+                    // Check if string ends with newlines
+                    size_t last_non_newline = string_value.find_last_not_of('\n');
+                    if (last_non_newline == std::string::npos) {
+                        // String is all newlines (already handled above)
+                        std::cout << style.green << "'" << string_value << "'" << style.reset;
+                    } else if (last_non_newline == string_value.length() - 1) {
+                        // No trailing newlines
+                        std::cout << style.green << "'" << string_value << "'" << style.reset;
+                    } else {
+                        // Has trailing newlines
+                        std::string content = string_value.substr(0, last_non_newline + 1);
+                        std::string trailing_newlines = string_value.substr(last_non_newline + 1);
+                        std::cout << style.green << "'" << content << "'" << trailing_newlines << style.reset;
+                    }
+                }
             }
             return;
         }
