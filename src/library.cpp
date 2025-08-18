@@ -1100,7 +1100,7 @@ BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, 
 
     std::ifstream file(new_path);
     if (!file) {
-        throwError(ErrorType::Runtime, "Failed to open file: " + new_path);
+        return std::make_shared<Value>();
     }
 
     std::stringstream buffer;

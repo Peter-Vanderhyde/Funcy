@@ -404,7 +404,7 @@ Thrown errors halt the execution of the program.
 - `randChoice(list) -> int|float|string|bool|obj` - Picks a random element from a list and returns it.
 - `randInt(min, max) -> int` - Chooses a random integer between and including the minimum and maximum given values.
 - `range(start=0, end, step=1) -> list` - Generates a range of numbers.
-- `readFile(file_path_str) -> string` - Reads from a file. Throws error if file does not exist.
+- `readFile(file_path_str) -> string|Null` - Reads from a file. Returns Null if file does not exist.
 - `reversed(list) -> list` - Returns a reversed version of the sequence.
 - `round(value, precision=0) -> float` - Rounds a number to the given precision.
 - `str(value) -> string` - Converts a value to a string. Dictionaries converted into a string will maintain json compatible formatting so they can be saved in json files.
