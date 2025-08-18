@@ -83,16 +83,22 @@ void printValue(const std::shared_ptr<Value> value, bool error) {
             if (error) {
                 std::cout << style.red << string_value << style.reset;
             } else {
-                bool only_newlines = !string_value.empty() && string_value.find_first_not_of('\n') == std::string::npos;
-                if (only_newlines) {
+                // Check if string contains only unprintable characters (newlines, tabs, escape sequences, etc.)
+                bool has_printable_content = false;
+                for (char c : string_value) {
+                    if (c >= 32 && c <= 126) { // Printable ASCII characters
+                        has_printable_content = true;
+                        break;
+                    }
+                }
+                
+                if (!has_printable_content) {
+                    // String contains only unprintable characters, print without quotes
                     std::cout << style.green << string_value << style.reset;
                 } else {
-                    // Check if string ends with newlines
+                    // String has printable content, handle with quotes
                     size_t last_non_newline = string_value.find_last_not_of('\n');
-                    if (last_non_newline == std::string::npos) {
-                        // String is all newlines (already handled above)
-                        std::cout << style.green << "'" << string_value << "'" << style.reset;
-                    } else if (last_non_newline == string_value.length() - 1) {
+                    if (last_non_newline == string_value.length() - 1) {
                         // No trailing newlines
                         std::cout << style.green << "'" << string_value << "'" << style.reset;
                     } else {
