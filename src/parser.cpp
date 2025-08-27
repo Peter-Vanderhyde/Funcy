@@ -321,75 +321,55 @@ std::shared_ptr<ASTNode> Parser::parseKeyword() {
 
 std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> varString) {
     if (debug) std::cout << "Parse Statement " << getTokenStr() << std::endl;
+
+    // Preserve leading '&' behavior for member-variable context
     bool member = false;
     if (tokenIs("&")) {
         consumeToken();
         member = true;
     }
-    if (tokenIs("identifier") && peekToken() && (nextTokenIs("=") || nextTokenIs("+=") ||
-                                                nextTokenIs("-=") || nextTokenIs("*=") ||
-                                                nextTokenIs("/="))) {
-        if (member) {
-            backUp(); // Make the & part of the identifier parsing
-        }
-        auto left = parseIdentifier(varString);
 
-        const Token& op = consumeToken();
-        auto right = parseLogicalOr();
-        return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
-    } else if (tokenIs("identifier") && peekToken() && nextTokenIs(".") && peekToken() &&
-                nextTokenIs("identifier", 2) && peekToken() && (nextTokenIs("=", 3) || nextTokenIs("+=", 3 ||
-                                                                nextTokenIs("-=", 3) || nextTokenIs("*=", 3) ||
-                                                                nextTokenIs("/=", 3)))) {
+    // Start with an identifier: parse full member/index/call chain as potential LHS
+    if (tokenIs("identifier")) {
         if (member) {
-            backUp();
+            backUp();  // include '&' in identifier parsing
         }
         auto left = parseMemberAccess(varString);
 
-        const Token& op = consumeToken();
-        auto right = parseLogicalOr();
-        return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
-    } else if (tokenIs("identifier") && peekToken() && nextTokenIs("[")) {
-        int i = 1;
-        while (!nextTokenIs(";", i)) {
-            if (nextTokenIs("=", i) || nextTokenIs("+=", i) || nextTokenIs("-=", i) || nextTokenIs("*=", i) || nextTokenIs("/=", i)) {
-                break;
-            }
-            i++;
-        }
-        if (nextTokenIs(";", i)) {
-            if (member) {
-                backUp();
-            }
-            return parseLogicalOr();
-        } else {
-            if (member) {
-                backUp();
-            }
-            auto left = parseIndexing();
+        // Assignment & aug-assign
+        if (tokenIs("=") || tokenIs("+=") || tokenIs("-=") || tokenIs("*=") || tokenIs("/=")) {
             const Token& op = consumeToken();
             auto right = parseLogicalOr();
             return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
         }
+
+        // FOREACH form support: e.g. "for r in rooms { ... }"
+        if (tokenIs("in")) {
+            const Token& inTok = consumeToken();           // TokenType::_In
+            auto right = parseLogicalOr();                 // the iterable
+            return std::make_shared<BinaryOpNode>(left, inTok.type, right, inTok.line, inTok.column);
+        }
+
+        // Otherwise, it's an expression statement
+        return left;
     }
-    else {
-        if (member) {
-            backUp();
-        }
-        auto left = parseLogicalOr();
-        if (auto left_list = std::dynamic_pointer_cast<ListNode>(left)) {
-            if (tokenIs("=")) {
-                const Token& op = consumeToken();
-                auto right = parseLogicalOr();
-                return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
-            } else {
-                return left;
-            }
-        }
-        else {
-            return left;
-        }
+
+    // Fallback: general expression (also supports list destructuring "[a,b] = expr")
+    if (member) {
+        backUp();
     }
+    auto left = parseLogicalOr();
+
+    if (auto left_list = std::dynamic_pointer_cast<ListNode>(left)) {
+        if (tokenIs("=")) {
+            const Token& op = consumeToken();
+            auto right = parseLogicalOr();
+            return std::make_shared<BinaryOpNode>(left, op.type, right, op.line, op.column);
+        }
+        return left;
+    }
+
+    return left;
 }
 
 std::shared_ptr<ASTNode> Parser::parseLogicalOr() {

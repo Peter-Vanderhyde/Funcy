@@ -1,3 +1,5 @@
 .vscode
 build/*
 !build/Funcy.exe
+scripts/ai_funcy_rules.md
+scripts/funcy_roguelike/

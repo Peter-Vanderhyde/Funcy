@@ -83,7 +83,31 @@ void printValue(const std::shared_ptr<Value> value, bool error) {
             if (error) {
                 std::cout << style.red << string_value << style.reset;
             } else {
-                std::cout << style.green << "'" << string_value << "'" << style.reset;
+                // Check if string contains only unprintable characters (newlines, tabs, escape sequences, etc.)
+                bool has_printable_content = false;
+                for (char c : string_value) {
+                    if (c >= 32 && c <= 126) { // Printable ASCII characters
+                        has_printable_content = true;
+                        break;
+                    }
+                }
+                
+                if (!has_printable_content) {
+                    // String contains only unprintable characters, print without quotes
+                    std::cout << style.green << string_value << style.reset;
+                } else {
+                    // String has printable content, handle with quotes
+                    size_t last_non_newline = string_value.find_last_not_of('\n');
+                    if (last_non_newline == string_value.length() - 1) {
+                        // No trailing newlines
+                        std::cout << style.green << "'" << string_value << "'" << style.reset;
+                    } else {
+                        // Has trailing newlines
+                        std::string content = string_value.substr(0, last_non_newline + 1);
+                        std::string trailing_newlines = string_value.substr(last_non_newline + 1);
+                        std::cout << style.green << "'" << content << "'" << trailing_newlines << style.reset;
+                    }
+                }
             }
             return;
         }
@@ -1076,7 +1100,7 @@ BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, 
 
     std::ifstream file(new_path);
     if (!file) {
-        throwError(ErrorType::Runtime, "Failed to open file: " + new_path);
+        return std::make_shared<Value>();
     }
 
     std::stringstream buffer;

@@ -236,12 +236,24 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
             return std::make_shared<Value>(val == "");
         }
     }
-    else if (val_type == ValueType::None) {
+    else if (val_type == ValueType::List) {
         if (op == TokenType::_Not || op == TokenType::_Exclamation) {
-            return std::make_shared<Value>(true);
+            auto list = value->get<std::shared_ptr<List>>();
+            return std::make_shared<Value>(list->empty());
         }
     }
-    else if (val_type == ValueType::Instance) {
+    else if (val_type == ValueType::Dictionary) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            auto dict = value->get<std::shared_ptr<Dictionary>>();
+            return std::make_shared<Value>(dict->empty());
+        }
+    }
+    else if (val_type == ValueType::Function) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    else if (val_type == ValueType::BuiltInFunction) {
         if (op == TokenType::_Not || op == TokenType::_Exclamation) {
             return std::make_shared<Value>(false);
         }
@@ -249,6 +261,22 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
     else if (val_type == ValueType::Class) {
         if (op == TokenType::_Not || op == TokenType::_Exclamation) {
             return std::make_shared<Value>(false);
+        }
+    }
+    else if (val_type == ValueType::Instance) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(false);
+        }
+    }
+    else if (val_type == ValueType::Type) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            ValueType type_val = value->get<ValueType>();
+            return std::make_shared<Value>(type_val == ValueType::None);
+        }
+    }
+    else if (val_type == ValueType::None) {
+        if (op == TokenType::_Not || op == TokenType::_Exclamation) {
+            return std::make_shared<Value>(true);
         }
     }
 
