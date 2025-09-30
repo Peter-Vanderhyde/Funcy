@@ -4,8 +4,9 @@
 
 ---
 
-> ### VSCode Extension
-> Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` file can be downloaded from the [funcy-lang Github Repository](https://github.com/Peter-Vanderhyde/funcy-lang).
+### VSCode Extension
+Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` file can be downloaded from the [funcy-lang Github Repository](https://github.com/Peter-Vanderhyde/funcy-lang).  
+The Funcy code snippets found in this README are utilizing Github's Python syntax highlighting (because it is most similar), and is not a representation of the extension's visuals.
 
 ## Running a Funcy File
 
@@ -37,7 +38,7 @@ Funcy.exe example.fy -IgnoreOverflow
 - [Keywords](#keywords)
 - [Errors](#errors)
 - [Built-in Functions](#built-in-functions)
-- [Examples](#examples)
+- [Program Examples](#program-examples)
 - [Additional Features](#additional-features)
 
 ---
@@ -60,7 +61,7 @@ Funcy is a dynamically-typed, object-oriented programming language based off of 
 
 ### Example:
 
-```funcy
+```python
 x = 10;
 if x > 5 {
     print("x is greater than 5");
@@ -124,7 +125,7 @@ if x > 5 {
 
 ### Conditional Statements:
 
-```funcy
+```python
 if condition {
     ...
 } elif another_condition {
@@ -138,7 +139,7 @@ if condition {
 
 #### While Loop:
 
-```funcy
+```python
 while condition {
     ...
 }
@@ -146,12 +147,12 @@ while condition {
 
 #### For Loop:
 
-```funcy
+```python
 for var = start, var < end, var += step {
     ...
 }
 
-for item in list {
+for item in my_list {
     ...
 }
 
@@ -185,7 +186,7 @@ for [r, g, b] in pixels {
 
 ### Defining Functions:
 
-```funcy
+```python
 func functionName(arg1, arg2) {
     ...
     return result;
@@ -194,7 +195,7 @@ func functionName(arg1, arg2) {
 
 ### Returning Multiple Values:
 
-```funcy
+```python
 func multiReturn() {
     return [val1, val2];
 }
@@ -204,7 +205,7 @@ func multiReturn() {
 
 ### Using Default Arguments:
 
-```funcy
+```python
 func showString(arg1, arg2="default string", arg3=Null) {
     ...
 }
@@ -221,15 +222,19 @@ showString(arg2="second arg", arg3=value, arg1=true);
 
 ### Syntax:
 
-```funcy
+```python
 class ClassName {
-    private_var = "visible inside class only";
+    private_var = "not visible outside class";  # Behaves like a normal variable
     &public_var = "visible outside class";
 
     # Constructor
     func &ClassName(arg, data) {
+
+        # Set class member variables that can be accessed within the class
         &public_var = arg;
         &data = data;
+
+        temp_var = "not visible in other functions";
     }
 
     func &getPrivateVar() {
@@ -243,10 +248,10 @@ class ClassName {
 
 obj = ClassName("value", "data");
 print(obj.getPrivateVar());
-print(obj.public_var);
+print(obj.public_var);  # Directly access the public member variable
 ```
 
-- Private members and methods are accessible only within the class.
+- Private members and methods are accessible only within their scope.
 - Public attributes and methods marked with `&` are accessible externally.
 - The constructor must be a public method with the same name as the class.
 
@@ -261,8 +266,8 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 ### Control Flow Keywords:
 
 - `in`: Used for iterating over ranges, collections, checking for values in lists, keys in dictionaries, and substrings in strings.
-  ```funcy
-  for item in list {
+  ```python
+  for item in my_list {
       print(item);
   }
 
@@ -280,13 +285,13 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
   ```
 
   It can also be combined with the `not` keyword to check for the absence of items:
-  ```funcy
+  ```python
   if "orange" not in fruits {
       print("Orange is not in the list");
   }
   ```
 - `break`: Exits the current loop prematurely.
-  ```funcy
+  ```python
   for x in range(10) {
       if x == 5 {
           break;  # Exit loop
@@ -295,7 +300,7 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
   }
   ```
 - `continue`: Skips the current iteration and moves to the next.
-  ```funcy
+  ```python
   for x in range(10) {
       if x % 2 == 0 {
           continue;  # Skip even numbers
@@ -306,16 +311,17 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 
 ### Type Keywords:
 
-- `Integer`, `Float`, `Boolean`, `String`, `List`, `Dictionary`, `Function`, `BuiltInFunction`, `Class`, `Instance`, `Null`: Used to define and compare types.
-  ```funcy
+- `Integer`, `Float`, `Boolean`, `String`, `List`, `Dictionary`, `Function`, `Class`, `Instance`, `Null`: Used to define and compare types.
+  ```python
   x = 10;
   print(type(x) == Integer);  # true
   ```
+  > `type(var)` is a built-in function that returns the appropriate type keyword for a variable.
 
 ### Declaration Keywords:
 
 - `global`: Declares a variable as global, making it accessible outside its local scope and allows modifying its value within a function.
-  ```funcy
+  ```python
   x = 10;
   func modifyGlobal() {
       global x;
@@ -336,9 +342,21 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
   e = Example();
   e.modifyGlobal();
   print(x);  # 40
+
+  func innerScope() {
+    new_var = "Newly created inside this scope";
+    global new_var;
+  }
+
+  func separateScope() {
+    print(new_var);
+  }
+
+  innerScope();
+  separateScope(); # It knows the new_var global
   ```
-- `import`: Imports modules or libraries. It will run the entire file upon importing it. There is not currently a way to only import specific functions or classes from a file.
-  ```funcy
+- `import`: Imports separate funcy files. It will run the entire file upon importing it. There is not currently a way to only import specific functions or classes from a file.
+  ```python
   import "module.fy";
   ```
 
@@ -347,24 +365,24 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 Funcy allows users to explicitly throw errors during execution using the `throw` keyword. The `throw` keyword can be followed by any value, including strings, numbers, objects, or any expression.
 
 ### Syntax:
-```funcy
+```python
 throw <expression>;
 ```
 
 ### Example Usage:
 
 1. Throwing an error message:
-   ```funcy
+   ```python
    throw "Error: Invalid operation";
    ```
 
 2. Throwing a computed value:
-   ```funcy
+   ```python
    throw 2 + 5;  # Throws the value 7
    ```
 
 3. Using `throw` in a function:
-   ```funcy
+   ```python
    func validateInput(input) {
        if not input {
            throw "Error: Input cannot be null";
@@ -374,7 +392,7 @@ throw <expression>;
    validateInput(Null);  # Throws "Error: Input cannot be null"
    ```
 
-Thrown errors halt the execution of the program.
+Thrown errors halt the execution of the program. There is not currently a way to catch thrown errors.
 
 ---
 
@@ -471,11 +489,41 @@ Thrown errors halt the execution of the program.
 
 ---
 
-## Examples
+## Additional Features
+
+- **String Multiplication:**
+
+  ```python
+  print("hello" * 3);  # Output: hellohellohello
+  ```
+
+- **List Slicing:**
+
+  ```python
+  my_list = [1, 2, 3, 4, 5];
+  sublist = my_list[1:4];  # Output: [2, 3, 4]
+  sublist = my_list[-3:-1]; # Output: [3, 4]
+  ```
+
+- **Argument Ordering:**  
+    Arguments can be set in any order, as long as they are labeled.
+    ```python
+    func Foo(x, y, z) {
+        # Code
+    }
+
+    Foo(x=5, y=2, z="string");
+    Foo(z="string", y=8, x=3);
+    Foo(1, z="string", y=7);
+    ```
+
+---
+
+## Program Examples
 
 ### Example 1: Factorial Function
 
-```funcy
+```python
 func factorial(n) {
     if n == 0 {
         return 1;
@@ -487,54 +535,102 @@ func factorial(n) {
 print(factorial(5));  # Output: 120
 ```
 
-### Example 2: Class with Public Attributes
+### Example 2: Fibonacci
 
-```funcy
-class Example {
-    func &Example(value) {
-        &public_attr = value;
+```python
+a = 0;
+b = 0;
+
+while a < 10000 {
+    if a == 0 and a == b {
+        print(0);
+        b = 1;
+    } else {
+        temp = a + b;
+        a = b;
+        b = temp;
+        print(a);
+    }
+}
+```
+
+### Example 3: Inventory
+
+```python
+class Item {
+    &name = "";
+    &quantity = 0;
+    &price = 0.0;
+
+    # Constructor
+    func &Item(name, quantity, price) {
+        &name = name;
+        &quantity = quantity;
+        &price = price;
     }
 
-    func secretValue() {
-        return "Shhh";
-    }
-
-    func &getSecretValue() {
-        return secretValue();
+    func &display() {
+        print("Item: " + &name + ", Quantity: " + str(&quantity) + ", Price: $" + str(&price));
     }
 }
 
-obj = Example(10);
-print(obj.public_attr);  # Output: 10
-print(obj.getSecretValue());  # Output: "Shhh"
-```
-
----
-
-## Additional Features
-
-- **String Multiplication:**
-
-  ```funcy
-  print("hello" * 3);  # Output: hellohellohello
-  ```
-
-- **List Slicing:**
-
-  ```funcy
-  my_list = [1, 2, 3, 4, 5];
-  sublist = my_list[1:4];  # Output: [2, 3, 4]
-  sublist = my_list[-3:-1]; # Output: [3, 4]
-  ```
-
-- **Argument Ordering:**  
-    Arguments can be set in any order, as long as they are labeled.
-    ```funcy
-    func Foo(x, y, z) {
-        # Code
+class Inventory {
+    func &Inventory() {
+        &items = list();
     }
 
-    Foo(x=5, y=2, z="string");
-    Foo(z="string", y=8, x=3);
-    Foo(1, z="string", y=7);
-    ```
+    func &addItem(item) {
+        &items.append(item);
+        print("Added item: " + item.name);
+    }
+
+    func &removeItem(name) {
+        for i = &items.size() - 1, i >= 0, i -= 1 {
+            if &items[i].name == name {
+                &items.pop(i);
+                print("Removed item: " + name);
+                return;
+            }
+        }
+        print("Item not found: " + name);
+    }
+
+    func &displayInventory() {
+        if &items.size() == 0 {
+            print("Inventory is empty.");
+        } else {
+            print("Inventory:");
+            for item in &items {
+                item.display();
+            }
+        }
+    }
+
+    func &totalValue() {
+        total = 0.0;
+        for item in &items {
+            total += item.quantity * item.price;
+        }
+        return total;
+    }
+}
+
+func main() {
+    inventory = Inventory();
+
+    inventory.addItem(Item("Apples", 10, 0.5));
+    inventory.addItem(Item("Bananas", 20, 0.3));
+    inventory.addItem(Item("Oranges", 15, 0.7));
+
+    inventory.displayInventory();
+
+    inventory.removeItem("Bananas");
+
+    inventory.displayInventory();
+
+    total = inventory.totalValue();
+    print("Total inventory value: $" + str(total));
+}
+
+main();
+```
