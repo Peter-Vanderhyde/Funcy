@@ -211,7 +211,9 @@ std::vector<Token> Lexer::tokenize() {
                         op = TokenType::_NotEqual;
                         break;
                     default:
-                        throwError(ErrorType::Syntax, "Unrecognized operator", line, column);
+                        Token token{char_tokens[character], line, column};
+                        tokens.push_back(token);
+                        continue;
                 }
 
                 Token token{op, line, column};
