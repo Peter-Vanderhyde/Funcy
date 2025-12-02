@@ -2014,11 +2014,7 @@ void FuncNode::setArgs(ValueList values,
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
                                                         std::map<std::string, std::shared_ptr<Value>> pairs,
                                                         Environment& global_env, bool member_func) {
-    Environment local_env_copy{local_env};
-    std::vector<Scope> copied_scopes = global_env.copyScopes();
-    for (const auto& pair : copied_scopes.at(0).getPairs()) {
-        local_env_copy.setGlobalValue(pair.first, pair.second);
-    }
+    Environment local_env_copy{global_env};
     Scope local_scope;
     pushFunctionContext(*func_name, file_context);
     if (!member_func) {
