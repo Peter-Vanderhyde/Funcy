@@ -164,13 +164,11 @@ std::shared_ptr<ASTNode> Parser::parseControlFlowStatement() {
                 }
                 if (nextTokenIs("=")) {
                     // It's a default argument assignment
-                    auto default_statement = parseStatement(arg_name);
-                    auto assign_node = std::dynamic_pointer_cast<BinaryOpNode>(default_statement);
-                    if (!assign_node) {
-                        parsingError("Invalid default argument assignment", getToken().line, getToken().column);
-                    }
-                    func_args.push_back(assign_node->left);
-                    default_arg_values[*arg_name] = assign_node->right;
+                    auto left = parseIdentifier(arg_name);
+                    consumeToken();
+                    auto right = parseLogicalOr();
+                    func_args.push_back(left);
+                    default_arg_values[*arg_name] = right;
                     found_default_arg = true;
                 } else {
                     if (found_default_arg) {
@@ -459,7 +457,7 @@ std::shared_ptr<ASTNode> Parser::parseFactor() {
     if (debug) std::cout << "Parse Factor " << getTokenStr() << std::endl;
     if (tokenIs("+") || tokenIs("-")) {
         const Token& op = consumeToken();
-        auto right = parsePower();
+        auto right = parseFactor();
         return std::make_shared<UnaryOpNode>(op.type, right, op.line, op.column);
     }
     else {

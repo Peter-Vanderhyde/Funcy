@@ -1149,7 +1149,8 @@ BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, 
     if (args[0]->getType() == ValueType::Integer) {
         int num = args[0]->get<int>();
         if (precision > 0) {
-            throwError(ErrorType::Runtime, "round() cannot apply precision to an integer");
+            double new_num = static_cast<double>(num);
+            return std::make_shared<Value>(new_num);
         }
         return std::make_shared<Value>(num); // Integers do not require rounding
     }

@@ -1068,7 +1068,6 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         keyword_string == "else" || keyword_string == "while" ||
         keyword_string == "for") 
     {
-        env.addScope();
 
         if (keyword_string == "while") {
             env.addLoop();
@@ -1121,8 +1120,6 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
                 statement->evaluate(env);
             }
         }
-
-        env.removeScope();
     }
 
     return std::nullopt;
@@ -1935,7 +1932,6 @@ std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
         i++;
         auto value = pair.second->evaluate(local_env);
         if (!value) {
-            std::shared_ptr<Value> func_value = std::make_shared<Value>(std::make_shared<FuncNode>(*this));
             throwError(ErrorType::Runtime, "Unable to evaluate default argument " + std::to_string(i), line, column);
         }
         default_arg_values[pair.first] = value.value();
@@ -1987,8 +1983,8 @@ void FuncNode::setArgs(ValueList values,
     }
 
     if (num_args != args.size()) {
-        popFunctionContext();
         if (num_args > args.size()) {
+            popFunctionContext();
             if (default_arg_values.size() > 0) {
                 throwError(ErrorType::ArityMismatch, std::format("Function takes from {} to {} arguments but {} were given",
                                                             args.size() - default_arg_values.size(), args.size(), num_args), line, column);
@@ -1996,6 +1992,7 @@ void FuncNode::setArgs(ValueList values,
                 throwError(ErrorType::ArityMismatch, std::format("Function takes {} arguments but {} were given", args.size(), num_args), line, column);
             }
         } else if (num_args < args.size() - default_arg_values.size()) {
+            popFunctionContext();
             throwError(ErrorType::ArityMismatch, std::format("Missing {} required arguments", args.size() - default_arg_values.size() - num_args), line, column);
         }
     }
