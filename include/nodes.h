@@ -108,7 +108,7 @@ public:
     TokenType keyword;
     const std::shared_ptr<ScopedNode> if_link;
     std::shared_ptr<ASTNode> comparison;
-    bool last_comparison_result;
+    std::vector<bool> last_comparison_results;
     std::vector<std::shared_ptr<ASTNode>> statements_block;
 
     ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison,

@@ -978,7 +978,7 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env,
 ScopedNode::ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison,
             std::vector<std::shared_ptr<ASTNode>> statements_block, int line, int column)
     : ASTNode{line, column}, keyword{keyword}, if_link{if_link}, comparison{comparison},
-        last_comparison_result{false}, statements_block{statements_block} {}
+        statements_block{statements_block} {}
 
 bool ScopedNode::getComparisonValue(Environment& env) const {
     auto result = comparison->evaluate(env);
@@ -1014,9 +1014,15 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
 std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     // If this scope is linked to a previous 'if'/'elif' and that was already true, skip this one
     if (debug && if_link) std::cout << getTabs() + "Checking if I should enter Scope: " + getPrintable() << std::endl;
-    if (if_link && if_link->last_comparison_result) {
-        last_comparison_result = true;
-        return {};
+    if (if_link) {
+        bool previous_comparison_result = if_link->last_comparison_results.back();
+        if_link->last_comparison_results.pop_back();  // Clear previous link result
+
+        if (previous_comparison_result) {
+            last_comparison_results.push_back(true);
+            // Using a stack allows comparison results to be saved in case of recursion of the same if chain. Results are no longer overwritten by the recursion.
+            return {};
+        }
     }
 
     if (debug) {
@@ -1050,7 +1056,7 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
         };
 
         is_condition_truthy = determineTruthy(*evaluated_condition_value);
-        last_comparison_result = is_condition_truthy;
+        last_comparison_results.push_back(is_condition_truthy);
     }
 
     if (debug && comparison) {
