@@ -45,6 +45,7 @@ BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Envir
 BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn randChoice(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn randShuffle(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
@@ -63,6 +64,7 @@ BuiltInFunctionReturn listIndex(const std::vector<std::shared_ptr<Value>>& args,
 BuiltInFunctionReturn listInsert(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listRemove(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn listReverse(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 
 BuiltInFunctionReturn dictClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

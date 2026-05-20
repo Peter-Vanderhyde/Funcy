@@ -421,6 +421,7 @@ Thrown errors halt the execution of the program. There is not currently a way to
 - `print(arg1, ...) -> Null` - Prints arguments.
 - `randChoice(list) -> int|float|string|bool|obj` - Picks a random element from a list and returns it.
 - `randInt(min, max) -> int` - Chooses a random integer between and including the minimum and maximum given values.
+- `randShuffle(list) -> list` - Randomly shuffles a list and returns the result.
 - `range(start=0, end, step=1) -> list` - Generates a range of numbers.
 - `readFile(file_path_str) -> string|Null` - Reads from a file. Returns Null if file does not exist.
 - `reversed(list) -> list` - Returns a reversed version of the sequence.
@@ -441,6 +442,7 @@ Thrown errors halt the execution of the program. There is not currently a way to
 - `insert(index, value) -> Null` - Inserts a value at the specified index.
 - `pop(index=-1) -> int|float|string|bool|obj|Null` - Removes and returns an item by index.
 - `remove(value) -> Null` - Removes the first occurrence of a value. Errors if no match is found.
+- `reverse() -> Null` - Reverses a list in place. Does not return.
 - `size() -> int` - Returns the number of elements.
 
 ### Dictionary Functions:
