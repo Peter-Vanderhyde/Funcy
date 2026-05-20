@@ -8,7 +8,7 @@
 Funcy features a custom VSCode Extension for syntax highlighting. The `.vsix` file can be downloaded from the [funcy-lang Github Repository](https://github.com/Peter-Vanderhyde/funcy-lang).  
 The Funcy code snippets found in this README are utilizing Github's Python syntax highlighting (because it is most similar), and is not a representation of the extension's visuals.
 
-### Running a Funcy File
+## Running a Funcy File
 
 To execute a Funcy program, in the command-line, run the `Funcy.exe` executable with the following syntax:
 
@@ -24,6 +24,17 @@ Funcy.exe <file_path> [-IgnoreOverflow]
 Run a Funcy file with the `-IgnoreOverflow` flag:
 ```bash
 Funcy.exe example.fy -IgnoreOverflow
+```
+
+## Building from Source
+
+Funcy is built using C++20. A standard `CMakeLists.txt` is provided in the repository. To compile the interpreter yourself, ensure you have CMake installed and run the following commands from the root directory:
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
 ```
 
 ## Quick Links
