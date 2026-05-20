@@ -178,6 +178,10 @@ Scope Environment::getScope() {
     return scopes.back();
 }
 
+void Environment::setScopes(std::vector<Scope> new_scopes) {
+    scopes = new_scopes;
+}
+
 int Environment::classDepth() {
     return class_depth;
 }

@@ -2116,9 +2116,13 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
         throw;
     }
 
+    local_env_copy.removeScope();
+
     if (global_env.isClassEnv()) {
         auto attrs = local_env_copy.getClassAttrs();
         global_env.setClassAttrs(attrs);
+
+        global_env.setScopes(local_env_copy.copyScopes());
     }
 
     auto scopes = local_env_copy.copyScopes();
@@ -2127,7 +2131,6 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
     }
     recursion -= 1;
 
-    local_env_copy.removeScope();
     popFunctionContext();
 
     return return_value;
@@ -2265,6 +2268,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
                     auto result = func->callFunc(args, pairs, environment, true);
                     auto inst_node = member_value->get<std::shared_ptr<Instance>>();
                     inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
+                    inst_node->getEnvironment().setScopes(environment.copyScopes());
                     auto scopes = environment.copyScopes();
                     for (const auto& pair : scopes.at(0).getPairs()) {
                         env.setGlobalValue(pair.first, pair.second);
