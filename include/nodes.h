@@ -8,6 +8,9 @@
 #include "values.h"
 
 
+extern bool DEBUG_AST;
+extern bool DEFAULT_AST_DEBUG;
+
 class ASTNode;
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>>;
@@ -16,7 +19,7 @@ bool checkTruthy(const Value& value);
 
 class ASTNode {
 public:
-    bool debug = false;
+    bool debug;
     int line, column;
 
     ASTNode(int line, int column);

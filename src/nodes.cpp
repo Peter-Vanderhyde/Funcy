@@ -14,8 +14,10 @@
 #include "context.h"
 #include "lexer.h"
 
+bool DEBUG_AST = false;
+
 // Only works on Windows
-bool DEBUG_DEFAULT = true; // Default does not go line by line
+bool DEFAULT_AST_DEBUG = true; // Default does not go line by line
 
 std::unordered_map<TokenType, ValueType> type_map{
     {TokenType::_IntType, ValueType::Integer},
@@ -56,7 +58,7 @@ void subTab(int tabs=1) {
 }
 
 void debugWait() {
-    if (!DEBUG_DEFAULT) {
+    if (!DEFAULT_AST_DEBUG) {
         int ch = _getch();
         if (ch == 3) {
             std::cout << "\n^C" << std::endl;
@@ -66,7 +68,9 @@ void debugWait() {
 }
 
 ASTNode::ASTNode(int line, int column)
-    : line{line}, column{column} {}
+    : line{line}, column{column} {
+        this->debug = DEBUG_AST;
+    }
 
 
 AtomNode::AtomNode(std::variant<int, double, bool, std::string, SpecialIndex> value, int line, int column)

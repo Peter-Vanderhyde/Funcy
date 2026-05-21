@@ -5,9 +5,13 @@
 #include <iostream>
 #include "errorDefs.h"
 
+bool DEBUG_PARSER = false;
+
 
 Parser::Parser(const std::vector<Token>& tokens)
-    : tokens{tokens}, current_index{0} {}
+    : tokens{tokens}, current_index{0} {
+        this->debug = DEBUG_PARSER;
+    }
 
 void Parser::parsingError(std::string message, int line, int column) const {
     throwError(ErrorType::Syntax, message, line, column);

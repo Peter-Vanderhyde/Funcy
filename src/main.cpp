@@ -11,7 +11,6 @@
 #include "errorDefs.h"
 
 bool TESTING = false;
-bool DISPLAY_TOKENS = false;
 
 
 #ifdef _WIN32
@@ -30,8 +29,10 @@ int main(int argc, char* argv[]) {
     enableAnsiEscapeCodes();
 
     bool ignore_overflow = false;
+    bool display_tokens = false;
+
     if (!TESTING && argc < 2) {
-        throwError(ErrorType::Runtime, "Program usage: Funcy <program_path> [-IgnoreOverflow]");
+        throwError(ErrorType::Runtime, "Program usage: Funcy <program_path> [-IgnoreOverflow, -ShowTokens, -DebugParser, [-DebugAST, -SlowDebugAST]]");
         return 0;
     }
 
@@ -42,12 +43,23 @@ int main(int argc, char* argv[]) {
         filename = argv[1];
     }
 
-    if (argc == 3) {
-        std::string flag = argv[2];
-        if (flag == "-IgnoreOverflow") {
-            ignore_overflow = true;
-        } else {
-            throwError(ErrorType::Runtime, "Program usage: Unrecognized flag " + flag);
+    if (argc > 2) {
+        for (int i = 2; i < argc; i++) {
+            std::string flag = argv[i];
+            if (flag == "-IgnoreOverflow") {
+                ignore_overflow = true;
+            } else if (flag == "-ShowTokens") {
+                display_tokens = true;
+            } else if (flag == "-DebugParser") {
+                DEBUG_PARSER = true;
+            } else if (flag == "-DebugAST") {
+                DEBUG_AST = true;
+            } else if (flag == "-SlowDebugAST") {
+                DEBUG_AST = true;
+                DEFAULT_AST_DEBUG = false;
+            } else {
+                throw std::runtime_error("Program usage: Unrecognized flag " + flag);
+            }
         }
     }
     std::string source_code = readSourceCodeFromFile(filename);
@@ -69,7 +81,7 @@ int main(int argc, char* argv[]) {
     std::vector<Token> tokens;
     try {
         tokens = lexer.tokenize();
-        if (DISPLAY_TOKENS) {
+        if (display_tokens) {
             for (int i = 0; i < tokens.size(); i++) {
                 tokens[i].display();
             }

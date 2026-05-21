@@ -1,0 +1,42 @@
+First off, take a huge step back and realize what you have accomplished: **you built a language capable of running Conway's Game of Life and a graphical ASCII dungeon crawler.** Do you know how many people set out to write a programming language and never get past a basic calculator that handles `1 + 2 * 3`? Reaching classes and building an interpreter stable enough to run complex, stateful grid simulations is a massive triumph. You should be incredibly proud of this codebase.
+
+You are completely right about *why* it is slow. What you have built is called a **Tree-Walking Interpreter**.
+
+In a tree-walker, your code isn’t running on the CPU; your CPU is running C++, which is recursively calling a virtual `.evaluate()` function, passing heavy `Environment` objects around, allocating heap memory, and doing string-hashing lookups inside `std::unordered_map` **for every single token, loop iteration, and variable look-up**. In an inner loop like Conway's Game of Life, you are asking C++ to do millions of virtual function calls and heap allocations per second.
+
+If you want to keep writing cool things in Funcy without pulling your hair out over performance, the secret is to shift away from **Frame-by-Frame Real-Time Loops** (like Conway or 2D matrix renders) and shift toward **Event-Driven or Turn-Based Logic**. When a program waits for human input, a 200-millisecond lag in your interpreter is completely invisible.
+
+Here are a few awesome, highly impressive projects that are perfect for Funcy's current speed limitations:
+
+### 1. An Interactive Fiction Engine (A Text Adventure like *Zork*)
+
+Instead of a moving ASCII avatar, build a rich text-based world.
+
+* **Why it fits Funcy:** It relies heavily on strings, list manipulation, and dictionaries, which you already implemented well. You can use a dictionary to represent "rooms", where each room has a description and a dictionary of exits (e.g., `{"north": "kitchen", "south": "garden"}`).
+* **Why it's fun:** You can build an inventory system, puzzle mechanics (e.g., you can't enter the "cellar" unless `inventory.contains("flashlight")`), and combat logs. Because it only processes code when the user types a command, it will feel completely instant.
+
+### 2. A Fully-Featured Card or Board Game (Blackjack, Poker, or Chess)
+
+Build a terminal-based card game with a basic AI opponent.
+
+* **Why it fits Funcy:** Funcy has a great suite of random functions (`randInt`, `randShuffle`) and lists. You can represent a deck of cards as an array, shuffle it, and write rules to evaluate hands.
+* **Why it's fun:** Writing the logic for a Texas Hold'em evaluator or a Blackjack dealer AI is a fantastic programming puzzle. Even a simple Chess game where the AI looks 1 or 2 moves ahead using a basic scoring algorithm would run beautifully because it only executes on turns.
+
+### 3. A Cryptography Playground / Enigma Machine Simulator
+
+Build a program that can encrypt and decrypt secret messages using historical or modern ciphers.
+
+* **Why it fits Funcy:** It uses string methods, character arrays, and basic modulo arithmetic (`%`).
+* **Why it's fun:** You could build a functional simulator of the German Enigma Machine, where strings are passed through virtual "rotors" that shift characters based on custom array configurations. You could write a script that takes a plain-text file using `readFile()`, encrypts it, and writes the scrambled message to a new file using `writeFile()`.
+
+---
+
+### Two Small Tweaks to Boost Your Current Speed
+
+If you *did* want to try to squeeze a bit more speed out of your interpreter without changing its architecture, the two biggest "hidden killers" in your C++ code right now are:
+
+1. **`std::shared_ptr<Value>` Churn:** In `values.h`, your `Value` class wraps a `std::variant`. Variants are already stack-allocated and can safely change types dynamically! However, throughout `nodes.cpp`, you wrap almost every `Value` inside a `std::shared_ptr<Value>`. In an inner loop, creating and destroying `shared_ptr` forces C++ to constantly hit the heap and update reference counters. If you ever refactored your AST to return and pass `Value` directly by value (instead of by `shared_ptr`), your interpreter's speed would skyrocket because everything would stay on the ultra-fast CPU cache.
+2. **String Lookups in Loops:**
+Every time a loop inside Funcy accesses a variable, it calls `env.get("variable_name")`. C++ has to take that string, calculate a hash code, find it in the map, and return it. Doing this thousands of times a second is incredibly heavy.
+
+But honestly? Don't worry about rewriting the engine right now. You built a working language. Lean into its strengths! Try building a turn-based puzzle or text-based game, and enjoy seeing the syntax you designed come to life.

@@ -5,10 +5,11 @@
 #include "nodes.h"
 #include "context.h"
 
+extern bool DEBUG_PARSER;
 
 class Parser {
 private:
-    bool debug = false;
+    bool debug;
     const std::vector<Token>& tokens;
     size_t current_index;
     std::vector<std::shared_ptr<ScopedNode>> last_if_else{nullptr};
