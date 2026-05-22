@@ -40,6 +40,7 @@ public:
     void addScope(Scope& scope);
     void addClassScope();
     Scope getScope();
+    void setScopes(std::vector<Scope> new_scopes);
     int classDepth();
     void removeScope();
     void removeClassScope(Scope& previous_attrs);

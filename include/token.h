@@ -73,7 +73,10 @@ enum class TokenType{
     _Instance,
     _Ampersand,
     _This,
-    _Throw
+    _Throw,
+    _DebugShow,
+    _DebugHide,
+    _DebugPause
 };
 
 std::string getTokenTypeLabel(TokenType type);

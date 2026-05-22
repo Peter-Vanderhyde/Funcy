@@ -22,6 +22,10 @@ public:
     ErrorException(ErrorType error_type, std::string message)
         : error_type{error_type}, message{message} {}
     
+    const char* what() const noexcept override {
+        return message.c_str();
+    }
+    
     ErrorType error_type = ErrorType::Runtime;
     std::string message = "";
 };

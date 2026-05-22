@@ -8,6 +8,8 @@
 #include "values.h"
 
 
+extern bool DEBUG_AST;
+
 class ASTNode;
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;
 using ASTDictionary = std::vector<std::pair<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>>;
@@ -16,7 +18,7 @@ bool checkTruthy(const Value& value);
 
 class ASTNode {
 public:
-    bool debug = false;
+    bool debug;
     int line, column;
 
     ASTNode(int line, int column);
@@ -108,7 +110,7 @@ public:
     TokenType keyword;
     const std::shared_ptr<ScopedNode> if_link;
     std::shared_ptr<ASTNode> comparison;
-    bool last_comparison_result;
+    std::vector<bool> last_comparison_results;
     std::vector<std::shared_ptr<ASTNode>> statements_block;
 
     ScopedNode(TokenType keyword, std::shared_ptr<ScopedNode> if_link, std::shared_ptr<ASTNode> comparison,
