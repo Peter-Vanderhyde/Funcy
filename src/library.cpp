@@ -30,7 +30,7 @@ std::string readSourceCodeFromFile(const std::string& filename) {
 
     std::ifstream file(filename);
     if (!file) {
-        std::cerr << "Error opening file: " << filename << std::endl;
+        throwError(ErrorType::Runtime, "File " + filename + " is empty or could not be opened.");
         return "";
     }
 
@@ -299,6 +299,7 @@ Environment buildStartingEnvironment() {
     env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
     env.addFunction("randChoice", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randChoice)));
     env.addFunction("randInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randInt)));
+    env.addFunction("randShuffle", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randShuffle)));
     env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
     env.addFunction("readFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(readFile)));
     env.addFunction("reversed", std::make_shared<Value>(std::make_shared<BuiltInFunction>(reversed)));
@@ -321,6 +322,7 @@ Environment buildStartingEnvironment() {
     env.addMember(ValueType::List, "insert", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listInsert)));
     env.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
     env.addMember(ValueType::List, "remove", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listRemove)));
+    env.addMember(ValueType::List, "reverse", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listReverse)));
     env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
 
     // ValueType::Dictionary Members
@@ -1035,6 +1037,34 @@ BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, E
     return std::make_shared<Value>(dist(gen));
 }
 
+BuiltInFunctionReturn randShuffle(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throwError(ErrorType::Runtime, "randShuffle() takes exactly 1 arguments. " + std::to_string(args.size()) + " were given");
+    }
+
+    if (args[0]->getType() != ValueType::List) {
+        throwError(ErrorType::Runtime, "randShuffle() expected an argument 1 of Type:List but got " + getTypeStr(args[0]->getType()));
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    auto shuffled = std::make_shared<List>();
+
+    std::shared_ptr<List> indexes = std::make_shared<List>();
+    for (int i = 0; i < list->size(); i++) {
+        indexes->push_back(std::make_shared<Value>(i));
+    }
+
+    while (indexes->size() != 0) {
+        const ValueList sending = {std::make_shared<Value>(indexes)};
+        auto choice = randChoice(sending, env);
+        int chose = choice.value()->get<int>();
+        indexes->erase(choice.value());
+        shuffled->push_back(list->at(chose));
+    }
+
+    return std::make_shared<Value>(shuffled);
+}
+
 BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
     if (args.size() < 1 || args.size() > 3) {
         throwError(ErrorType::Runtime, "range() takes 1-3 arguments. " + std::to_string(args.size()) + " were given");
@@ -1149,7 +1179,8 @@ BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, 
     if (args[0]->getType() == ValueType::Integer) {
         int num = args[0]->get<int>();
         if (precision > 0) {
-            throwError(ErrorType::Runtime, "round() cannot apply precision to an integer");
+            double new_num = static_cast<double>(num);
+            return std::make_shared<Value>(new_num);
         }
         return std::make_shared<Value>(num); // Integers do not require rounding
     }
@@ -1477,6 +1508,25 @@ BuiltInFunctionReturn listRemove(const std::vector<std::shared_ptr<Value>>& args
 
     
     list->erase(value);
+    return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn listReverse(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throwError(ErrorType::Runtime, "reverse() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
+    }
+
+    auto list = args[0]->get<std::shared_ptr<List>>();
+    auto reversed = std::make_shared<List>();
+    for (const auto e : list->getElements()) {
+        reversed->insert(0, e);
+    }
+
+    list->clear();
+    for (const auto e : reversed->getElements()) {
+        list->push_back(e);
+    }
+
     return std::make_shared<Value>();
 }
 

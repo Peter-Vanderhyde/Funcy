@@ -11,7 +11,6 @@
 #include "errorDefs.h"
 
 bool TESTING = false;
-bool DISPLAY_TOKENS = false;
 
 
 #ifdef _WIN32
@@ -30,8 +29,10 @@ int main(int argc, char* argv[]) {
     enableAnsiEscapeCodes();
 
     bool ignore_overflow = false;
+    bool display_tokens = false;
+
     if (!TESTING && argc < 2) {
-        throwError(ErrorType::Runtime, "Program usage: Funcy <program_path> [-IgnoreOverflow]");
+        throwError(ErrorType::Runtime, "Program usage: Funcy <program_path> [-IgnoreOverflow, -ShowTokens, -DebugParser, [-DebugAST, -SlowDebugAST]]");
         return 0;
     }
 
@@ -42,25 +43,40 @@ int main(int argc, char* argv[]) {
         filename = argv[1];
     }
 
-    if (argc == 3) {
-        std::string flag = argv[2];
-        if (flag == "-IgnoreOverflow") {
-            ignore_overflow = true;
-        } else {
-            throwError(ErrorType::Runtime, "Program usage: Unrecognized flag " + flag);
+    if (argc > 2) {
+        for (int i = 2; i < argc; i++) {
+            std::string flag = argv[i];
+            if (flag == "-IgnoreOverflow") {
+                ignore_overflow = true;
+            } else if (flag == "-ShowTokens") {
+                display_tokens = true;
+            } else if (flag == "-DebugParser") {
+                DEBUG_PARSER = true;
+            } else if (flag == "-DebugAST") {
+                DEBUG_AST = true;
+            } else {
+                try {
+                    throwError(ErrorType::Runtime, "Program usage: Unrecognized flag " + flag);
+                }
+                catch (const std::exception& e) {
+                    std::cerr << e.what();
+                    return 1;
+                }
+            }
         }
     }
-    std::string source_code = readSourceCodeFromFile(filename);
 
-    if (source_code.empty()) {
-        try {
-            throwError(ErrorType::Runtime, "File " + filename + " is empty or could not be read");
+    std::string source_code;
+    try {
+        source_code = readSourceCodeFromFile(filename);
+
+        if (source_code.empty()) {
+            throwError(ErrorType::Runtime, "File " + filename + " is empty or could not be opened.");
         }
-        catch (const std::exception& e) {
-            // Throwing and then catching the error allows for proper error formating
-            std::cerr << e.what();
-            return 1;
-        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what();
+        return 1;
     }
 
     pushExecutionContext(filename); // Keeps the current running code's file on top of the stack
@@ -69,7 +85,7 @@ int main(int argc, char* argv[]) {
     std::vector<Token> tokens;
     try {
         tokens = lexer.tokenize();
-        if (DISPLAY_TOKENS) {
+        if (display_tokens) {
             for (int i = 0; i < tokens.size(); i++) {
                 tokens[i].display();
             }
@@ -104,10 +120,6 @@ the program execution to ignore this warning)");
                 return 1;
             }
         }
-    }
-    catch (const ErrorException& e) {
-        std::cerr << e.message;
-        return 1;
     }
     catch (const std::exception& e) {
         std::cerr << e.what();

@@ -26,6 +26,17 @@ Run a Funcy file with the `-IgnoreOverflow` flag:
 Funcy.exe example.fy -IgnoreOverflow
 ```
 
+## Building from Source
+
+Funcy is built using C++20. A standard `CMakeLists.txt` is provided in the repository. To compile the interpreter yourself, ensure you have CMake installed and run the following commands from the root directory:
+
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+```
+
 ## Quick Links
 
 - [Introduction](#introduction)
@@ -192,6 +203,8 @@ func functionName(arg1, arg2) {
     return result;
 }
 ```
+
+All functions return `Null` by default, even with no return statement.
 
 ### Returning Multiple Values:
 
@@ -360,6 +373,20 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
   import "module.fy";
   ```
 
+### Debugging Keywords
+
+All of these keywords require the program to be running in debug mode. The debug mode is enabled by using the `-DebugAST` flag when running the program. 
+
+``` bash
+Funcy.exe test_program.fy -DebugAST
+```
+
+- `debugShow`: This will make the language print out every evaluation step it is on while it is running through the program.
+
+- `debugHide`: This stops the language printing out the evaluation steps.
+
+- `debugPause`: This acts as a break line. The language will pause once it reaches this line. The language will begin to print out each evaluation it's performing step by step. The user presses `ENTER` to progress step by step. They can also press `ESCAPE` to stop showing the evaluation steps and resume the program until it either hits anothe `debugPause` or the end of the program.
+
 ## Errors
 
 Funcy allows users to explicitly throw errors during execution using the `throw` keyword. The `throw` keyword can be followed by any value, including strings, numbers, objects, or any expression.
@@ -392,7 +419,8 @@ throw <expression>;
    validateInput(Null);  # Throws "Error: Input cannot be null"
    ```
 
-Thrown errors halt the execution of the program. There is not currently a way to catch thrown errors.
+Thrown errors halt the execution of the program.
+> <span style="color:orange">There is not currently a way to catch thrown errors.</span>
 
 ---
 
@@ -422,6 +450,7 @@ Thrown errors halt the execution of the program. There is not currently a way to
 - `print(arg1, ...) -> Null` - Prints arguments.
 - `randChoice(list) -> int|float|string|bool|obj` - Picks a random element from a list and returns it.
 - `randInt(min, max) -> int` - Chooses a random integer between and including the minimum and maximum given values.
+- `randShuffle(list) -> list` - Randomly shuffles a list and returns the result.
 - `range(start=0, end, step=1) -> list` - Generates a range of numbers.
 - `readFile(file_path_str) -> string|Null` - Reads from a file. Returns Null if file does not exist.
 - `reversed(list) -> list` - Returns a reversed version of the sequence.
@@ -442,6 +471,7 @@ Thrown errors halt the execution of the program. There is not currently a way to
 - `insert(index, value) -> Null` - Inserts a value at the specified index.
 - `pop(index=-1) -> int|float|string|bool|obj|Null` - Removes and returns an item by index.
 - `remove(value) -> Null` - Removes the first occurrence of a value. Errors if no match is found.
+- `reverse() -> Null` - Reverses a list in place. Does not return.
 - `size() -> int` - Returns the number of elements.
 
 ### Dictionary Functions:
