@@ -9,7 +9,6 @@
 
 
 extern bool DEBUG_AST;
-extern bool DEFAULT_AST_DEBUG;
 
 class ASTNode;
 using ASTList = std::vector<std::shared_ptr<ASTNode>>;

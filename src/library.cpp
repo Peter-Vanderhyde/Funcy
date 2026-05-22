@@ -30,7 +30,7 @@ std::string readSourceCodeFromFile(const std::string& filename) {
 
     std::ifstream file(filename);
     if (!file) {
-        std::cerr << "Error opening file: " << filename << std::endl;
+        throwError(ErrorType::Runtime, "File " + filename + " is empty or could not be opened.");
         return "";
     }
 

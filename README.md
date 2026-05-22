@@ -203,6 +203,8 @@ func functionName(arg1, arg2) {
 }
 ```
 
+All functions return `Null` by default, even with no return statement.
+
 ### Returning Multiple Values:
 
 ```python
@@ -370,6 +372,16 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
   import "module.fy";
   ```
 
+### Debugging Keywords
+
+- `debug`: This acts as a break line when the program is run in AST debug mode. The debug mode is enabled by using the `-DebugAST` flag when running the program.  
+
+  ``` bash
+  Funcy.exe test_program.fy -DebugAST
+  ```
+  
+  The AST evaluation will print out every step until it hits a `debug` keyword. At that point, the user can hit `ENTER` to proceed step by step through the evaluation. Pressing `ESCAPE` will break out of the pause and continue printing out all of the steps until it reaches the next `debug` or the end of the program.
+
 ## Errors
 
 Funcy allows users to explicitly throw errors during execution using the `throw` keyword. The `throw` keyword can be followed by any value, including strings, numbers, objects, or any expression.
@@ -402,7 +414,8 @@ throw <expression>;
    validateInput(Null);  # Throws "Error: Input cannot be null"
    ```
 
-Thrown errors halt the execution of the program. There is not currently a way to catch thrown errors.
+Thrown errors halt the execution of the program.
+> <span style="color:orange">There is not currently a way to catch thrown errors.</span>
 
 ---
 

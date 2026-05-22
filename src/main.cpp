@@ -54,25 +54,29 @@ int main(int argc, char* argv[]) {
                 DEBUG_PARSER = true;
             } else if (flag == "-DebugAST") {
                 DEBUG_AST = true;
-            } else if (flag == "-SlowDebugAST") {
-                DEBUG_AST = true;
-                DEFAULT_AST_DEBUG = false;
             } else {
-                throw std::runtime_error("Program usage: Unrecognized flag " + flag);
+                try {
+                    throwError(ErrorType::Runtime, "Program usage: Unrecognized flag " + flag);
+                }
+                catch (const std::exception& e) {
+                    std::cerr << e.what();
+                    return 1;
+                }
             }
         }
     }
-    std::string source_code = readSourceCodeFromFile(filename);
 
-    if (source_code.empty()) {
-        try {
-            throwError(ErrorType::Runtime, "File " + filename + " is empty or could not be read");
+    std::string source_code;
+    try {
+        source_code = readSourceCodeFromFile(filename);
+
+        if (source_code.empty()) {
+            throwError(ErrorType::Runtime, "File " + filename + " is empty or could not be opened.");
         }
-        catch (const std::exception& e) {
-            // Throwing and then catching the error allows for proper error formating
-            std::cerr << e.what();
-            return 1;
-        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what();
+        return 1;
     }
 
     pushExecutionContext(filename); // Keeps the current running code's file on top of the stack
@@ -116,10 +120,6 @@ the program execution to ignore this warning)");
                 return 1;
             }
         }
-    }
-    catch (const ErrorException& e) {
-        std::cerr << e.message;
-        return 1;
     }
     catch (const std::exception& e) {
         std::cerr << e.what();

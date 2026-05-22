@@ -15,9 +15,9 @@
 #include "lexer.h"
 
 bool DEBUG_AST = false;
+bool DEBUG_TRIGGERED = false;
 
 // Only works on Windows
-bool DEFAULT_AST_DEBUG = true; // Default does not go line by line
 
 std::unordered_map<TokenType, ValueType> type_map{
     {TokenType::_IntType, ValueType::Integer},
@@ -58,11 +58,14 @@ void subTab(int tabs=1) {
 }
 
 void debugWait() {
-    if (!DEFAULT_AST_DEBUG) {
+    if (DEBUG_TRIGGERED) {
         int ch = _getch();
         if (ch == 3) {
             std::cout << "\n^C" << std::endl;
             std::exit(130);
+        }
+        else if (ch == 27) {
+            DEBUG_TRIGGERED = false;
         }
     }
 }
@@ -868,7 +871,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         std::optional<std::shared_ptr<Value>> right_opt = right->evaluate(env);
 
         if (!left_opt.has_value() || !right_opt.has_value()) {
-            throwError(ErrorType::Runtime, std::format("Unable to evaluate binary operand for operator '{}", getTokenTypeLabel(op)), line, column);
+            throwError(ErrorType::Runtime, std::format("Unable to evaluate binary operand for operator '{}'", getTokenTypeLabel(op)), line, column);
         }
         if (debug) {debugPrint(ValueList{left_opt.value(), right_opt.value()});}
 
@@ -1249,9 +1252,9 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                     auto result = statement->evaluate(env);
                 }
             }
-            catch (const ReturnException) {
-                subTab();
-                throw ReturnException(std::nullopt);
+            catch (const ReturnException& e) {
+                if (debug) {subTab();}
+                throw;
             }
             catch (const BreakException) {
                 break;
@@ -1473,6 +1476,9 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         } else {
             std::cout << getTabs() + "Entering Keyword: " + getPrintable() << std::endl;
             addTab();
+        }
+        if (keyword == TokenType::_Debug) {
+            DEBUG_TRIGGERED = true;
         }
         debugWait();
     }
@@ -2103,7 +2109,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
     }
     local_env_copy.addScope(local_scope);
     recursion += 1;
-    std::optional<std::shared_ptr<Value>> return_value = std::nullopt;
+    std::optional<std::shared_ptr<Value>> return_value = std::make_shared<Value>();
     if (recursion > 1000 && detect_recursion_limit) {
         throw StackOverflowException();
     }

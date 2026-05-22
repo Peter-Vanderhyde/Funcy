@@ -71,7 +71,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Instance, "instance"},
     {TokenType::_Ampersand, "&"},
     {TokenType::_This, "this"},
-    {TokenType::_Throw, "throw"}
+    {TokenType::_Throw, "throw"},
+    {TokenType::_Debug, "debug"}
     //{TokenType::, ""}
 };
 
@@ -138,7 +139,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"class", TokenType::_Class},
     {"instance", TokenType::_Instance},
     {"this", TokenType::_This},
-    {"throw", TokenType::_Throw}
+    {"throw", TokenType::_Throw},
+    {"debug", TokenType::_Debug}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {
