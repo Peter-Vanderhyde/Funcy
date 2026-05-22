@@ -16,6 +16,7 @@
 
 bool DEBUG_AST = false;
 bool DEBUG_TRIGGERED = false;
+bool DEBUG_SHOWING = false;
 
 // Only works on Windows
 
@@ -105,29 +106,31 @@ std::optional<std::shared_ptr<Value>> AtomNode::evaluate(Environment& env) {
 }
 
 void AtomNode::debugPrint(ValueList values) {
-    setTabs();
-    std::cout << "Evaluating Atom: ";
-    if (isInt()) {
-        std::cout << std::to_string(getInt());
-    }
-    else if (isFloat()) {
-        std::cout << std::to_string(getFloat());
-    }
-    else if (isBool()) {
-        std::cout << std::boolalpha << getBool();
-    }
-    else if (isString()) {
-        std::cout << "\"" + getString() + "\"";
-    }
-    else if (isIndex()) {
-        if (getIndex() == SpecialIndex::Front) {
-            std::cout << "<index:front>";
-        } else {
-            std::cout << "<index:back>";
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating Atom: ";
+        if (isInt()) {
+            std::cout << std::to_string(getInt());
         }
+        else if (isFloat()) {
+            std::cout << std::to_string(getFloat());
+        }
+        else if (isBool()) {
+            std::cout << std::boolalpha << getBool();
+        }
+        else if (isString()) {
+            std::cout << "\"" + getString() + "\"";
+        }
+        else if (isIndex()) {
+            if (getIndex() == SpecialIndex::Front) {
+                std::cout << "<index:front>";
+            } else {
+                std::cout << "<index:back>";
+            }
+        }
+        std::cout << " -> " << values.at(0)->getPrintable() << std::endl;
+        debugWait();
     }
-    std::cout << " -> " << values.at(0)->getPrintable() << std::endl;
-    debugWait();
 }
 
 std::string AtomNode::getPrintable() {
@@ -198,7 +201,9 @@ UnaryOpNode::UnaryOpNode(TokenType op, std::shared_ptr<ASTNode> right, int line,
 
 std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering UnaryOp: " << getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering UnaryOp: " << getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -311,15 +316,17 @@ std::optional<std::shared_ptr<Value>> UnaryOpNode::evaluate(Environment& env) {
 
 void UnaryOpNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating UnaryOp: ";
-    std::cout << getTokenTypeLabel(op);
-    if (op == TokenType::_Not) {
-        std::cout << " ";
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating UnaryOp: ";
+        std::cout << getTokenTypeLabel(op);
+        if (op == TokenType::_Not) {
+            std::cout << " ";
+        }
+        std::cout << values.at(0)->getPrintable(debug_tabs);
+        std::cout << std::endl;
+        debugWait();
     }
-    std::cout << values.at(0)->getPrintable(debug_tabs);
-    std::cout << std::endl;
-    debugWait();
 }
 
 std::string UnaryOpNode::getPrintable() {
@@ -695,7 +702,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::performOperation(std::shared
 
 std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering BinaryOp: " << getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering BinaryOp: " << getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -901,26 +910,28 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
 
 void BinaryOpNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating BinaryOp: ";
-    if (values.size() == 1 && op != TokenType::_Dot) {
-        std::cout << left->getPrintable();
-    } else {
-        std::cout << values.at(0)->getPrintable(debug_tabs);
-    }
-
-    if (op != TokenType::_Dot) {
-        std::cout << " " << getTokenTypeLabel(op) << " ";
-        std::cout << values.at(values.size() - 1)->getPrintable(debug_tabs);
-        if (values.size() == 1) {
-            std::cout << " -> saving value";
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating BinaryOp: ";
+        if (values.size() == 1 && op != TokenType::_Dot) {
+            std::cout << left->getPrintable();
+        } else {
+            std::cout << values.at(0)->getPrintable(debug_tabs);
         }
-    } else {
-        std::cout << ".";
-        std::cout << right->getPrintable();
+
+        if (op != TokenType::_Dot) {
+            std::cout << " " << getTokenTypeLabel(op) << " ";
+            std::cout << values.at(values.size() - 1)->getPrintable(debug_tabs);
+            if (values.size() == 1) {
+                std::cout << " -> saving value";
+            }
+        } else {
+            std::cout << ".";
+            std::cout << right->getPrintable();
+        }
+        std::cout << std::endl;
+        debugWait();
     }
-    std::cout << std::endl;
-    debugWait();
 }
 
 std::string BinaryOpNode::getPrintable() {
@@ -937,7 +948,9 @@ ParenthesisOpNode::ParenthesisOpNode(std::shared_ptr<ASTNode> expr, int line, in
 
 std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering Parenthesis: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering Parenthesis: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -948,10 +961,12 @@ std::optional<std::shared_ptr<Value>> ParenthesisOpNode::evaluate(Environment& e
 
 void ParenthesisOpNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating Parenthesis: ";
-    std::cout << "(" + values.at(0)->getPrintable(debug_tabs) + ")" << std::endl;
-    debugWait();
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating Parenthesis: ";
+        std::cout << "(" + values.at(0)->getPrintable(debug_tabs) + ")" << std::endl;
+        debugWait();
+    }
 }
 
 std::string ParenthesisOpNode::getPrintable() {
@@ -964,13 +979,13 @@ IdentifierNode::IdentifierNode(std::string name, int line, int column)
 
 std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env) {
     if (env.contains(name, member_variable)) {
-        if (debug) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.get(name, member_variable)->getPrintable(debug_tabs) << std::endl;
             debugWait();
         }
         return env.get(name, member_variable);
     } else if (!member_variable && env.hasFunction(name)) {
-        if (debug) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.getFunction(name)->getPrintable(debug_tabs) << std::endl;
             debugWait();
         }
@@ -988,9 +1003,11 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env)
 
 void IdentifierNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating Identifier: ";
-    std::cout << values.at(0)->getPrintable(debug_tabs) << " -> finding value" << std::endl;
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating Identifier: ";
+        std::cout << values.at(0)->getPrintable(debug_tabs) << " -> finding value" << std::endl;
+    }
 }
 
 std::string IdentifierNode::getPrintable() {
@@ -999,13 +1016,13 @@ std::string IdentifierNode::getPrintable() {
 
 std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(Environment& env, ValueType member_type) {
     if (env.hasMember(member_type, name)) {
-        if (debug) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.getMember(member_type, name)->getPrintable(debug_tabs) << std::endl;
             debugWait();
         }
         return env.getMember(member_type, name);
     } else if (env.hasMember(name)) {
-        if (debug) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + env.getMember(name)->getPrintable(debug_tabs) << std::endl;
             debugWait();
         }
@@ -1055,7 +1072,7 @@ bool ScopedNode::getComparisonValue(Environment& env) const {
 
 std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     // If this scope is linked to a previous 'if'/'elif' and that was already true, skip this one
-    if (debug && if_link) {
+    if (debug && if_link && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
         std::cout << getTabs() + "Checking if I should enter Scope: " + getPrintable() << std::endl;
         debugWait();
     }
@@ -1071,7 +1088,9 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
     }
 
     if (debug) {
-        std::cout << getTabs() + "Entering Scope: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering Scope: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -1179,14 +1198,16 @@ std::optional<std::shared_ptr<Value>> ScopedNode::evaluate(Environment& env) {
 
 void ScopedNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating Scope: ";
-    std::cout << getTokenTypeLabel(keyword);
-    if (values.size() == 1) {
-        std::cout << " " << values.at(0)->getPrintable(debug_tabs);
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating Scope: ";
+        std::cout << getTokenTypeLabel(keyword);
+        if (values.size() == 1) {
+            std::cout << " " << values.at(0)->getPrintable(debug_tabs);
+        }
+        std::cout << " {...}" << std::endl;
+        debugWait();
     }
-    std::cout << " {...}" << std::endl;
-    debugWait();
 }
 
 std::string ScopedNode::getPrintable() {
@@ -1206,7 +1227,9 @@ ForNode::ForNode(TokenType keyword, std::shared_ptr<ASTNode> initialization,
 
 std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Initializing For Loop: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Initializing For Loop: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -1217,7 +1240,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
     if (!init_node || init_node->op != TokenType::_In) {
         // Classic for loop formatting, not using 'in'
         initialization->evaluate(env);
-        if (debug) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             subTab();
             setTabs();
             std::cout << "Entering For Loop Conditional: " + condition_value->getPrintable() << std::endl;
@@ -1235,8 +1258,10 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 auto bool_value = cond_value.value()->get<bool>();
                 if (debug) {
                     subTab();
-                    setTabs();
-                    std::cout << "Evaluating For Loop Conditional: " + cond_value.value()->getPrintable() << std::endl;
+                    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+                        setTabs();
+                        std::cout << "Evaluating For Loop Conditional: " + cond_value.value()->getPrintable() << std::endl;
+                    }
                     if (bool_value) {
                         addTab();
                     }
@@ -1263,7 +1288,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 // Does nothing but catches exception and proceeds to increment the variable
             }
 
-            if (debug) {
+            if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
                 subTab();
                 setTabs();
                 std::cout << "Evaluating For Loop Increment: " + increment->getPrintable() << std::endl;
@@ -1271,7 +1296,7 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                 debugWait();
             }
             increment->evaluate(env);
-            if (debug) {
+            if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
                 subTab();
                 setTabs();
                 std::cout << "Entering For Loop Conditional: " + condition_value->getPrintable() << std::endl;
@@ -1295,8 +1320,10 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
                     auto item = list->at(i);
                     env.set(var_string, item);
                     if (debug) {
-                        setTabs();
-                        std::cout << "Assigning For Loop Value: " + ident_node->getPrintable() + " = " + item->getPrintable() << std::endl;
+                        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+                            setTabs();
+                            std::cout << "Assigning For Loop Value: " + ident_node->getPrintable() + " = " + item->getPrintable() << std::endl;
+                        }
                         addTab();
                         debugWait();
                     }
@@ -1441,17 +1468,19 @@ std::optional<std::shared_ptr<Value>> ForNode::evaluate(Environment& env) {
 
 void ForNode::debugPrint(ValueList values) {
     subTab();
-    if (auto init_bin = std::dynamic_pointer_cast<BinaryOpNode>(initialization)) {
-        setTabs();
-        if (init_bin->op == TokenType::_In) {
-            std::cout << "Evaluating For Loop: for (";
-            std::cout << init_bin->left->getPrintable();
-            std::cout << " in " + values.at(0)->getPrintable() + ") {...}" << std::endl;
-        } else {
-            std::cout << "Check For Conditional: " << values.at(0)->getPrintable() << std::endl;
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        if (auto init_bin = std::dynamic_pointer_cast<BinaryOpNode>(initialization)) {
+            setTabs();
+            if (init_bin->op == TokenType::_In) {
+                std::cout << "Evaluating For Loop: for (";
+                std::cout << init_bin->left->getPrintable();
+                std::cout << " in " + values.at(0)->getPrintable() + ") {...}" << std::endl;
+            } else {
+                std::cout << "Check For Conditional: " << values.at(0)->getPrintable() << std::endl;
+            }
         }
+        debugWait();
     }
-    debugWait();
 }
 
 std::string ForNode::getPrintable() {
@@ -1472,13 +1501,23 @@ std::string ForNode::getPrintable() {
 std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
     if (debug) {
         if (right == nullptr || keyword == TokenType::_Global) {
-            std::cout << getTabs() + "Evaluating Keyword: " + getPrintable() << std::endl;
+            if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+                std::cout << getTabs() + "Evaluating Keyword: " + getPrintable() << std::endl;
+            }
         } else {
-            std::cout << getTabs() + "Entering Keyword: " + getPrintable() << std::endl;
+            if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+                std::cout << getTabs() + "Entering Keyword: " + getPrintable() << std::endl;
+            }
             addTab();
         }
-        if (keyword == TokenType::_Debug) {
+        if (keyword == TokenType::_DebugPause) {
             DEBUG_TRIGGERED = true;
+        }
+        else if (keyword == TokenType::_DebugShow) {
+            DEBUG_SHOWING = true;
+        }
+        else if (keyword == TokenType::_DebugHide) {
+            DEBUG_SHOWING = false;
         }
         debugWait();
     }
@@ -1611,10 +1650,12 @@ the program execution to ignore this warning)");
 
 void KeywordNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating Keyword: ";
-    std::cout << getTokenTypeLabel(keyword) + " " + values.at(0)->getPrintable(debug_tabs) << std::endl;
-    debugWait();
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating Keyword: ";
+        std::cout << getTokenTypeLabel(keyword) + " " + values.at(0)->getPrintable(debug_tabs) << std::endl;
+        debugWait();
+    }
 }
 
 std::string KeywordNode::getPrintable() {
@@ -1627,7 +1668,9 @@ std::string KeywordNode::getPrintable() {
 
 std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering List: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering List: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -1654,10 +1697,12 @@ std::optional<std::shared_ptr<Value>> ListNode::evaluate(Environment& env) {
 
 void ListNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating List: ";
-    std::cout << values.at(0)->getPrintable(debug_tabs) << std::endl;
-    debugWait();
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating List: ";
+        std::cout << values.at(0)->getPrintable(debug_tabs) << std::endl;
+        debugWait();
+    }
 }
 
 std::string ListNode::getPrintable() {
@@ -1675,7 +1720,9 @@ std::string ListNode::getPrintable() {
 
 std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering Index: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering Index: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -1706,14 +1753,16 @@ std::optional<std::shared_ptr<Value>> IndexNode::evaluate(Environment& env) {
 
 void IndexNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating Index: ";
-    std::cout << values.at(0)->getPrintable(debug_tabs) << "[" << values.at(1)->getPrintable(debug_tabs);
-    if (values.size() == 3) {
-        std::cout << ":" << values.at(2)->getPrintable(debug_tabs);
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating Index: ";
+        std::cout << values.at(0)->getPrintable(debug_tabs) << "[" << values.at(1)->getPrintable(debug_tabs);
+        if (values.size() == 3) {
+            std::cout << ":" << values.at(2)->getPrintable(debug_tabs);
+        }
+        std::cout << "] -> retrieving value at index" << std::endl;
+        debugWait();
     }
-    std::cout << "] -> retrieving value at index" << std::endl;
-    debugWait();
 }
 
 std::string IndexNode::getPrintable() {
@@ -2003,7 +2052,7 @@ void IndexNode::assignIndex(Environment& env, std::shared_ptr<Value> value) {
 }
 
 std::optional<std::shared_ptr<Value>> FuncNode::evaluate(Environment& env) {
-    if (debug) {
+    if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
         std::cout << getTabs() + "Evaluating Function: " + getPrintable() << std::endl;
         debugWait();
     }
@@ -2148,7 +2197,9 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
 
 std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering Method Call: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering Method Call: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -2159,7 +2210,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             ValueList args;
             std::map<std::string, std::shared_ptr<Value>> pairs;
             evaluateArgs(args, pairs, env);
-            if (debug) {
+            if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
                 ValueList debug_values{mapped_value};
                 for (auto value : args) {
                     debug_values.push_back(value);
@@ -2190,7 +2241,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
         ValueList args;
         std::map<std::string, std::shared_ptr<Value>> pairs;
         evaluateArgs(args, pairs, env);
-        if (debug) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             ValueList debug_values{mapped_value};
             for (auto value : args) {
                 debug_values.push_back(value);
@@ -2217,7 +2268,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
             ValueList args;
             std::map<std::string, std::shared_ptr<Value>> pairs;
             evaluateArgs(args, pairs, env);
-            if (debug) {
+            if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
                 ValueList debug_values{mapped_value};
                 for (auto value : args) {
                     debug_values.push_back(value);
@@ -2243,7 +2294,9 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
 
 std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env, ValueType member_type) {
     if (debug) {
-        std::cout << getTabs() + "Entering Method Call: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering Method Call: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -2265,7 +2318,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
             ValueList args;
             std::map<std::string, std::shared_ptr<Value>> pairs;
             evaluateArgs(args, pairs, env);
-            if (debug) {
+            if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
                 ValueList debug_values{mapped_value};
                 for (auto value : args) {
                     debug_values.push_back(value);
@@ -2301,7 +2354,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
         ValueList args;
         std::map<std::string, std::shared_ptr<Value>> pairs;
         evaluateArgs(args, pairs, env);
-        if (debug) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             ValueList debug_values{mapped_value};
             for (auto value : args) {
                 debug_values.push_back(value);
@@ -2327,17 +2380,19 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
 
 void MethodCallNode::debugPrint(ValueList debug_values) {
     subTab();
-    setTabs();
-    std::cout << "Evaluating Method Call: ";
-    std::cout << debug_values.at(0)->getPrintable(debug_tabs) + "(";
-    for (int i = 1; i < debug_values.size(); i++) {
-        if (i != 1) {
-            std::cout << ", ";
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        std::cout << "Evaluating Method Call: ";
+        std::cout << debug_values.at(0)->getPrintable(debug_tabs) + "(";
+        for (int i = 1; i < debug_values.size(); i++) {
+            if (i != 1) {
+                std::cout << ", ";
+            }
+            std::cout << debug_values.at(i)->getPrintable(debug_tabs);
         }
-        std::cout << debug_values.at(i)->getPrintable(debug_tabs);
+        std::cout << ")" << std::endl;
+        debugWait();
     }
-    std::cout << ")" << std::endl;
-    debugWait();
 }
 
 std::string MethodCallNode::getPrintable() {
@@ -2388,7 +2443,9 @@ void MethodCallNode::evaluateArgs(ValueList& args,
 
 std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering Dictionary: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering Dictionary: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }
@@ -2410,14 +2467,16 @@ std::optional<std::shared_ptr<Value>> DictionaryNode::evaluate(Environment& env)
 
 void DictionaryNode::debugPrint(ValueList values) {
     subTab();
-    setTabs();
-    const auto& dict_ptr = values.at(0)->get<std::shared_ptr<Dictionary>>();
-    std::cout << "Evaluating Dictionary: {\n";
-    for (const auto& [key, val] : *dict_ptr) {
-        std::cout << getTabs() << key->getPrintable(debug_tabs) << " : " << val->getPrintable(debug_tabs) << '\n';
+    if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+        setTabs();
+        const auto& dict_ptr = values.at(0)->get<std::shared_ptr<Dictionary>>();
+        std::cout << "Evaluating Dictionary: {\n";
+        for (const auto& [key, val] : *dict_ptr) {
+            std::cout << getTabs() << key->getPrintable(debug_tabs) << " : " << val->getPrintable(debug_tabs) << '\n';
+        }
+        std::cout << getTabs() + "}" << std::endl;
+        debugWait();
     }
-    std::cout << getTabs() + "}" << std::endl;
-    debugWait();
 }
 
 std::string DictionaryNode::getPrintable() {
@@ -2431,7 +2490,9 @@ std::string DictionaryNode::getPrintable() {
 
 std::optional<std::shared_ptr<Value>> ClassNode::evaluate(Environment& env) {
     if (debug) {
-        std::cout << getTabs() + "Entering Class: " + getPrintable() << std::endl;
+        if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
+            std::cout << getTabs() + "Entering Class: " + getPrintable() << std::endl;
+        }
         addTab();
         debugWait();
     }

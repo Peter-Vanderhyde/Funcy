@@ -374,13 +374,17 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 
 ### Debugging Keywords
 
-- `debug`: This acts as a break line when the program is run in AST debug mode. The debug mode is enabled by using the `-DebugAST` flag when running the program.  
+All of these keywords require the program to be running in debug mode. The debug mode is enabled by using the `-DebugAST` flag when running the program. 
 
-  ``` bash
-  Funcy.exe test_program.fy -DebugAST
-  ```
-  
-  The AST evaluation will print out every step until it hits a `debug` keyword. At that point, the user can hit `ENTER` to proceed step by step through the evaluation. Pressing `ESCAPE` will break out of the pause and continue printing out all of the steps until it reaches the next `debug` or the end of the program.
+``` bash
+Funcy.exe test_program.fy -DebugAST
+```
+
+- `debugShow`: This will make the language print out every evaluation step it is on while it is running through the program.
+
+- `debugHide`: This stops the language printing out the evaluation steps.
+
+- `debugPause`: This acts as a break line. The language will pause once it reaches this line. The language will begin to print out each evaluation it's performing step by step. The user presses `ENTER` to progress step by step. They can also press `ESCAPE` to stop showing the evaluation steps and resume the program until it either hits anothe `debugPause` or the end of the program.
 
 ## Errors
 
