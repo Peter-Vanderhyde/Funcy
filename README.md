@@ -49,8 +49,9 @@ cmake --build .
 - [Keywords](#keywords)
 - [Errors](#errors)
 - [Built-in Functions](#built-in-functions)
-- [Program Examples](#program-examples)
 - [Additional Features](#additional-features)
+- [Language Feature Examples](#language-feature-examples)
+- [Program Examples](#program-examples)
 
 ---
 
@@ -257,16 +258,27 @@ class ClassName {
     func privateMethod() {
         # internal logic
     }
+
+    func &getReference() {
+        return this;
+    }
 }
 
 obj = ClassName("value", "data");
 print(obj.getPrivateVar());
 print(obj.public_var);  # Directly access the public member variable
+second_ref = obj.getReference();
+second_ref.public_var = "new value";
+print(obj.public_var); # Prints 'new value'
+
+obj.new_attribute = "Dynamically creating a new class attribute"
+print(second_ref.new_attribute);
 ```
 
 - Private members and methods are accessible only within their scope.
 - Public attributes and methods marked with `&` are accessible externally.
 - The constructor must be a public method with the same name as the class.
+- `this` keyword can be used to get a reference to the current class instance.
 
 ---
 
@@ -371,6 +383,30 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 - `import`: Imports separate funcy files. It will run the entire file upon importing it. There is not currently a way to only import specific functions or classes from a file.
   ```python
   import "module.fy";
+  ```
+
+### Class Keywords
+
+- `this`: This keyword can only be used inside of a class. It returns an instance of the current class. This can be used for assignments, calls, or returning a reference to be used somewhere else.
+  
+  ```python
+  class Animal {
+    func &Animal() {
+        &position = 10;
+        &hydrated = true;
+    }
+    func &drink(amount) {
+        &hydrated = true;
+    }
+    func &run(steps) {
+        this.position += steps;
+        this.hydrated = false;
+        this.drink(steps / 2);
+    }
+    func &getReference() {
+        return this;
+    }
+  }
   ```
 
 ### Debugging Keywords
@@ -547,7 +583,277 @@ Thrown errors halt the execution of the program.
     Foo(1, z="string", y=7);
     ```
 
+## Terminal Formatting
+
+Funcy uses standard ANSI Escape Sequences for controlling terminal output. These can be used within print() calls to manage colors and screen layout.
+
+### Color Codes
 ---
+
+Colors are defined using escape sequences.
+```Python
+
+# Standard color constants
+C_RESET = "\e[0m";   # Reset to terminal default
+C_RED   = "\e[91m";  # Red text
+C_GREEN = "\e[92m";  # Green text
+
+# Usage
+print(C_RED + "Warning: Low HP!" + C_RESET);
+```
+
+### Screen Manipulation
+---
+
+To create animated effects or clean interfaces, use the following control sequences:
+
+    Clear Screen:
+    print("\e[H\e[J"); (Moves cursor home and clears the display).
+
+    Move Cursor:
+    Use \e[<line>;<col>H to position the cursor at a specific coordinate.
+
+> Note: Terminal behavior can vary slightly depending on your operating system's terminal emulator.
+
+---
+
+## Language Feature Examples
+
+### -01- The Basics
+```python
+/* 01_basics.fy - Getting Started with Funcy
+   This script covers variables, basic data types, arithmetic,
+   type conversion, logical operators, and string manipulation
+*/
+
+print("Welcome to Funcy!");
+print("-----------------");
+
+# 1. Variables and Data Types
+greeting = "Hello";
+version = 1.0;
+is_fun = true;
+
+print("Language Version: " + str(version));
+print("Is Funcy fun? " + str(is_fun));
+print();
+
+# 2. User Input and Type Conversion
+name = input("What is your name? -> ");
+age_str = input("How old are you? -> ");
+
+# input() returns a string, so we convert it to an integer using int()
+age = int(age_str);
+
+# 3. Arithmetic Operations
+next_year_age = age + 1;
+half_age = age / 2;
+dog_years = age * 7;
+
+print();
+print("--- Math Results ---");
+print("Next year, you will be: " + str(next_year_age));
+print("Half your age is: " + str(half_age));
+print("In dog years, you are roughly: " + str(dog_years));
+
+# Using modulo (%) to check if age is even or odd
+if age % 2 == 0 {
+    print("Fun fact: Your age is an even number.");
+} else {
+    print("Fun fact: Your age is an odd number.");
+}
+print();
+
+# 4. Logical Operators (and, or, not)
+print("--- Logic Checks ---");
+if age >= 18 and name != "" {
+    print("You are considered an adult, " + name + ".");
+} elif age < 18 or not is_fun {
+    print("You are quite young, or you don't like fun!");
+}
+print();
+
+# 5. String Manipulation
+print("--- String Methods ---");
+
+# Manipulating the 'greeting' and 'name' strings
+full_message = greeting + ", " + name + "!";
+
+print("Original: " + full_message);
+print("Uppercase: " + full_message.upper());
+print("Lowercase: " + full_message.lower());
+
+# Using the length() built-in function
+print("Your name has " + str(length(name)) + " characters.");
+
+# Using the replace() built-in string method
+silly_message = full_message.replace(name, "Captain " + name);
+print("Replaced: " + silly_message);
+```
+
+### -02- Control Flow
+```python
+# 02_control_flow.fy - Loops, Functions, and Logic
+
+start = time();
+
+# Define a function with default arguments
+func greetUser(username, count=1, loud=false) {
+    print("Greeting " + username + " " + str(count) + " times:");
+    
+    for i in range(count) {
+        msg = "  " + str(i + 1) + ". Greetings!";
+        if loud {
+            print(msg.upper());
+        } else {
+            print(msg);
+        }
+    }
+}
+
+# Funcy allows argument reordering as long as they are named
+greetUser(loud=true, count=3, username="Alice");
+print();
+
+print("Counting to 5 the C++ way, but skipping 3:");
+# C-style loop with 'continue'
+for i = 1, i <= 5, i += 1 {
+    if i == 3 {
+        continue;
+    }
+    print(i);
+}
+print();
+
+# Time, and Error Throwing
+time_elapsed = time() - start;
+print("Execution took " + str(time_elapsed) + " milliseconds.");
+
+# Throwing an error explicitly based on a condition
+func validateTime(ms) {
+    if ms < 0 {
+        throw "Error: Time cannot be negative!";
+    }
+    return true;
+}
+
+validateTime(time_elapsed);
+# validateTime(-10); # Un-commenting this would safely halt the program
+```
+
+### -03- Data Structures
+```python
+# 03_data_structures.fy - Advanced Collections and Built-ins
+
+# String multiplication for formatting
+header = "-" * 30;
+print(header);
+print("Generating Random Data");
+print(header);
+
+# Using dictionaries and random integers
+data = {};
+num_items = randInt(3, 8);
+
+for i in range(num_items) {
+    data["Key " + str(i + 1)] = "Value " + str(randInt(100, 999));
+}
+
+# Destructuring dictionaries into lists using .items()
+keys = [];
+values = [];
+for [key, value] in data.items() {
+    keys.append(key);
+    values.append(value);
+}
+
+# Shuffling, copying, and Zip
+print("Randomly shuffled pairs using zip():");
+shuffled_keys = randShuffle(keys.copy());
+shuffled_values = randShuffle(values.copy());
+
+for pair in zip(shuffled_keys, shuffled_values) {
+    print(pair);
+}
+print();
+
+# List slicing
+print(header);
+my_list = [10, 20, 30, 40, 50, 60, 70];
+print("Original List: " + str(my_list));
+print("Sliced [1:4]:  " + str(my_list[1:4]));
+print("Sliced [-3:-1]: " + str(my_list[-3:-1]));
+print("Shuffled List: " + str(randShuffle(my_list)));
+print(header);
+```
+
+### -04- Classes
+```python
+# 04_classes.fy - Object-Oriented Programming
+
+class Robot {
+    # Public variables marked with &
+    &name = "";
+    &battery_level = 100;
+    
+    # Private variable (only accessible inside the class)
+    serial_number = "UNKNOWN";
+
+    # Constructor
+    func &Robot(name, serial) {
+        &name = name;
+        serial_number = serial;
+    }
+
+    # Public Method
+    func &work(hours) {
+        if &battery_level <= 0 {
+            print(&name + " is out of battery!");
+            return Null;
+        }
+        
+        drain = hours * 10;
+        &battery_level -= drain;
+        print(&name + " worked for " + str(hours) + " hours. Battery: " + str(&battery_level) + "%");
+        
+        # Calling a private method internally
+        checkBattery();
+    }
+
+    # Public getter for private variable
+    func &getSerial() {
+        return serial_number;
+    }
+
+    # Private method
+    func checkBattery() {
+        if &battery_level < 20 {
+            print("Warning: " + &name + " battery is getting low!");
+        }
+    }
+}
+
+# Creating an instance
+bot = Robot("Robo-Bob", "XJ-92");
+print("Created bot: " + bot.name);
+print("Serial Number: " + bot.getSerial());
+print();
+
+bot.work(5);
+bot.work(4);
+print();
+
+# Using built-in instance functions
+if bot.hasAttr("battery_level") {
+    print("Direct battery access via attribute: " + str(bot.battery_level) + "%");
+}
+
+# Modifying instance attributes dynamically
+# Could also use: bot.setAttr("status", "Online");
+bot.status = "Online;
+print("New status attribute created");
+print("Status: " + bot.status);
+```
 
 ## Program Examples
 

@@ -85,7 +85,7 @@ void Parser::removeIfElseScope() {
 
 std::shared_ptr<ASTNode> Parser::parseFoundation() {
     if (debug) std::cout << "Parse Foundation " << getTokenStr() << std::endl;
-    if (keyword_tokens.contains(getTokenStr())) {
+    if (keyword_tokens.contains(getTokenStr()) && !tokenIs("this")) {
         return parseControlFlowStatement();
     }
     else {
@@ -332,7 +332,7 @@ std::shared_ptr<ASTNode> Parser::parseStatement(std::shared_ptr<std::string> var
     }
 
     // Start with an identifier: parse full member/index/call chain as potential LHS
-    if (tokenIs("identifier")) {
+    if (tokenIs("identifier") || tokenIs("this")) {
         if (member) {
             backUp();  // include '&' in identifier parsing
         }
