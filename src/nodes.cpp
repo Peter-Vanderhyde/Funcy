@@ -720,15 +720,20 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         if (auto node = std::dynamic_pointer_cast<BinaryOpNode>(left)) {
             // It's a class.member = value
             if (auto attr_ident = std::dynamic_pointer_cast<IdentifierNode>(node->right)) {
-                if (auto instance_ident = std::dynamic_pointer_cast<IdentifierNode>(node->left)) {
-                    auto instance_value = env.get(instance_ident->name, instance_ident->member_variable);
-                    if (instance_value->getType() != ValueType::Instance) {
-                        throwError(ErrorType::Runtime, getValueStr(instance_value) + " object has no attribute " + attr_ident->name, line, column);
-                    }
-                    auto instance = instance_value->get<std::shared_ptr<Instance>>();
+                auto left_value = node->left->evaluate(env);
+
+                if (left_value && left_value.value()->getType() == ValueType::Instance) {
+                    auto instance = left_value.value()->get<std::shared_ptr<Instance>>();
                     instance->getEnvironment().set(attr_ident->name, right_value.value(), true);
+
+                    if (env.isClassEnv()) {
+                        try {
+                            if (env.getThis() == left_value.value()) {
+                                env.set(attr_ident->name, right_value.value(), true);
+                            }
+                        } catch (const ErrorException&) {}
+                    }
                 } else {
-                    auto left_value = node->left->evaluate(env);
                     throwError(ErrorType::Runtime, getValueStr(left_value.value()) + " object has no attribute " + attr_ident->name, line, column);
                 }
             } else {
@@ -892,6 +897,27 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
                     env.set(identifier_node->name, result.value(), identifier_node->member_variable);
                 } else if (auto index_node = std::dynamic_pointer_cast<IndexNode>(left)) {
                     index_node->assignIndex(env, result.value());
+                } else if (auto node = std::dynamic_pointer_cast<BinaryOpNode>(left)) {
+                    // class.member += value
+                    if (auto attr_ident = std::dynamic_pointer_cast<IdentifierNode>(node->right)) {
+                        auto left_value = node->left->evaluate(env);
+                        if (left_value && left_value.value()->getType() == ValueType::Instance) {
+                            auto instance = left_value.value()->get<std::shared_ptr<Instance>>();
+                            instance->getEnvironment().set(attr_ident->name, result.value(), true);
+
+                            if (env.isClassEnv()) {
+                                try {
+                                    if (env.getThis() == left_value.value()) {
+                                        env.set(attr_ident->name, result.value(), true);
+                                    }
+                                } catch (const ErrorException&) {}
+                            }
+                        } else {
+                            throwError(ErrorType::Runtime, getValueStr(left_value.value()) + " object has no attribute: " + attr_ident->name, line, column);
+                        }
+                    } else {
+                        throwError(ErrorType::Runtime, "Invalid syntax", line, column);
+                    }
                 }
                 else {
                     throwError(ErrorType::Runtime, "The operator '=' can only be used with variables or indexes", line, column);
@@ -1626,12 +1652,7 @@ the program execution to ignore this warning)");
         popExecutionContext();
         return std::nullopt;
     } else if (keyword == TokenType::_This) {
-        try {
-            return env.getThis();
-        }
-        catch (const ErrorException& e) {
-            throwError(e.error_type, e.message, line, column);
-        }
+        return env.getThis();
     } else if (type_map.contains(keyword)) {
         if (keyword == TokenType::_NullType) {
             return std::make_shared<Value>();
