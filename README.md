@@ -582,6 +582,38 @@ Thrown errors halt the execution of the program.
     Foo(1, z="string", y=7);
     ```
 
+## Terminal Formatting
+
+Funcy uses standard ANSI Escape Sequences for controlling terminal output. These can be used within print() calls to manage colors and screen layout.
+
+### Color Codes
+---
+
+Colors are defined using escape sequences.
+```Python
+
+# Standard color constants
+C_RESET = "\e[0m";   # Reset to terminal default
+C_RED   = "\e[91m";  # Red text
+C_GREEN = "\e[92m";  # Green text
+
+# Usage
+print(C_RED + "Warning: Low HP!" + C_RESET);
+```
+
+### Screen Manipulation
+---
+
+To create animated effects or clean interfaces, use the following control sequences:
+
+    Clear Screen:
+    print("\e[H\e[J"); (Moves cursor home and clears the display).
+
+    Move Cursor:
+    Use \e[<line>;<col>H to position the cursor at a specific coordinate.
+
+> Note: Terminal behavior can vary slightly depending on your operating system's terminal emulator.
+
 ---
 
 ## Language Feature Examples
