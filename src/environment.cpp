@@ -57,7 +57,8 @@ Environment::Environment(const Environment& other)
     : scopes(other.scopes), class_env(other.class_env),
       loop_depth(other.loop_depth), built_in_functions(other.built_in_functions),
       member_functions(other.member_functions), scoped_globals(other.scoped_globals),
-      class_depth(other.class_depth), class_attrs(other.class_attrs), is_top_scope(other.is_top_scope) {}
+      class_depth(other.class_depth), class_attrs(other.class_attrs), is_top_scope(other.is_top_scope),
+      enclosing_env(other.enclosing_env) {}
 
 void Environment::setClassEnv() {
     class_env = true;
@@ -93,13 +94,16 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
 }
 
 std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) const {
-    if (scopes.empty()) {
-        throwError(ErrorType::Runtime, "Attempted to access empty environment");
-    }
     if (is_member_var && class_depth == 0 && class_env == false) {
         throwError(ErrorType::Runtime, "Unable to get class attribute '" + name + "' outside of class");
     } else if (is_member_var) {
         return class_attrs.get(name);
+    }
+    if (scopes.empty()) {
+        if (enclosing_env != nullptr) {
+            return enclosing_env->get(name, is_member_var);
+        }
+        throwError(ErrorType::Runtime, "Attempted to access empty environment");
     }
     if (isGlobal(name)) {
         if (scopes.front().contains(name)) {
@@ -116,14 +120,15 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
         }
     }
 
+    if (enclosing_env != nullptr) {
+        return enclosing_env->get(name, is_member_var);
+    }
+
     throwError(ErrorType::Runtime, "Unrecognized variable " + name);
 }
 
 
 bool Environment::contains(std::string name, bool is_member_var) const {
-    if (scopes.empty()) {
-        throwError(ErrorType::Runtime, "Attempted to access emtpy environment");
-    }
     if (class_env == true || class_depth != 0) {
         if (is_member_var) {
             return class_attrs.contains(name);
@@ -133,6 +138,14 @@ bool Environment::contains(std::string name, bool is_member_var) const {
         if (scope.contains(name)) {
             return true;
         }
+    }
+
+    if (enclosing_env != nullptr) {
+        return enclosing_env->contains(name, is_member_var);
+    }
+
+    if (scopes.empty()) {
+        throwError(ErrorType::Runtime, "Attempted to access emtpy environment");
     }
 
     return false;
@@ -211,13 +224,22 @@ std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
     if (func != built_in_functions.end()) {
         return func->second;
     }
+    if (enclosing_env != nullptr) {
+        return enclosing_env->getFunction(name);
+    }
 
     throwError(ErrorType::Runtime, "Unrecognized built-in function '" + name + "'");
 }
 
 bool Environment::hasFunction(const std::string& name) const {
     auto func = built_in_functions.find(name);
-    return func != built_in_functions.end();
+    if (func != built_in_functions.end()) {
+        return true;
+    }
+    if (enclosing_env != nullptr) {
+        return enclosing_env->hasFunction(name);
+    }
+    return false;
 }
 
 void Environment::addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func) {
@@ -308,6 +330,20 @@ std::shared_ptr<Value> Environment::getThis() {
         return std::make_shared<Value>();
     }
     return this_ref;
+}
+
+void Environment::setEnclosing(Environment* env) {
+    enclosing_env = env;
+}
+
+Environment* Environment::getEnclosing() const {
+    return enclosing_env;
+}
+
+void Environment::copyRuntimeSupport(const Environment& other) {
+    built_in_functions = other.built_in_functions;
+    member_functions = other.member_functions;
+    detect_recursion = other.detect_recursion;
 }
 
 void Environment::display(bool show_attrs) const {

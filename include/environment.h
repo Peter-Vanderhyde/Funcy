@@ -73,6 +73,11 @@ public:
     void setThis(std::shared_ptr<Value> inst_ref);
     std::shared_ptr<Value> getThis();
 
+    void setEnclosing(Environment* env);
+    Environment* getEnclosing() const;
+
+    void copyRuntimeSupport(const Environment& other);
+
     void display(bool show_attrs = false) const;
 
     bool is_top_scope = false;
@@ -81,6 +86,7 @@ private:
     std::vector<Scope> scopes;
     Scope class_attrs;
     std::shared_ptr<Value> this_ref = nullptr;
+    Environment* enclosing_env = nullptr;
     bool class_env;
     int class_depth = 0;
     int loop_depth = 0;
