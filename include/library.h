@@ -13,7 +13,7 @@ using BuiltInFunctionReturn = std::optional<std::shared_ptr<Value>>;
 
 std::string readSourceCodeFromFile(const std::string& filename);
 
-void printValue(const std::shared_ptr<Value> value, bool error = false);
+void printValue(const std::shared_ptr<Value> value, bool error = false, bool drawing = false);
 
 std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> first,
                                                     std::shared_ptr<Value> second);
@@ -30,6 +30,7 @@ BuiltInFunctionReturn callable(const std::vector<std::shared_ptr<Value>>& args, 
 BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn divMod(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn draw(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
@@ -50,6 +51,8 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Env
 BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn showCursor(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
+BuiltInFunctionReturn sleep(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Environment& env);
 BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env);

@@ -62,7 +62,7 @@ void debugWait() {
     if (DEBUG_TRIGGERED) {
         int ch = _getch();
         if (ch == 3) {
-            std::cout << "\n^C" << std::endl;
+            std::cout << "\e[?25h\n^C" << std::endl;
             std::exit(130);
         }
         else if (ch == 27) {
