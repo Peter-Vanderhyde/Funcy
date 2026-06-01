@@ -207,7 +207,9 @@ public:
     void setArgs(ValueList values, std::map<std::string, std::shared_ptr<Value>> pairs, Scope& local_scope);
     std::optional<std::shared_ptr<Value>> callFunc(ValueList values,
                                                     std::map<std::string, std::shared_ptr<Value>> pairs,
-                                                    Environment& global_env, bool member_func = false);
+                                                    Environment& caller_env,
+                                                    bool member_func = false,
+                                                    Environment* class_storage = nullptr);
     
     Environment local_env;
     bool member_func;
