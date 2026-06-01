@@ -1,6 +1,6 @@
 # Funcy Documentation  
 ***Author: Peter Vanderhyde***  
-***Project Start: November 2024***  
+***Project Started: November 2024***  
 
 ---
 
@@ -238,6 +238,7 @@ showString(arg2="second arg", arg3=value, arg1=true);
 
 ```python
 class ClassName {
+    # Define class variables here if you want them to have a default value, otherwise defining in the constructor is normal.
     private_var = "not visible outside class";  # Behaves like a normal variable
     &public_var = "visible outside class";
 
@@ -472,6 +473,7 @@ Thrown errors halt the execution of the program.
 - `callable(var) -> bool` - Checks if the variable is callable.
 - `dict(iterable={}) -> dict` - Creates a dictionary from another dictionary, or a list of key-value pairs.
 - `divMod(a, b) -> list` - Returns a list with the quotient and remainder of `a` divided by `b`.
+- `draw(arg1, ...) -> Null` - Prints to the screen like the normal `print` function, but does not surround strings with single quotes for cleaner image displaying.
 - `enumerate(list) -> list` - Returns index-value pairs for a list.
 - `float(value) -> float` - Converts a value to a floating-point number.
 - `globals() -> dict` - Returns a dictionary of global variables.
@@ -491,6 +493,8 @@ Thrown errors halt the execution of the program.
 - `readFile(file_path_str) -> string|Null` - Reads from a file. Returns Null if file does not exist.
 - `reversed(list) -> list` - Returns a reversed version of the sequence.
 - `round(value, precision=0) -> float` - Rounds a number to the given precision.
+- `showCursor(bool=true) -> Null` - This function will show or hide the terminal cursor. Hiding the cursor makes for cleaner image display. Hiding the cursor is persistent, however, so don't forget to show the cursor again at the end of your program.
+- `sleep(int|float) -> Null` - Waits for the specified number of milliseconds before continuing.
 - `str(value) -> string` - Converts a value to a string. Dictionaries converted into a string will maintain json compatible formatting so they can be saved in json files.
 - `sum(list) -> int|float` - Returns the sum of all elements in a list.
 - `time() -> int` - Returns milliseconds since the start of the application as an integer.

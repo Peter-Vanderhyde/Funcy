@@ -2164,19 +2164,26 @@ void FuncNode::setArgs(ValueList values,
 
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
                                                         std::map<std::string, std::shared_ptr<Value>> pairs,
-                                                        Environment& global_env, bool member_func) {
-    Environment local_env_copy{global_env};
+                                                        Environment& caller_env,
+                                                        bool member_func,
+                                                        Environment* class_storage) {
+    Environment local_env_copy;
     Scope local_scope;
     pushFunctionContext(*func_name, file_context);
-    if (!member_func) {
-        local_scope.set(*func_name, global_env.get(*func_name, member_func));
-    }
-    setArgs(values, pairs, local_scope);
-    if (global_env.isClassEnv()) {
+
+    if (member_func && class_storage != nullptr) {
+        local_env_copy = Environment{*class_storage};
         local_env_copy.setClassEnv();
-        local_env_copy.setClassAttrs(global_env.getClassAttrs());
-        local_env_copy.setThis(global_env.getThis());
+        local_env_copy.setClassAttrs(class_storage->getClassAttrs());
+        local_env_copy.setThis(class_storage->getThis());
+        local_env_copy.setEnclosing(&caller_env);
+        local_scope.set(*func_name, class_storage->get(*func_name, true));
+    } else {
+        local_env_copy = Environment{caller_env};
+        local_scope.set(*func_name, caller_env.get(*func_name, false));
     }
+
+    setArgs(values, pairs, local_scope);
     local_env_copy.addScope(local_scope);
     recursion += 1;
     std::optional<std::shared_ptr<Value>> return_value = std::make_shared<Value>();
@@ -2198,16 +2205,17 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
 
     local_env_copy.removeScope();
 
-    if (global_env.isClassEnv()) {
+    if (member_func && class_storage != nullptr) {
         auto attrs = local_env_copy.getClassAttrs();
-        global_env.setClassAttrs(attrs);
-
-        global_env.setScopes(local_env_copy.copyScopes());
+        class_storage->setClassAttrs(attrs);
+        class_storage->setScopes(local_env_copy.copyScopes());
     }
 
     auto scopes = local_env_copy.copyScopes();
-    for (const auto& pair : scopes.at(0).getPairs()) {
-        global_env.setGlobalValue(pair.first, pair.second);
+    if (!scopes.empty()) {
+        for (const auto& pair : scopes.at(0).getPairs()) {
+            caller_env.setGlobalValue(pair.first, pair.second);
+        }
     }
     recursion -= 1;
 
@@ -2239,7 +2247,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
                 debugPrint(debug_values);
             }
             try {
-                auto result = func->callFunc(args, pairs, env, func->member_func);
+                auto result = func->callFunc(args, pairs, env, func->member_func, nullptr);
                 return result;
             }
             catch (const ErrorException& e) {
@@ -2296,10 +2304,12 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
                 }
                 debugPrint(debug_values);
             }
-            func_node->callFunc(args, pairs, instance->getEnvironment(), true);
+            func_node->callFunc(args, pairs, env, true, &instance->getEnvironment());
             auto scopes = instance->getEnvironment().copyScopes();
-            for (const auto& pair : scopes.at(0).getPairs()) {
-                env.setGlobalValue(pair.first, pair.second);
+            if (!scopes.empty()) {
+                for (const auto& pair : scopes.at(0).getPairs()) {
+                    env.setGlobalValue(pair.first, pair.second);
+                }
             }
             return std::make_shared<Value>(instance);
         }
@@ -2349,19 +2359,21 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
             try {
                 if (member_type == ValueType::Instance) {
                     environment.setThis(member_value);
-                    auto result = func->callFunc(args, pairs, environment, true);
+                    auto result = func->callFunc(args, pairs, env, true, &environment);
                     auto inst_node = member_value->get<std::shared_ptr<Instance>>();
                     inst_node->getEnvironment().setClassAttrs(environment.getClassAttrs());
                     inst_node->getEnvironment().setScopes(environment.copyScopes());
                     auto scopes = environment.copyScopes();
-                    for (const auto& pair : scopes.at(0).getPairs()) {
-                        env.setGlobalValue(pair.first, pair.second);
+                    if (!scopes.empty()) {
+                        for (const auto& pair : scopes.at(0).getPairs()) {
+                            env.setGlobalValue(pair.first, pair.second);
+                        }
                     }
                     return result;
                 }
                 else {
                     args.insert(args.begin(), member_value);
-                    return func->callFunc(args, pairs, environment);
+                    return func->callFunc(args, pairs, env, false, nullptr);
                 }
             }
             catch (const ErrorException& e) {
@@ -2542,7 +2554,11 @@ the program execution to ignore this warning)");
         throwError(e.error_type, e.message, line, column);
     }
 
-    Environment class_env{env};
+    Scope class_local_scope = env.getScope();
+    Environment class_env;
+    class_env.copyRuntimeSupport(env);
+    class_env.setClassAttrs(env.getClassAttrs());
+    class_env.addScope(class_local_scope);
     env.removeClassScope(prev_attrs);
 
     class_env.setClassEnv();

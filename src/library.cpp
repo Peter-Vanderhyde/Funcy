@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include <chrono>
+#include <thread>
 #include <filesystem>
 #include <cmath>
 #include <cctype>
@@ -40,7 +41,7 @@ std::string readSourceCodeFromFile(const std::string& filename) {
     return buffer.str(); // Return the contents as a std::string
 }
 
-void printValue(const std::shared_ptr<Value> value, bool error) {
+void printValue(const std::shared_ptr<Value> value, bool error, bool drawing) {
     Style style{};
     switch(value->getType()) {
         case ValueType::Integer: {
@@ -100,12 +101,20 @@ void printValue(const std::shared_ptr<Value> value, bool error) {
                     size_t last_non_newline = string_value.find_last_not_of('\n');
                     if (last_non_newline == string_value.length() - 1) {
                         // No trailing newlines
-                        std::cout << style.green << "'" << string_value << "'" << style.reset;
+                        if (drawing) {
+                            std::cout << style.green << string_value << style.reset;
+                        } else {
+                            std::cout << style.green << "'" << string_value << "'" << style.reset;
+                        }
                     } else {
                         // Has trailing newlines
                         std::string content = string_value.substr(0, last_non_newline + 1);
                         std::string trailing_newlines = string_value.substr(last_non_newline + 1);
-                        std::cout << style.green << "'" << content << "'" << trailing_newlines << style.reset;
+                        if (drawing) {
+                            std::cout << style.green << content << trailing_newlines << style.reset;
+                        } else {
+                            std::cout << style.green << "'" << content << "'" << trailing_newlines << style.reset;
+                        }
                     }
                 }
             }
@@ -285,6 +294,7 @@ Environment buildStartingEnvironment() {
     env.addFunction("callable", std::make_shared<Value>(std::make_shared<BuiltInFunction>(callable)));
     env.addFunction("dict", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictConverter)));
     env.addFunction("divMod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(divMod)));
+    env.addFunction("draw", std::make_shared<Value>(std::make_shared<BuiltInFunction>(draw)));
     env.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
     env.addFunction("float", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatConverter)));
     env.addFunction("globals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(globals)));
@@ -304,6 +314,8 @@ Environment buildStartingEnvironment() {
     env.addFunction("readFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(readFile)));
     env.addFunction("reversed", std::make_shared<Value>(std::make_shared<BuiltInFunction>(reversed)));
     env.addFunction("round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(roundVal)));
+    env.addFunction("showCursor", std::make_shared<Value>(std::make_shared<BuiltInFunction>(showCursor)));
+    env.addFunction("sleep", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sleep)));
     env.addFunction("str", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
     env.addFunction("sum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sum)));
     env.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
@@ -582,6 +594,15 @@ BuiltInFunctionReturn divMod(const std::vector<std::shared_ptr<Value>>& args, En
     list.push_back(std::make_shared<Value>(result));
     list.push_back(std::make_shared<Value>(remainder));
     return std::make_shared<Value>(std::make_shared<List>(list));
+}
+
+BuiltInFunctionReturn draw(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    for (const auto& arg : args) {
+        printValue(arg, false, true);
+        std::cout << " ";
+    }
+    std::cout << std::endl;
+    return std::nullopt;
 }
 
 BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
@@ -1192,6 +1213,47 @@ BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(num);
 }
 
+BuiltInFunctionReturn showCursor(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() > 1) {
+        throwError(ErrorType::Runtime, "showCursor() takes up to 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    std::string command = "\e[?25h";
+    if (args.size() == 1) {
+        if (args[0]->getType() != ValueType::Boolean) {
+            throwError(ErrorType::Runtime, "showCursor() expected an argument of Type:Boolean but got " + getTypeStr(args[0]->getType()));
+        }
+
+        if (!args[0]->get<bool>()) {
+            command = "\e[?25l";
+        }
+    }
+
+    printValue(std::make_shared<Value>(command), false, true);
+    return std::nullopt;
+}
+
+BuiltInFunctionReturn sleep(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+    if (args.size() != 1) {
+        throwError(ErrorType::Runtime, "sleep() takes 1 argument. " + std::to_string(args.size()) + " were given");
+    }
+
+    const ValueType vt = args[0]->getType();
+    if (vt != ValueType::Integer && vt != ValueType::Float) {
+        throwError(ErrorType::Runtime, "sleep() expected an argument of Type:Integer or Type:Float but got " + getTypeStr(vt));
+    }
+
+    if (vt == ValueType::Integer) {
+        int mseconds = args[0]->get<int>();
+        std::this_thread::sleep_for(std::chrono::milliseconds(mseconds));
+    } else {
+        int mseconds = static_cast<int>(args[0]->get<double>());
+        std::this_thread::sleep_for(std::chrono::milliseconds(mseconds));
+    }
+
+    return std::make_shared<Value>();
+}
+
 std::string toString(double value){
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2) << value;
@@ -1800,6 +1862,9 @@ BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& a
         return std::make_shared<Value>(false);
     }
 
+    if (string.starts_with('-')) {
+        string.erase(0);
+    }
     for (char c : string) {
         if (!std::isdigit(c)) {
             return std::make_shared<Value>(false);
