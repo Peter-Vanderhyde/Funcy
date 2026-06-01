@@ -8,10 +8,16 @@ class Robot {
     # Private variable (only accessible inside the class)
     serial_number = "UNKNOWN";
 
+    # Public variables can all be defined in the constructor
+    # but private variables must be defined in this outer scope
+
     # Constructor
     func &Robot(name, serial) {
         &name = name;
         serial_number = serial;
+
+        temp_variable = "I'm not a private variable.";
+        # This variable is forgotton outside of the constructor scope
     }
 
     # Public Method
