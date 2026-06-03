@@ -124,7 +124,7 @@ seed = input("Enter seed (leave blank for random): ");
 if not seed.isDigit() or int(seed) < 1 {
     seed = randInt(1, 999999);
 }
-terrain = TerrainMap(118, 1000, 0.10, int(seed));
+terrain = TerrainMap(50, 1000, 0.10, int(seed));
 draw("\e[H\e[J");
 showCursor(false);
 terrain.generate();

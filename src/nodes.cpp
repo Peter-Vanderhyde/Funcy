@@ -2180,7 +2180,7 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
         local_scope.set(*func_name, class_storage->get(*func_name, true));
     } else {
         local_env_copy = Environment{caller_env};
-        local_scope.set(*func_name, caller_env.get(*func_name, false));
+        local_scope.set(*func_name, caller_env.get(*func_name, member_func));
     }
 
     setArgs(values, pairs, local_scope);
