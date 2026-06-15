@@ -13,12 +13,20 @@ The Funcy code snippets found in this README are utilizing Github's Python synta
 To execute a Funcy program, in the command-line, run the `Funcy.exe` executable with the following syntax:
 
 ```bash
-Funcy.exe <file_path> [-IgnoreOverflow]
+Funcy.exe <file_path>
+```
+
+Programs can also be executed with these optional flags:
+```bash
+Funcy.exe <file_path> [-IgnoreOverflow, -Debug, -ShowTokens, -DebugParser]
 ```
 
 #### Arguments:
 - `<file_path>`: The path to the `.fy` file you want to execute.
 - `-IgnoreOverflow` (optional): A flag that allows the program to continue running even when excessive recursion is detected. When disabled, your program may experience sudden, random termination due to stack overflow.
+- `-Debug` (optional): Looks for specific [debugging keywords](#debugging-keywords) in the code to perform special actions while the code is running.
+- `-ShowTokens` (optional): This will print out every token that the program text was broken up into.
+- `-DebugParser` (optional): This was mostly used to help find inconsistent execution ordering of code, but is not very useful beyond that. It displays every parsing level that the parser passes through during parsing.
 
 #### Example:
 Run a Funcy file with the `-IgnoreOverflow` flag:
@@ -422,7 +430,7 @@ Funcy.exe test_program.fy -Debug
 
 - `debugHide`: This stops the language printing out the evaluation steps.
 
-- `debugPause`: This acts as a break line. The language will pause once it reaches this line. The language will begin to print out each evaluation it's performing step by step. The user presses `ENTER` to progress step by step. They can also press `ESCAPE` to stop showing the evaluation steps and resume the program until it either hits anothe `debugPause` or the end of the program.
+- `debugPause`: This acts as a break line. The language will pause once it reaches this line. The language will begin to print out each evaluation it's performing step by step. The user presses `ENTER` to progress step by step. They can also press `ESCAPE` to stop showing the evaluation steps and resume the program like normal until it hits another `debugPause` or the program completes.
 
 - `debugEnv`: This will display the current state of the environment at that moment. (This does not work well within classes)
 
