@@ -412,10 +412,10 @@ Keywords in Funcy are reserved words with predefined meanings and specific purpo
 
 ### Debugging Keywords
 
-All of these keywords require the program to be running in debug mode. The debug mode is enabled by using the `-DebugAST` flag when running the program. 
+All of these keywords require the program to be running in debug mode. The debug mode is enabled by using the `-Debug` flag when running the program. 
 
 ``` bash
-Funcy.exe test_program.fy -DebugAST
+Funcy.exe test_program.fy -Debug
 ```
 
 - `debugShow`: This will make the language print out every evaluation step it is on while it is running through the program.

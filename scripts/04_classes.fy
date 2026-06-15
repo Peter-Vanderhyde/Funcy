@@ -64,6 +64,7 @@ if bot.hasAttr("battery_level") {
 }
 
 # Modifying instance attributes dynamically
-bot.setAttr("status", "Online");
+bot.status = "Online";
+# Could also do:  bot.setAttr("status", "Online");
 print("New status attribute created");
 print("Status: " + bot.status);

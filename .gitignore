@@ -8,4 +8,5 @@ scripts/*
 !scripts/02_control_flow.fy
 !scripts/03_data_structures.fy
 !scripts/04_classes.fy
+!scripts/farkle.fy
 !scripts/ai programs

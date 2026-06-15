@@ -72,6 +72,13 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
     if (scopes.empty()) {
         throwError(ErrorType::Runtime, "Attempted to access empty environment");
     } else {
+        if (!name.empty() && name[0] == '&') {
+            if (this_ref != nullptr) {
+                auto instance = this_ref->get<std::shared_ptr<Instance>>();
+                instance->getEnvironment().class_attrs.set(name, value);
+                return;
+            }
+        }
         if (is_member_var && class_depth == 0 && class_env == false) {
             throwError(ErrorType::Runtime, "Unable to set class attribute '" + name + "' outside of class");
         } else if (is_member_var) {
@@ -94,6 +101,12 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
 }
 
 std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) const {
+    if (!name.empty() && name[0] == '&') {
+        if (this_ref != nullptr) {
+            auto instance = this_ref->get<std::shared_ptr<Instance>>();
+            return instance->getEnvironment().get(name, true);
+        }
+    }
     if (is_member_var && class_depth == 0 && class_env == false) {
         throwError(ErrorType::Runtime, "Unable to get class attribute '" + name + "' outside of class");
     } else if (is_member_var) {
@@ -347,6 +360,7 @@ void Environment::copyRuntimeSupport(const Environment& other) {
     built_in_functions = other.built_in_functions;
     member_functions = other.member_functions;
     detect_recursion = other.detect_recursion;
+    this_ref = other.this_ref;
 }
 
 void Environment::display(bool show_attrs) const {
@@ -354,6 +368,7 @@ void Environment::display(bool show_attrs) const {
         std::cout << "ATTRS\n";
         class_attrs.display();
     }
+    std::cout << "----\n";
     int i = 1;
     for (auto scope : scopes) {
         std::cout << "Scope:" << i << std::endl;

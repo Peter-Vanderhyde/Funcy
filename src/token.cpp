@@ -74,7 +74,8 @@ std::unordered_map<TokenType, std::string> token_labels{
     {TokenType::_Throw, "throw"},
     {TokenType::_DebugShow, "debugShow"},
     {TokenType::_DebugHide, "debugHide"},
-    {TokenType::_DebugPause, "debugPause"}
+    {TokenType::_DebugPause, "debugPause"},
+    {TokenType::_DebugEnv, "debugEnv"}
     //{TokenType::, ""}
 };
 
@@ -144,7 +145,8 @@ std::unordered_map<std::string, TokenType> keyword_tokens {
     {"throw", TokenType::_Throw},
     {"debugShow", TokenType::_DebugShow},
     {"debugHide", TokenType::_DebugHide},
-    {"debugPause", TokenType::_DebugPause}
+    {"debugPause", TokenType::_DebugPause},
+    {"debugEnv", TokenType::_DebugEnv}
 };
 
 std::unordered_map<std::string, TokenType> scoped_keyword_tokens {

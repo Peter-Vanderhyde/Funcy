@@ -1545,6 +1545,9 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(Environment& env) {
         else if (keyword == TokenType::_DebugHide) {
             DEBUG_SHOWING = false;
         }
+        else if (keyword == TokenType::_DebugEnv) {
+            env.display(true);
+        }
         debugWait();
     }
     if (keyword == TokenType::_Break) {

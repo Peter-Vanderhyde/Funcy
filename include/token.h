@@ -76,7 +76,8 @@ enum class TokenType{
     _Throw,
     _DebugShow,
     _DebugHide,
-    _DebugPause
+    _DebugPause,
+    _DebugEnv
 };
 
 std::string getTokenTypeLabel(TokenType type);

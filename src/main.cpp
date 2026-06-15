@@ -32,7 +32,12 @@ int main(int argc, char* argv[]) {
     bool display_tokens = false;
 
     if (!TESTING && argc < 2) {
-        throwError(ErrorType::Runtime, "Program usage: Funcy <program_path> [-IgnoreOverflow, -ShowTokens, -DebugParser, [-DebugAST, -SlowDebugAST]]");
+        try {
+            throwError(ErrorType::Runtime, "Program usage: Funcy <program_path> [-IgnoreOverflow, -ShowTokens, -DebugParser, -Debug]");
+        }
+        catch (const std::exception& e) {
+            std::cerr << e.what();
+        }
         return 0;
     }
 
@@ -52,7 +57,7 @@ int main(int argc, char* argv[]) {
                 display_tokens = true;
             } else if (flag == "-DebugParser") {
                 DEBUG_PARSER = true;
-            } else if (flag == "-DebugAST") {
+            } else if (flag == "-Debug") {
                 DEBUG_AST = true;
             } else {
                 try {
