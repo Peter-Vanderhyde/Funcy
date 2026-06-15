@@ -57,7 +57,7 @@ Environment::Environment(const Environment& other)
     : scopes(other.scopes), class_env(other.class_env),
       loop_depth(other.loop_depth), built_in_functions(other.built_in_functions),
       member_functions(other.member_functions), scoped_globals(other.scoped_globals),
-      class_depth(other.class_depth), class_attrs(other.class_attrs), is_top_scope(other.is_top_scope),
+      class_depth(other.class_depth), class_attrs(other.class_attrs), this_ref(other.this_ref), detect_recursion(other.detect_recursion), is_top_scope(other.is_top_scope),
       enclosing_env(other.enclosing_env) {}
 
 void Environment::setClassEnv() {
@@ -72,19 +72,32 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
     if (scopes.empty()) {
         throwError(ErrorType::Runtime, "Attempted to access empty environment");
     } else {
-        if (!name.empty() && name[0] == '&') {
-            if (this_ref != nullptr) {
-                auto instance = this_ref->get<std::shared_ptr<Instance>>();
-                instance->getEnvironment().class_attrs.set(name, value);
-                return;
+        // Member variables (prefixed with '&') should resolve to the current instance's
+        // environment first. If this Environment is the instance environment, set
+        // the attribute locally. Otherwise forward the set to the instance's environment.
+        if (is_member_var) {
+            if (this_ref && this_ref->getType() == ValueType::Instance) {
+                auto inst = this_ref->get<std::shared_ptr<Instance>>();
+                // If this Environment is the instance's own environment, write locally.
+                if (&(inst->getEnvironment()) == this) {
+                    class_attrs.set(name, value);
+                    return;
+                } else {
+                    // Forward to the actual instance environment to ensure instance-scoped storage
+                    inst->getEnvironment().set(name, value, true);
+                    return;
+                }
             }
-        }
-        if (is_member_var && class_depth == 0 && class_env == false) {
-            throwError(ErrorType::Runtime, "Unable to set class attribute '" + name + "' outside of class");
-        } else if (is_member_var) {
+
+            // No 'this' available: require being in a class context to set class attribute
+            if (class_depth == 0 && class_env == false) {
+                throwError(ErrorType::Runtime, "Unable to set class attribute '" + name + "' outside of class");
+            }
+
             class_attrs.set(name, value);
             return;
         }
+
         if (isGlobal(name)) {
             setGlobalValue(name, value);
             return;
@@ -101,15 +114,20 @@ void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_me
 }
 
 std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) const {
-    if (!name.empty() && name[0] == '&') {
-        if (this_ref != nullptr) {
-            auto instance = this_ref->get<std::shared_ptr<Instance>>();
-            return instance->getEnvironment().get(name, true);
+    // Member variable lookup: prefer the instance environment if available.
+    if (is_member_var) {
+        if (this_ref && this_ref->getType() == ValueType::Instance) {
+            auto inst = this_ref->get<std::shared_ptr<Instance>>();
+            if (&(inst->getEnvironment()) == this) {
+                return class_attrs.get(name);
+            } else {
+                return inst->getEnvironment().get(name, true);
+            }
         }
-    }
-    if (is_member_var && class_depth == 0 && class_env == false) {
-        throwError(ErrorType::Runtime, "Unable to get class attribute '" + name + "' outside of class");
-    } else if (is_member_var) {
+
+        if (class_depth == 0 && class_env == false) {
+            throwError(ErrorType::Runtime, "Unable to get class attribute '" + name + "' outside of class");
+        }
         return class_attrs.get(name);
     }
 
@@ -144,11 +162,20 @@ std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) co
 
 
 bool Environment::contains(std::string name, bool is_member_var) const {
-    if (class_env == true || class_depth != 0) {
-        if (is_member_var) {
+    if (is_member_var) {
+        if (this_ref && this_ref->getType() == ValueType::Instance) {
+            auto inst = this_ref->get<std::shared_ptr<Instance>>();
+            if (&(inst->getEnvironment()) == this) {
+                return class_attrs.contains(name);
+            } else {
+                return inst->getEnvironment().contains(name, true);
+            }
+        }
+        if (class_env == true || class_depth != 0) {
             return class_attrs.contains(name);
         }
     }
+
     for (const auto scope : scopes) {
         if (scope.contains(name)) {
             return true;
@@ -360,7 +387,6 @@ void Environment::copyRuntimeSupport(const Environment& other) {
     built_in_functions = other.built_in_functions;
     member_functions = other.member_functions;
     detect_recursion = other.detect_recursion;
-    this_ref = other.this_ref;
 }
 
 void Environment::display(bool show_attrs) const {
@@ -368,7 +394,6 @@ void Environment::display(bool show_attrs) const {
         std::cout << "ATTRS\n";
         class_attrs.display();
     }
-    std::cout << "----\n";
     int i = 1;
     for (auto scope : scopes) {
         std::cout << "Scope:" << i << std::endl;
