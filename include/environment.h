@@ -29,7 +29,7 @@ class Environment {
 public:
     Environment();
     Environment(const Environment& other);
-    void setClassEnv();
+    void markAsClassEnv();
     bool isClassEnv() const;
     void set(std::string name, std::shared_ptr<Value> value, bool is_member_var = false);
     bool contains(std::string name, bool is_member_var = false) const;

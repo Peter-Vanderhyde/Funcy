@@ -2,6 +2,7 @@
 // November 2024
 // Project: Funcy Language 2.0
 
+// Need to figure out how to allow instances to update in real time when they are manipulatd with this.var
 #include <iostream>
 #include <vector>
 #include "library.h"

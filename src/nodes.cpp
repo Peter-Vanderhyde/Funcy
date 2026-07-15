@@ -791,9 +791,15 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(Environment& env) {
         else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             Environment environment{env};
             if (member_type == ValueType::Instance) {
-                environment = left_value.value()->get<std::shared_ptr<Instance>>()->getEnvironment();
+                Environment inst_environment = left_value.value()->get<std::shared_ptr<Instance>>()->getEnvironment();
                 ident_node->member_variable = true;
+
+                if (!env.isClassEnv() || env.getThis() != inst_environment.getThis()) {
+                    // Allows accessing member variables with this.var inside the constructor before the instance is updated
+                    environment = inst_environment;
+                }
             }
+            
             return ident_node->evaluate(environment, member_type);
         }
         else {
@@ -2161,26 +2167,24 @@ void FuncNode::setArgs(ValueList values,
             }
         }
     }
-
-    return;
 }
 
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
                                                         std::map<std::string, std::shared_ptr<Value>> pairs,
                                                         Environment& caller_env,
                                                         bool member_func,
-                                                        Environment* class_storage) {
+                                                        Environment* instance_env) {
     Environment local_env_copy;
     Scope local_scope;
     pushFunctionContext(*func_name, file_context);
 
-    if (member_func && class_storage != nullptr) {
-        local_env_copy = Environment{*class_storage};
-        local_env_copy.setClassEnv();
-        local_env_copy.setClassAttrs(class_storage->getClassAttrs());
-        local_env_copy.setThis(class_storage->getThis());
+    if (member_func && instance_env != nullptr) {
+        local_env_copy = Environment{*instance_env};
+        local_env_copy.markAsClassEnv();
+        local_env_copy.setClassAttrs(instance_env->getClassAttrs());
+        local_env_copy.setThis(instance_env->getThis());
         local_env_copy.setEnclosing(&caller_env);
-        local_scope.set(*func_name, class_storage->get(*func_name, true));
+        local_scope.set(*func_name, instance_env->get(*func_name, true));
     } else {
         local_env_copy = Environment{caller_env};
         local_scope.set(*func_name, caller_env.get(*func_name, member_func));
@@ -2208,10 +2212,10 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
 
     local_env_copy.removeScope();
 
-    if (member_func && class_storage != nullptr) {
+    if (member_func && instance_env != nullptr) {
         auto attrs = local_env_copy.getClassAttrs();
-        class_storage->setClassAttrs(attrs);
-        class_storage->setScopes(local_env_copy.copyScopes());
+        instance_env->setClassAttrs(attrs);
+        instance_env->setScopes(local_env_copy.copyScopes());
     }
 
     auto scopes = local_env_copy.copyScopes();
@@ -2326,7 +2330,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env)
     return std::nullopt;
 }
 
-std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env, ValueType member_type) {
+std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env, ValueType dotted_type) {
     if (debug) {
         if (DEBUG_TRIGGERED || DEBUG_SHOWING) {
             std::cout << getTabs() + "Entering Method Call: " + getPrintable() << std::endl;
@@ -2339,13 +2343,13 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
         throwError(ErrorType::Runtime, "Unable to call function", line, column);
     }
     Environment environment{env};
-    if (member_value->getType() == ValueType::Instance) {
+    if (dotted_type == ValueType::Instance) {
         auto inst_node = member_value->get<std::shared_ptr<Instance>>();
         environment = inst_node->copyEnvironment();
         ident_node->member_variable = true;
     }
     std::shared_ptr<Value> mapped_value;
-    mapped_value = ident_node->evaluate(environment, member_type).value();
+    mapped_value = ident_node->evaluate(environment, dotted_type).value();
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();
         if (auto func = std::dynamic_pointer_cast<FuncNode>(func_value)) {
@@ -2360,7 +2364,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
                 debugPrint(debug_values);
             }
             try {
-                if (member_type == ValueType::Instance) {
+                if (dotted_type == ValueType::Instance) {
                     environment.setThis(member_value);
                     auto result = func->callFunc(args, pairs, env, true, &environment);
                     auto inst_node = member_value->get<std::shared_ptr<Instance>>();
@@ -2409,7 +2413,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(Environment& env,
         }
     }
     else {
-        throwError(ErrorType::Runtime, "Object type " + getTypeStr(member_type) + " has no member function " + ident_node->name, line, column);
+        throwError(ErrorType::Runtime, "Object type " + getTypeStr(dotted_type) + " has no member function " + ident_node->name, line, column);
     }
     return std::nullopt;
 }
@@ -2564,7 +2568,7 @@ the program execution to ignore this warning)");
     class_env.addScope(class_local_scope);
     env.removeClassScope(prev_attrs);
 
-    class_env.setClassEnv();
+    class_env.markAsClassEnv();
     if (!class_env.contains(name, true)) {
         throwError(ErrorType::Runtime, "Class " + name + " is missing a constructor", line, column);
     }
