@@ -3,6 +3,12 @@
 // Project: Funcy Language 2.0
 
 // Need to figure out how to allow instances to update in real time when they are manipulatd with this.var
+
+/*
+Use a shared_ptr and pass it to a function if the function needs to take ownership and needs to add to the reference counter to keep it alive.
+Pass a reference to other functions that just needs to edit the class or get data from it.
+When passing the shared_ptr as a reference, just dereference it with *my_pointer.
+*/
 #include <iostream>
 #include <vector>
 #include "library.h"
@@ -102,11 +108,11 @@ int main(int argc, char* argv[]) {
         std::vector<std::shared_ptr<ASTNode>> statements;
         statements = parser.parse();
 
-        Environment env = buildStartingEnvironment(); // Create environment and inject the global builtin functions
+        std::shared_ptr<Scope> global_scope = buildStartingEnvironment(); // Create environment and inject the global builtin functions
         DETECT_RECURSION = !ignore_overflow; // Suppress recursion warning if flag disables it
         for (auto statement : statements) {
             try {
-                auto result = statement->evaluate(env);
+                auto result = statement->evaluate(global_scope);
             }
             catch (const ReturnException) {
                 throwError(ErrorType::Runtime, "Return was used outside of function");

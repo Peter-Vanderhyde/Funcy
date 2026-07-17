@@ -19,7 +19,6 @@ enum class SpecialIndex {
 class FuncNode;
 class Value;
 class ASTNode;
-class Environment;
 class Scope;
 class Class;
 class Instance;
@@ -30,7 +29,7 @@ struct ValueCompare {
 
 using Dictionary = std::map<std::shared_ptr<Value>, std::shared_ptr<Value>, ValueCompare>;
 using BuiltInFunction = std::function<std::optional<std::shared_ptr<Value>>(
-    const std::vector<std::shared_ptr<Value>>& args, Environment& env
+    const std::vector<std::shared_ptr<Value>>& args, Scope& scope
 )>;
 using ValueList = std::vector<std::shared_ptr<Value>>;
 
@@ -64,27 +63,30 @@ Add instance comparison
 class Class {
 private:
     std::string name;
-    Environment class_env;
+    std::shared_ptr<Scope> class_scope;
+    std::unordered_map<std::string, std::shared_ptr<Value>> public_member_values;
 
 public:
-    Class(std::string name, Environment& class_env);
+    Class(std::string name, std::shared_ptr<Scope> scope);
     
-    std::shared_ptr<Instance> createInstance();
+    std::shared_ptr<Instance> createInstance() const;
     std::string getName() const;
+    bool contains(const std::string name) const;
+    std::shared_ptr<Value> copyValue(const std::string name) const;
 };
 
 class Instance {
 private:
-    std::string class_name;
-    Environment instance_env;
+    std::shared_ptr<Class> parent_class;
+    std::unordered_map<std::string, std::shared_ptr<Value>> edited_member_variables;
 
 public:
-    Instance(std::string class_name, Environment instance_env)
-        : class_name{class_name}, instance_env{instance_env} {}
+    Instance(const std::shared_ptr<Class>& parent_class);
     
-    std::shared_ptr<Value> getConstructor(std::shared_ptr<Instance> this_reference);
-    Environment& getEnvironment();
-    Environment copyEnvironment();
+    std::shared_ptr<Value> getConstructor() const;
+    void set(const std::string name, const std::shared_ptr<Value> value);
+    std::shared_ptr<Value> get(const std::string name) const;
+    bool contains(const std::string name) const;
     std::string getClassName() const;
 };
 
@@ -110,6 +112,7 @@ private:
                 SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>, ValueType,
                 std::shared_ptr<Dictionary>, std::shared_ptr<Class>, std::shared_ptr<Instance>> value;
     ValueType value_type;
+    bool is_private;
 
 public:
     Value();
@@ -136,6 +139,8 @@ public:
         }
         return std::get<T>(value);
     }
+
+    bool isPrivate() const;
 
     std::string getPrintable(int tabs=0, bool error=false);
 

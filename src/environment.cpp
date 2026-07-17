@@ -7,369 +7,135 @@
 
 bool DETECT_RECURSION;
 
-Scope::Scope() {}
+Scope::Scope(const std::shared_ptr<Scope> parent)
+    : parent{parent} {}
 
-void Scope::set(std::string name, std::shared_ptr<Value> value) {
+void Scope::set(const std::string name, const std::shared_ptr<Value> value) {
     variables[name] = value;
 }
 
-bool Scope::contains(std::string name) const {
-    return static_cast<bool>(variables.count(name));
+std::shared_ptr<Value> Scope::get(const std::string name) const {
+    if (!contains(name)) {
+        if (!parent) {
+            throwError(ErrorType::Runtime, std::format("Bad environment access with key '{}'", name));
+        }
+
+        return parent->get(name);
+    }
+
+    return variables.at(name);
+}
+
+bool Scope::contains(const std::string name) const {
+    for (auto& pair : variables) {
+        if (pair.first == name) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Scope::remove(std::string name) {
     variables.erase(name);
 }
 
-const std::vector<std::pair<std::string, std::shared_ptr<Value>>> Scope::getPairs() const {
-    std::vector<std::pair<std::string, std::shared_ptr<Value>>> pairs;
-    for (const auto& pair : variables) {
-        pairs.push_back(pair);
-    }
-    return pairs;
-}
 
-std::shared_ptr<Value> Scope::get(std::string name) const {
-    if (contains(name)) {
-        return variables.at(name);
-    } else {
-        throwError(ErrorType::Runtime, std::format("Bad environment access with key '{}'", name));
-    }
-}
-
-void Scope::display() const {
-    for (const std::pair<const std::string, std::shared_ptr<Value>> pair : variables) {
-        const std::string& name = pair.first;
-        std::shared_ptr<Value> value = pair.second;
-
-        std::cout << name << " = ";
-        printValue(value);
-        std::cout << std::endl;
-    }
-}
-
-
-Environment::Environment() {
-    class_env = false;
-}
-
-Environment::Environment(const Environment& other)
-    : scopes(other.scopes), class_env(other.class_env),
-      loop_depth(other.loop_depth), built_in_functions(other.built_in_functions),
-      member_functions(other.member_functions), scoped_globals(other.scoped_globals),
-      class_depth(other.class_depth), class_attrs(other.class_attrs), this_ref(other.this_ref), detect_recursion(other.detect_recursion), is_top_scope(other.is_top_scope),
-      enclosing_env(other.enclosing_env) {}
-
-void Environment::markAsClassEnv() {
-    class_env = true;
-}
-
-bool Environment::isClassEnv() const {
-    return class_env;
-}
-
-void Environment::set(std::string name, std::shared_ptr<Value> value, bool is_member_var) {
-    if (scopes.empty()) {
-        throwError(ErrorType::Runtime, "Attempted to access empty environment");
-    } else {
-        if (is_member_var) {
-
-            // No 'this' available: require being in a class context to set class attribute
-            if (class_depth == 0 && class_env == false) {
-                throwError(ErrorType::Runtime, "Unable to set class attribute '" + name + "' outside of class");
-            }
-
-            class_attrs.set(name, value);
-            return;
-        }
-
-        if (isGlobal(name)) {
-            setGlobalValue(name, value);
-            return;
-        }
-        for (int i = scopes.size() - 1; i > -1; i--) {
-            if (scopes.at(i).contains(name)) {
-                scopes.at(i).set(name, value);
-                return;
-            }
-        }
-
-        scopes.back().set(name, value);
-    }
-}
-
-std::shared_ptr<Value> Environment::get(std::string name, bool is_member_var) const {
-    // Member variable lookup: prefer the instance environment if available.
-    if (is_member_var) {
-        if (class_depth == 0 && class_env == false) {
-            throwError(ErrorType::Runtime, "Unable to get class attribute '" + name + "' outside of class");
-        }
-        return class_attrs.get(name);
-    }
-
-    if (scopes.empty()) {
-        if (enclosing_env != nullptr) {
-            return enclosing_env->get(name, is_member_var);
-        }
-        throwError(ErrorType::Runtime, "Attempted to access empty environment");
-    }
-
-    if (isGlobal(name)) {
-        if (scopes.front().contains(name)) {
-            return scopes.front().get(name);
-        } else {
-            throwError(ErrorType::Runtime, "Unrecognized variable " + name);
-        }
-    }
-    
-    for (int i = scopes.size() - 1; i >= 0; i--) {
-        const auto& scope = scopes.at(i);
-        if (scope.contains(name)) {
-            return scope.get(name);
-        }
-    }
-
-    if (enclosing_env != nullptr) {
-        return enclosing_env->get(name, is_member_var);
-    }
-
-    throwError(ErrorType::Runtime, "Unrecognized variable " + name);
-}
-
-
-bool Environment::contains(std::string name, bool is_member_var) const {
-    if (is_member_var) {
-        if (class_env == true || class_depth != 0) {
-            return class_attrs.contains(name);
-        }
-        else {
-            throwError(ErrorType::Runtime, "Attempted to retrieve a member variable from a non-class environment");
-        }
-    }
-
-    for (const auto scope : scopes) {
-        if (scope.contains(name)) {
-            return true;
-        }
-    }
-
-    if (enclosing_env != nullptr) {
-        return enclosing_env->contains(name, is_member_var);
-    }
-
-    if (scopes.empty()) {
-        throwError(ErrorType::Runtime, "Attempted to access empty environment");
-    }
-
-    return false;
-}
-
-int Environment::scopeDepth() const {
-    return scopes.size();
-}
-
-void Environment::addLoop() {
-    loop_depth += 1;
-}
-
-void Environment::removeLoop() {
-    loop_depth -= 1;
-}
-
-bool Environment::inLoop() const {
-    return loop_depth > 0;
-}
-
-void Environment::resetLoop() {
-    loop_depth = 0;
-}
-
-void Environment::addScope() {
-    scopes.push_back(Scope());
-    resetGlobals();
-}
-
-void Environment::addScope(Scope& scope) {
-    scopes.push_back(scope);
-    resetGlobals();
-}
-
-void Environment::addClassScope() {
-    class_depth += 1;
-    scopes.push_back(Scope());
-    resetGlobals();
-}
-
-Scope Environment::getScope() {
-    return scopes.back();
-}
-
-void Environment::setScopes(std::vector<Scope> new_scopes) {
-    scopes = new_scopes;
-}
-
-int Environment::classDepth() {
-    return class_depth;
-}
-
-void Environment::removeScope() {
-    scopes.pop_back();
-    removeGlobalScope();
-}
-
-void Environment::removeClassScope(Scope& previous_attrs) {
-    class_depth -= 1;
-    class_attrs = previous_attrs;
-    scopes.pop_back();
-    removeGlobalScope();
-}
-
-std::vector<Scope> Environment::copyScopes() const {
-    return scopes;
-}
-
-void Environment::addFunction(const std::string& name, std::shared_ptr<Value> func) {
+void Scope::addFunction(const std::string name, const std::shared_ptr<Value> func) {
     built_in_functions[name] = func;
 }
 
-std::shared_ptr<Value> Environment::getFunction(const std::string& name) const {
+std::shared_ptr<Value> Scope::getFunction(const std::string name) const {
     auto func = built_in_functions.find(name);
     if (func != built_in_functions.end()) {
         return func->second;
     }
 
-    if (enclosing_env != nullptr) {
-        return enclosing_env->getFunction(name);
-    }
-
     throwError(ErrorType::Runtime, "Unrecognized built-in function '" + name + "'");
 }
 
-bool Environment::hasFunction(const std::string& name) const {
+bool Scope::hasFunction(const std::string name) const {
     auto func = built_in_functions.find(name);
     if (func != built_in_functions.end()) {
         return true;
     }
-    if (enclosing_env != nullptr) {
-        return enclosing_env->hasFunction(name);
-    }
+    
     return false;
 }
 
-void Environment::addMember(ValueType type, const std::string& name, std::shared_ptr<Value> func) {
-    member_functions[type][name] = func;
+void Scope::addMember(const ValueType value_type, const std::string name, const std::shared_ptr<Value> func) {
+    type_members[value_type][name] = func;
 }
 
-void Environment::addMember(const std::string& name, std::shared_ptr<Value> value) {
-    class_attrs.set(name, value);
-}
-
-std::shared_ptr<Value> Environment::getMember(ValueType type, const std::string& name) const {
-    auto members = member_functions.find(type);
-    if (members != member_functions.end()) {
+std::shared_ptr<Value> Scope::getMember(const ValueType value_type, const std::string name) const {
+    auto members = type_members.find(value_type);
+    if (members != type_members.end()) {
         auto func = members->second.find(name);
         if (func != members->second.end()) {
             return func->second;
         }
     }
 
-    throwError(ErrorType::Runtime, "Unrecognized member function '" + name + "'");
+    throwError(ErrorType::Runtime, "Unrecognized member function '" + name + "' for type '" + getTypeStr(value_type) + "'");
 }
 
-std::shared_ptr<Value> Environment::getMember(const std::string& name) const {
-    return class_attrs.get(name);
-}
-
-bool Environment::hasMember(ValueType type, const std::string& name) const {
-    auto members = member_functions.find(type);
-    if (members != member_functions.end()) {
+bool Scope::hasMember(const ValueType value_type, const std::string name) const {
+    auto members = type_members.find(value_type);
+    if (members != type_members.end()) {
         auto func = members->second.find(name);
-        return func != members->second.end();
-    }
-    return false;
-}
-
-bool Environment::hasMember(const std::string& name) const {
-    return class_attrs.contains(name);
-}
-
-void Environment::delMember(const std::string& name) {
-    class_attrs.remove(name);
-}
-
-void Environment::addGlobal(std::string name) {
-    scoped_globals[scopeDepth()].push_back(name);
-}
-
-void Environment::resetGlobals() {
-    scoped_globals[scopeDepth()].clear();
-}
-
-void Environment::removeGlobalScope() {
-    scoped_globals.erase(scopeDepth() + 1);
-}
-
-bool Environment::isGlobal(std::string name) const {
-    for (int i = scopeDepth(); i > 0; i--) {
-        if (scoped_globals.find(i) != scoped_globals.end()) {
-            for (const auto& str : scoped_globals.at(i)) {
-                if (str == name) {
-                    return true;
-                }
-            }
+        if (func != members->second.end()) {
+            return true;
         }
+
+        return false;
     }
+
     return false;
 }
 
-void Environment::setGlobalValue(std::string name, std::shared_ptr<Value> value) {
-    scopes.at(0).set(name, value);
-}
 
-Scope& Environment::getClassAttrs() {
-    return class_attrs;
-}
-
-void Environment::setClassAttrs(Scope& scope) {
-    class_attrs = scope;
-}
-
-void Environment::setThis(std::shared_ptr<Value> inst_ref) {
-    this_ref = inst_ref;
-}
-
-std::shared_ptr<Value> Environment::getThis() {
-    if (!this_ref) {
-        throwError(ErrorType::Runtime, "'this' may only be used inside a member function");
-        return std::make_shared<Value>();
+std::shared_ptr<Scope> Scope::getGlobalScope() const {
+    if (!parent) {
+        return std::make_shared<Scope>(this);
     }
-    return this_ref;
+
+    return parent->getGlobalScope();
 }
 
-void Environment::setEnclosing(Environment* env) {
-    enclosing_env = env;
+void Scope::makeClassScope(const bool is_class) {
+    is_class_scope = is_class;
 }
 
-Environment* Environment::getEnclosing() const {
-    return enclosing_env;
+std::shared_ptr<Scope> Scope::enterScope() {
+    Scope new_scope{std::make_shared<Scope>(this)};
+    return std::make_shared<Scope>(new_scope);
 }
 
-void Environment::copyRuntimeSupport(const Environment& other) {
-    built_in_functions = other.built_in_functions;
-    member_functions = other.member_functions;
-    detect_recursion = other.detect_recursion;
+std::shared_ptr<Scope> Scope::exitScope() {
+    return parent;
 }
 
-void Environment::display(bool show_attrs) const {
-    if (class_env || show_attrs) {
-        std::cout << "ATTRS\n";
-        class_attrs.display();
+std::shared_ptr<Scope> Scope::enterClassScope() {
+    Scope new_scope{std::make_shared<Scope>(this)};
+    new_scope.makeClassScope();
+    return std::make_shared<Scope>(this);
+}
+
+
+const std::vector<std::pair<std::string, std::shared_ptr<Value>>> Scope::getPairs() const {
+    std::vector<std::pair<std::string, std::shared_ptr<Value>>> pairs;
+    for (const auto& pair : variables) {
+        pairs.push_back(std::make_pair(pair.first, pair.second));
     }
-    int i = 1;
-    for (auto scope : scopes) {
-        std::cout << "Scope:" << i << std::endl;
-        scope.display();
-        i += 1;
+    return pairs;
+}
+
+void Scope::display() const {
+    for (const std::pair<const std::string, const std::shared_ptr<Value>> pair : variables) {
+        const std::string& name = pair.first;
+        const std::shared_ptr<Value> value = pair.second;
+
+        std::cout << name << " = ";
+        printValue(value);
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
 }

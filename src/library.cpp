@@ -282,105 +282,104 @@ std::vector<std::variant<int, double>> transformNums(std::shared_ptr<Value> firs
     }
 }
 
-Environment buildStartingEnvironment() {
-    Environment env;
-    env.addScope();
+std::shared_ptr<Scope> buildStartingEnvironment() {
+    Scope scope;
 
-    env.addFunction("abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(absoluteValue)));
-    env.addFunction("all", std::make_shared<Value>(std::make_shared<BuiltInFunction>(all)));
-    env.addFunction("any", std::make_shared<Value>(std::make_shared<BuiltInFunction>(any)));
-    env.addFunction("appendFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(appendFile)));
-    env.addFunction("bool", std::make_shared<Value>(std::make_shared<BuiltInFunction>(boolConverter)));
-    env.addFunction("callable", std::make_shared<Value>(std::make_shared<BuiltInFunction>(callable)));
-    env.addFunction("dict", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictConverter)));
-    env.addFunction("divMod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(divMod)));
-    env.addFunction("draw", std::make_shared<Value>(std::make_shared<BuiltInFunction>(draw)));
-    env.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
-    env.addFunction("float", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatConverter)));
-    env.addFunction("globals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(globals)));
-    env.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
-    env.addFunction("int", std::make_shared<Value>(std::make_shared<BuiltInFunction>(intConverter)));
-    env.addFunction("length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(length)));
-    env.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
-    env.addFunction("locals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(locals)));
-    env.addFunction("map", std::make_shared<Value>(std::make_shared<BuiltInFunction>(map)));
-    env.addFunction("max", std::make_shared<Value>(std::make_shared<BuiltInFunction>(max)));
-    env.addFunction("min", std::make_shared<Value>(std::make_shared<BuiltInFunction>(min)));
-    env.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
-    env.addFunction("randChoice", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randChoice)));
-    env.addFunction("randInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randInt)));
-    env.addFunction("randShuffle", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randShuffle)));
-    env.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
-    env.addFunction("readFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(readFile)));
-    env.addFunction("reversed", std::make_shared<Value>(std::make_shared<BuiltInFunction>(reversed)));
-    env.addFunction("round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(roundVal)));
-    env.addFunction("showCursor", std::make_shared<Value>(std::make_shared<BuiltInFunction>(showCursor)));
-    env.addFunction("sleep", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sleep)));
-    env.addFunction("str", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
-    env.addFunction("sum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sum)));
-    env.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
-    env.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
-    env.addFunction("writeFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(writeFile)));
-    env.addFunction("zip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(zip)));
+    scope.addFunction("abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(absoluteValue)));
+    scope.addFunction("all", std::make_shared<Value>(std::make_shared<BuiltInFunction>(all)));
+    scope.addFunction("any", std::make_shared<Value>(std::make_shared<BuiltInFunction>(any)));
+    scope.addFunction("appendFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(appendFile)));
+    scope.addFunction("bool", std::make_shared<Value>(std::make_shared<BuiltInFunction>(boolConverter)));
+    scope.addFunction("callable", std::make_shared<Value>(std::make_shared<BuiltInFunction>(callable)));
+    scope.addFunction("dict", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictConverter)));
+    scope.addFunction("divMod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(divMod)));
+    scope.addFunction("draw", std::make_shared<Value>(std::make_shared<BuiltInFunction>(draw)));
+    scope.addFunction("enumerate", std::make_shared<Value>(std::make_shared<BuiltInFunction>(enumerate)));
+    scope.addFunction("float", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatConverter)));
+    scope.addFunction("globals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(globals)));
+    scope.addFunction("input", std::make_shared<Value>(std::make_shared<BuiltInFunction>(input)));
+    scope.addFunction("int", std::make_shared<Value>(std::make_shared<BuiltInFunction>(intConverter)));
+    scope.addFunction("length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(length)));
+    scope.addFunction("list", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listConverter)));
+    scope.addFunction("locals", std::make_shared<Value>(std::make_shared<BuiltInFunction>(locals)));
+    scope.addFunction("map", std::make_shared<Value>(std::make_shared<BuiltInFunction>(map)));
+    scope.addFunction("max", std::make_shared<Value>(std::make_shared<BuiltInFunction>(max)));
+    scope.addFunction("min", std::make_shared<Value>(std::make_shared<BuiltInFunction>(min)));
+    scope.addFunction("print", std::make_shared<Value>(std::make_shared<BuiltInFunction>(print)));
+    scope.addFunction("randChoice", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randChoice)));
+    scope.addFunction("randInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randInt)));
+    scope.addFunction("randShuffle", std::make_shared<Value>(std::make_shared<BuiltInFunction>(randShuffle)));
+    scope.addFunction("range", std::make_shared<Value>(std::make_shared<BuiltInFunction>(range)));
+    scope.addFunction("readFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(readFile)));
+    scope.addFunction("reversed", std::make_shared<Value>(std::make_shared<BuiltInFunction>(reversed)));
+    scope.addFunction("round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(roundVal)));
+    scope.addFunction("showCursor", std::make_shared<Value>(std::make_shared<BuiltInFunction>(showCursor)));
+    scope.addFunction("sleep", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sleep)));
+    scope.addFunction("str", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringConverter)));
+    scope.addFunction("sum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(sum)));
+    scope.addFunction("time", std::make_shared<Value>(std::make_shared<BuiltInFunction>(currentTime)));
+    scope.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
+    scope.addFunction("writeFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(writeFile)));
+    scope.addFunction("zip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(zip)));
 
     // ValueType::Float Members
-    env.addMember(ValueType::Float, "isInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatIsInt)));
+    scope.addMember(ValueType::Float, "isInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatIsInt)));
 
     // ValueType::List Members
-    env.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
-    env.addMember(ValueType::List, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listClear)));
-    env.addMember(ValueType::List, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listCopy)));
-    env.addMember(ValueType::List, "index", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listIndex)));
-    env.addMember(ValueType::List, "insert", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listInsert)));
-    env.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
-    env.addMember(ValueType::List, "remove", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listRemove)));
-    env.addMember(ValueType::List, "reverse", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listReverse)));
-    env.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
+    scope.addMember(ValueType::List, "append", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listAppend)));
+    scope.addMember(ValueType::List, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listClear)));
+    scope.addMember(ValueType::List, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listCopy)));
+    scope.addMember(ValueType::List, "index", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listIndex)));
+    scope.addMember(ValueType::List, "insert", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listInsert)));
+    scope.addMember(ValueType::List, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listPop)));
+    scope.addMember(ValueType::List, "remove", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listRemove)));
+    scope.addMember(ValueType::List, "reverse", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listReverse)));
+    scope.addMember(ValueType::List, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(listSize)));
 
     // ValueType::Dictionary Members
-    env.addMember(ValueType::Dictionary, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictClear)));
-    env.addMember(ValueType::Dictionary, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictCopy)));
-    env.addMember(ValueType::Dictionary, "get", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictGet)));
-    env.addMember(ValueType::Dictionary, "items", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictItems)));
-    env.addMember(ValueType::Dictionary, "keys", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictKeys)));
-    env.addMember(ValueType::Dictionary, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictPop)));
-    env.addMember(ValueType::Dictionary, "setDefault", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSetDefault)));
-    env.addMember(ValueType::Dictionary, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSize)));
-    env.addMember(ValueType::Dictionary, "update", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictUpdate)));
-    env.addMember(ValueType::Dictionary, "values", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictValues)));
+    scope.addMember(ValueType::Dictionary, "clear", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictClear)));
+    scope.addMember(ValueType::Dictionary, "copy", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictCopy)));
+    scope.addMember(ValueType::Dictionary, "get", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictGet)));
+    scope.addMember(ValueType::Dictionary, "items", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictItems)));
+    scope.addMember(ValueType::Dictionary, "keys", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictKeys)));
+    scope.addMember(ValueType::Dictionary, "pop", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictPop)));
+    scope.addMember(ValueType::Dictionary, "setDefault", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSetDefault)));
+    scope.addMember(ValueType::Dictionary, "size", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictSize)));
+    scope.addMember(ValueType::Dictionary, "update", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictUpdate)));
+    scope.addMember(ValueType::Dictionary, "values", std::make_shared<Value>(std::make_shared<BuiltInFunction>(dictValues)));
 
     // ValueType::String Members
-    env.addMember(ValueType::String, "capitalize", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringCapitalize)));
-    env.addMember(ValueType::String, "endsWith", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringEndsWith)));
-    env.addMember(ValueType::String, "find", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringFind)));
-    env.addMember(ValueType::String, "isAlpha", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlpha)));
-    env.addMember(ValueType::String, "isAlphaNum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlphaNum)));
-    env.addMember(ValueType::String, "isDigit", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsDigit)));
-    env.addMember(ValueType::String, "isSpace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsSpace)));
-    env.addMember(ValueType::String, "isWhitespace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsWhitespace)));
-    env.addMember(ValueType::String, "join", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringJoin)));
-    env.addMember(ValueType::String, "length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLength)));
-    env.addMember(ValueType::String, "lower", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLower)));
-    env.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
-    env.addMember(ValueType::String, "split", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringSplit)));
-    env.addMember(ValueType::String, "strip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringStrip)));
-    env.addMember(ValueType::String, "toJson", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringToJson)));
-    env.addMember(ValueType::String, "upper", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringUpper)));
+    scope.addMember(ValueType::String, "capitalize", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringCapitalize)));
+    scope.addMember(ValueType::String, "endsWith", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringEndsWith)));
+    scope.addMember(ValueType::String, "find", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringFind)));
+    scope.addMember(ValueType::String, "isAlpha", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlpha)));
+    scope.addMember(ValueType::String, "isAlphaNum", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsAlphaNum)));
+    scope.addMember(ValueType::String, "isDigit", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsDigit)));
+    scope.addMember(ValueType::String, "isSpace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsSpace)));
+    scope.addMember(ValueType::String, "isWhitespace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringIsWhitespace)));
+    scope.addMember(ValueType::String, "join", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringJoin)));
+    scope.addMember(ValueType::String, "length", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLength)));
+    scope.addMember(ValueType::String, "lower", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringLower)));
+    scope.addMember(ValueType::String, "replace", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringReplace)));
+    scope.addMember(ValueType::String, "split", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringSplit)));
+    scope.addMember(ValueType::String, "strip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringStrip)));
+    scope.addMember(ValueType::String, "toJson", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringToJson)));
+    scope.addMember(ValueType::String, "upper", std::make_shared<Value>(std::make_shared<BuiltInFunction>(stringUpper)));
 
     // ValueType::Instance Members
-    env.addMember(ValueType::Instance, "delAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceDel)));
-    env.addMember(ValueType::Instance, "getAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
-    env.addMember(ValueType::Instance, "hasAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceHas)));
-    env.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
+    scope.addMember(ValueType::Instance, "delAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceDel)));
+    scope.addMember(ValueType::Instance, "getAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
+    scope.addMember(ValueType::Instance, "hasAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceHas)));
+    scope.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
 
-    return env;
+    return std::make_shared<Scope>(scope);
 }
 
 
 ///  MEMBER FUNCTIONS  ///
 
 
-BuiltInFunctionReturn absoluteValue(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn absoluteValue(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "abs() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -396,7 +395,7 @@ BuiltInFunctionReturn absoluteValue(const std::vector<std::shared_ptr<Value>>& a
     return std::nullopt;
 }
 
-BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "all() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -408,7 +407,7 @@ BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Envir
     auto list = args[0]->get<std::shared_ptr<List>>();
     for (int i = 0; i < list->size(); i++) {
         auto item = list->at(i);
-        auto result = boolConverter(std::vector<std::shared_ptr<Value>>{item}, env);
+        auto result = boolConverter(std::vector<std::shared_ptr<Value>>{item}, scope);
         if (result.has_value()) {
             bool bool_result = result.value()->get<bool>();
             if (!bool_result) {
@@ -419,7 +418,7 @@ BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Envir
     return std::make_shared<Value>(true);
 }
 
-BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "any() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -431,7 +430,7 @@ BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Envir
     auto list = args[0]->get<std::shared_ptr<List>>();
     for (int i = 0; i < list->size(); i++) {
         auto item = list->at(i);
-        auto result = boolConverter(std::vector<std::shared_ptr<Value>>{item}, env);
+        auto result = boolConverter(std::vector<std::shared_ptr<Value>>{item}, scope);
         if (result.has_value()) {
             bool bool_result = result.value()->get<bool>();
             if (bool_result) {
@@ -442,7 +441,7 @@ BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Envir
     return std::make_shared<Value>(false);
 }
 
-BuiltInFunctionReturn appendFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn appendFile(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "appendFile() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -460,7 +459,7 @@ BuiltInFunctionReturn appendFile(const std::vector<std::shared_ptr<Value>>& args
 
     std::string orig_contents = "";
     try {
-        auto contents = readFile(std::vector<std::shared_ptr<Value>>{filename}, env);
+        auto contents = readFile(std::vector<std::shared_ptr<Value>>{filename}, scope);
         if (contents) {
             orig_contents = contents.value()->get<std::string>();
         }
@@ -469,11 +468,11 @@ BuiltInFunctionReturn appendFile(const std::vector<std::shared_ptr<Value>>& args
     }
 
     auto new_contents = std::make_shared<Value>(orig_contents + contents_to_add);
-    writeFile(std::vector<std::shared_ptr<Value>>{filename, new_contents}, env);
+    writeFile(std::vector<std::shared_ptr<Value>>{filename, new_contents}, scope);
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "bool() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -498,7 +497,7 @@ BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& a
     }
 }
 
-BuiltInFunctionReturn callable(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn callable(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "callable() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -516,7 +515,7 @@ BuiltInFunctionReturn callable(const std::vector<std::shared_ptr<Value>>& args, 
     }
 }
 
-BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     using namespace std::chrono;
 
     // Get the current time since the application started in milliseconds
@@ -527,7 +526,7 @@ BuiltInFunctionReturn currentTime(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>(static_cast<int>(elapsed));
 }
 
-BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     auto dict = std::make_shared<Dictionary>();
 
     if (args.size() != 1 && args.size() != 0) {
@@ -572,7 +571,7 @@ BuiltInFunctionReturn dictConverter(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(dict);
 }
 
-BuiltInFunctionReturn divMod(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn divMod(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "divMod() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -596,7 +595,7 @@ BuiltInFunctionReturn divMod(const std::vector<std::shared_ptr<Value>>& args, En
     return std::make_shared<Value>(std::make_shared<List>(list));
 }
 
-BuiltInFunctionReturn draw(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn draw(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     for (const auto& arg : args) {
         printValue(arg, false, true);
         std::cout << " ";
@@ -605,7 +604,7 @@ BuiltInFunctionReturn draw(const std::vector<std::shared_ptr<Value>>& args, Envi
     return std::nullopt;
 }
 
-BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 1 || args.size() > 2) {
         throwError(ErrorType::Runtime, "enumerate() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -633,7 +632,7 @@ BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args,
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "float() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -662,7 +661,7 @@ BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& 
     }
 }
 
-BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "type() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -670,20 +669,20 @@ BuiltInFunctionReturn getType(const std::vector<std::shared_ptr<Value>>& args, E
     return std::make_shared<Value>(args[0]->getType());
 }
 
-BuiltInFunctionReturn globals(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn globals(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 0) {
         throwError(ErrorType::Runtime, "globals() takes 0 arguments. " + std::to_string(args.size()) + " were given");
     }
 
-    auto global_scope = env.copyScopes().at(0);
+    auto global_scope = scope.getGlobalScope();
     Dictionary dict;
-    for (const auto& pair : global_scope.getPairs()) {
+    for (const auto& pair : global_scope->getPairs()) {
         dict[std::make_shared<Value>(pair.first)] = pair.second;
     }
     return std::make_shared<Value>(std::make_shared<Dictionary>(dict));
 }
 
-BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() > 1) {
         throwError(ErrorType::Runtime, "input() takes 0-1 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -702,7 +701,7 @@ BuiltInFunctionReturn input(const std::vector<std::shared_ptr<Value>>& args, Env
     return std::make_shared<Value>(in);
 }
 
-BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "int() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -739,7 +738,7 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
     }
 }
 
-BuiltInFunctionReturn length(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn length(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "length() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -758,7 +757,7 @@ BuiltInFunctionReturn length(const std::vector<std::shared_ptr<Value>>& args, En
     return std::nullopt;
 }
 
-BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     auto list = std::make_shared<List>();
 
     if (args.size() == 0) {
@@ -783,10 +782,11 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
             return std::make_shared<Value>(list); // Already a list
         }
         case ValueType::Dictionary: {
+            // Put the dictionary into the required format to pass to the builtin function
             auto dict = arg->get<std::shared_ptr<Dictionary>>();
             std::vector<std::shared_ptr<Value>> values;
             values.push_back(std::make_shared<Value>(dict));
-            return dictKeys(values, env);
+            return dictKeys(values, scope);
         }
         default: {
             for (const auto& element : args) {
@@ -798,19 +798,19 @@ BuiltInFunctionReturn listConverter(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(list);
 }
 
-BuiltInFunctionReturn locals(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn locals(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 0) {
         throwError(ErrorType::Runtime, "locals() takes 0 arguments. " + std::to_string(args.size()) + " were given");
     }
 
     Dictionary dict;
-    for (const auto& pair : env.getScope().getPairs()) {
+    for (const auto& pair : scope.getPairs()) {
         dict[std::make_shared<Value>(pair.first)] = pair.second;
     }
     return std::make_shared<Value>(std::make_shared<Dictionary>(dict));
 }
 
-BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "map() requires exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -837,7 +837,7 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
         // Check if the function is a built-in function
         if (func->getType() == ValueType::BuiltInFunction) {
             auto built_in_func = func->get<std::shared_ptr<BuiltInFunction>>();
-            auto result = (*built_in_func)(func_args, env);
+            auto result = (*built_in_func)(func_args, scope);
             if (result) {
                 result_list->push_back(result.value());
             }
@@ -845,7 +845,7 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
             auto func_node = std::dynamic_pointer_cast<FuncNode>(func->get<std::shared_ptr<ASTNode>>());
 
             if (func_node) {
-                auto result = func_node->callFunc(func_args, std::map<std::string, std::shared_ptr<Value>>{}, env);
+                auto result = func_node->callFunc(func_args, std::map<std::string, std::shared_ptr<Value>>{}, scope);
                 if (result) {
                     result_list->push_back(result.value());
                 }
@@ -858,7 +858,7 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Envir
     return std::make_shared<Value>(result_list);
 }
 
-BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() == 0) {
         throwError(ErrorType::Runtime, "max() takes 1 or more arguments. 0 were given");
     }
@@ -933,7 +933,7 @@ BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Envir
     return list->at(max_index);
 }
 
-BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() == 0) {
         throwError(ErrorType::Runtime, "min() takes 1 or more arguments. 0 were given");
     }
@@ -1008,7 +1008,7 @@ BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Envir
     return list->at(min_index);
 }
 
-BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     for (const auto& arg : args) {
         printValue(arg);
         std::cout << " ";
@@ -1017,7 +1017,7 @@ BuiltInFunctionReturn print(const std::vector<std::shared_ptr<Value>>& args, Env
     return std::nullopt;
 }
 
-BuiltInFunctionReturn randChoice(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn randChoice(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "randChoice() takes exactly 1 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1036,7 +1036,7 @@ BuiltInFunctionReturn randChoice(const std::vector<std::shared_ptr<Value>>& args
     return list->at(index);
 }
 
-BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "randInt() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1058,7 +1058,7 @@ BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, E
     return std::make_shared<Value>(dist(gen));
 }
 
-BuiltInFunctionReturn randShuffle(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn randShuffle(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "randShuffle() takes exactly 1 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1077,7 +1077,7 @@ BuiltInFunctionReturn randShuffle(const std::vector<std::shared_ptr<Value>>& arg
 
     while (indexes->size() != 0) {
         const ValueList sending = {std::make_shared<Value>(indexes)};
-        auto choice = randChoice(sending, env);
+        auto choice = randChoice(sending, scope);
         int chose = choice.value()->get<int>();
         indexes->erase(choice.value());
         shuffled->push_back(list->at(chose));
@@ -1086,7 +1086,7 @@ BuiltInFunctionReturn randShuffle(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>(shuffled);
 }
 
-BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 1 || args.size() > 3) {
         throwError(ErrorType::Runtime, "range() takes 1-3 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1130,7 +1130,7 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Env
     return std::make_shared<Value>(nums);
 }
 
-BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "read() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1161,7 +1161,7 @@ BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(buffer.str());
 }
 
-BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "reversed() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1180,7 +1180,7 @@ BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(std::make_shared<List>(new_list));
 }
 
-BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 1 || args.size() > 2) {
         throwError(ErrorType::Runtime, "round() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1213,7 +1213,7 @@ BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(num);
 }
 
-BuiltInFunctionReturn showCursor(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn showCursor(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() > 1) {
         throwError(ErrorType::Runtime, "showCursor() takes up to 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1233,7 +1233,7 @@ BuiltInFunctionReturn showCursor(const std::vector<std::shared_ptr<Value>>& args
     return std::nullopt;
 }
 
-BuiltInFunctionReturn sleep(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn sleep(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "sleep() takes 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1260,7 +1260,7 @@ std::string toString(double value){
     return oss.str();
 }
 
-BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "string() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1285,7 +1285,7 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
             std::shared_ptr<List> list = arg->get<std::shared_ptr<List>>();
             std::string result = "[";
             for (size_t i = 0; i < list->size(); ++i) {
-                auto str_return = stringConverter({list->at(i)}, env).value();
+                auto str_return = stringConverter({list->at(i)}, scope).value();
                 if (list->at(i)->getType() == ValueType::String) {
                     result += '"' + str_return->get<std::string>() + '"';
                 } else {
@@ -1307,8 +1307,8 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
                     result += ", ";
                 }
                 first = false;
-                auto key_str = stringConverter({pair.first}, env).value();
-                auto value_str = stringConverter({pair.second}, env).value();
+                auto key_str = stringConverter({pair.first}, scope).value();
+                auto value_str = stringConverter({pair.second}, scope).value();
                 std::string key_representation;
                 if (pair.first->getType() == ValueType::String) {
                     key_representation = '"' + key_str->get<std::string>() + '"';
@@ -1333,7 +1333,7 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
     }
 }
 
-BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "sum() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1364,7 +1364,7 @@ BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Envir
     }
 }
 
-BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "writeFile() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1398,7 +1398,7 @@ BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args,
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 2) {
         throwError(ErrorType::Runtime, "input() takes 2 or more arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1432,7 +1432,7 @@ BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Envir
 ///  TYPE MEMBER FUNCTIONS  ///
 
 
-BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "isInt() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1446,7 +1446,7 @@ BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args
 }
 
 
-BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "append() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1458,7 +1458,7 @@ BuiltInFunctionReturn listAppend(const std::vector<std::shared_ptr<Value>>& args
 }
 
 
-BuiltInFunctionReturn listClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listClear(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "clear() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1468,7 +1468,7 @@ BuiltInFunctionReturn listClear(const std::vector<std::shared_ptr<Value>>& args,
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn listCopy(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listCopy(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "copy() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1477,7 +1477,7 @@ BuiltInFunctionReturn listCopy(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(std::make_shared<List>(list->getElements()));
 }
 
-BuiltInFunctionReturn listIndex(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listIndex(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 2 || args.size() > 4) {
         throwError(ErrorType::Runtime, "index() takes 2-4 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1519,7 +1519,7 @@ BuiltInFunctionReturn listIndex(const std::vector<std::shared_ptr<Value>>& args,
     return std::make_shared<Value>(index);
 }
 
-BuiltInFunctionReturn listInsert(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listInsert(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 3) {
         throwError(ErrorType::Runtime, "insert() takes exactly 3 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1535,7 +1535,7 @@ BuiltInFunctionReturn listInsert(const std::vector<std::shared_ptr<Value>>& args
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1 && args.size() != 2) {
         throwError(ErrorType::Runtime, "pop() takes 1-2 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1560,7 +1560,7 @@ BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, E
     }
 }
 
-BuiltInFunctionReturn listRemove(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listRemove(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "remove() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1573,7 +1573,7 @@ BuiltInFunctionReturn listRemove(const std::vector<std::shared_ptr<Value>>& args
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn listReverse(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listReverse(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "reverse() takes exactly 1 argument. " + std::to_string(args.size()) + " were given.");
     }
@@ -1592,7 +1592,7 @@ BuiltInFunctionReturn listReverse(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1603,7 +1603,7 @@ BuiltInFunctionReturn listSize(const std::vector<std::shared_ptr<Value>>& args, 
 }
 
 
-BuiltInFunctionReturn dictClear(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictClear(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "clear() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1613,7 +1613,7 @@ BuiltInFunctionReturn dictClear(const std::vector<std::shared_ptr<Value>>& args,
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn dictCopy(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictCopy(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "clear() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1623,7 +1623,7 @@ BuiltInFunctionReturn dictCopy(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(std::make_shared<Dictionary>(copy));
 }
 
-BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "values() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1638,7 +1638,7 @@ BuiltInFunctionReturn dictValues(const std::vector<std::shared_ptr<Value>>& args
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn dictGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictGet(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 2 || args.size() > 3) {
         throwError(ErrorType::Runtime, "get() takes 2-3 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1662,7 +1662,7 @@ BuiltInFunctionReturn dictGet(const std::vector<std::shared_ptr<Value>>& args, E
     }
 }
 
-BuiltInFunctionReturn dictItems(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictItems(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "items() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1680,7 +1680,7 @@ BuiltInFunctionReturn dictItems(const std::vector<std::shared_ptr<Value>>& args,
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn dictKeys(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictKeys(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "keys() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1695,7 +1695,7 @@ BuiltInFunctionReturn dictKeys(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn dictPop(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictPop(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 2 || args.size() > 3) {
         throwError(ErrorType::Runtime, "pop() takes 2-3 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1717,7 +1717,7 @@ BuiltInFunctionReturn dictPop(const std::vector<std::shared_ptr<Value>>& args, E
     }
 }
 
-BuiltInFunctionReturn dictSetDefault(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictSetDefault(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() < 2 || args.size() > 3) {
         throwError(ErrorType::Runtime, "setDefault() takes 2-3 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1738,7 +1738,7 @@ BuiltInFunctionReturn dictSetDefault(const std::vector<std::shared_ptr<Value>>& 
     }
 }
 
-BuiltInFunctionReturn dictSize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictSize(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "size() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1748,7 +1748,7 @@ BuiltInFunctionReturn dictSize(const std::vector<std::shared_ptr<Value>>& args, 
     return std::make_shared<Value>(size);
 }
 
-BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "update() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1768,7 +1768,7 @@ BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args
 }
 
 
-BuiltInFunctionReturn stringCapitalize(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringCapitalize(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "capitalize() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1787,7 +1787,7 @@ BuiltInFunctionReturn stringCapitalize(const std::vector<std::shared_ptr<Value>>
     return std::make_shared<Value>(string);
 }
 
-BuiltInFunctionReturn stringEndsWith(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringEndsWith(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "endsWith() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1810,7 +1810,7 @@ BuiltInFunctionReturn stringEndsWith(const std::vector<std::shared_ptr<Value>>& 
     return std::make_shared<Value>(true);
 }
 
-BuiltInFunctionReturn stringFind(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringFind(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "find() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1832,7 +1832,7 @@ BuiltInFunctionReturn stringFind(const std::vector<std::shared_ptr<Value>>& args
     return std::make_shared<Value>(index);
 }
 
-BuiltInFunctionReturn stringIsAlpha(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringIsAlpha(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "isAlpha() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1842,7 +1842,7 @@ BuiltInFunctionReturn stringIsAlpha(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn stringIsAlphaNum(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringIsAlphaNum(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "isAlphaNum() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1852,7 +1852,7 @@ BuiltInFunctionReturn stringIsAlphaNum(const std::vector<std::shared_ptr<Value>>
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "isDigit() requires exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1873,7 +1873,7 @@ BuiltInFunctionReturn stringIsDigit(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(true);
 }
 
-BuiltInFunctionReturn stringIsSpace(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringIsSpace(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "isSpace() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1883,7 +1883,7 @@ BuiltInFunctionReturn stringIsSpace(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn stringIsWhitespace(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringIsWhitespace(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "isWhitespace() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1893,7 +1893,7 @@ BuiltInFunctionReturn stringIsWhitespace(const std::vector<std::shared_ptr<Value
     return std::make_shared<Value>(result);
 }
 
-BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "join() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1918,7 +1918,7 @@ BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args
     return std::make_shared<Value>(combined);
 }
 
-BuiltInFunctionReturn stringLength(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringLength(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "length() requires exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1928,7 +1928,7 @@ BuiltInFunctionReturn stringLength(const std::vector<std::shared_ptr<Value>>& ar
     return std::make_shared<Value>(length);
 }
 
-BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "lower() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -1940,7 +1940,7 @@ BuiltInFunctionReturn stringLower(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>(string);
 }
 
-BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 3) {
         throwError(ErrorType::Runtime, "replace() takes exactly 3 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -1970,7 +1970,7 @@ BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& a
     return std::make_shared<Value>(str); // Return the modified string
 }
 
-BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() > 2) {
         throwError(ErrorType::Runtime, "split() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -2003,7 +2003,7 @@ BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>(std::make_shared<List>(result));
 }
 
-BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() > 2) {
         throwError(ErrorType::Runtime, "strip() takes 1-2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -2032,7 +2032,7 @@ BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>(ltrim(rtrim(args[0]->get<std::string>(), strip_chars), strip_chars));
 }
 
-BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "upper() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -2044,7 +2044,7 @@ BuiltInFunctionReturn stringUpper(const std::vector<std::shared_ptr<Value>>& arg
     return std::make_shared<Value>(string);
 }
 
-BuiltInFunctionReturn stringToJson(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn stringToJson(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 1) {
         throwError(ErrorType::Runtime, "toJson() takes exactly 1 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -2073,9 +2073,9 @@ BuiltInFunctionReturn stringToJson(const std::vector<std::shared_ptr<Value>>& ar
         if (statements.size() != 1) {
             throwError(ErrorType::Runtime, "Invalid string syntax for dictionary conversion");
         }
-        Environment env = buildStartingEnvironment();
+        std::shared_ptr<Scope> scope = buildStartingEnvironment();
         std::optional<std::shared_ptr<Value>> dictionary;
-        return dict_node->evaluate(env);
+        return dict_node->evaluate(scope);
     } else {
         throwError(ErrorType::Runtime, "Invalid string syntax for dictionary conversion");
         return nullptr;
@@ -2083,7 +2083,7 @@ BuiltInFunctionReturn stringToJson(const std::vector<std::shared_ptr<Value>>& ar
 }
 
 
-BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "delAttr() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -2095,13 +2095,13 @@ BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& arg
     }
 
     auto name = name_val->get<std::string>();
-    if (inst->getEnvironment().hasMember(name)) {
-        inst->getEnvironment().delMember(name);
+    if (inst->getScope()->contains(name, ignore_private=true)) {
+        inst->getScope()->remove(name);
     }
     return std::make_shared<Value>();
 }
 
-BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "getAttr() takes exactly 2 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -2113,10 +2113,13 @@ BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& arg
     }
 
     auto name = name_val->get<std::string>();
-    return inst->getEnvironment().getMember(name);
+    auto inst_scope = inst->getScope();
+    if (inst_scope->contains(name, ignore_private=true)) {
+        return inst_scope->get(name, ignore_private=true);
+    }
 }
 
-BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
         throwError(ErrorType::Runtime, "hasAttr() takes exactly 2 argument. " + std::to_string(args.size()) + " were given");
     }
@@ -2127,12 +2130,12 @@ BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& arg
         throwError(ErrorType::Runtime, "hasAttr() expected an argument of Type:String but got " + getTypeStr(name->getType()));
     }
 
-    bool has = inst->getEnvironment().hasMember(name->get<std::string>());
+    bool has = inst->getScope()->contains(name->get<std::string>(), ignore_private=true);
 
     return std::make_shared<Value>(has);
 }
 
-BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& args, Environment& env) {
+BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 3) {
         throwError(ErrorType::Runtime, "setAttr() takes exactly 3 arguments. " + std::to_string(args.size()) + " were given");
     }
@@ -2145,6 +2148,6 @@ BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& arg
     }
     
     auto name = name_val->get<std::string>();
-    inst->getEnvironment().addMember(name, value);
+    inst->getScope()->set(name, value);
     return std::make_shared<Value>();
 }

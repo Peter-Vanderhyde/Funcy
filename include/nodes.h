@@ -24,7 +24,7 @@ public:
     ASTNode(int line, int column);
     virtual ~ASTNode() = default;
 
-    virtual std::optional<std::shared_ptr<Value>> evaluate(Environment&) = 0;
+    virtual std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>&) = 0;
     virtual void debugPrint(ValueList values) = 0;
     virtual std::string getPrintable() = 0;
 };
@@ -37,7 +37,7 @@ private:
 public:
     AtomNode(std::variant<int, double, bool, std::string, SpecialIndex> value, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 
@@ -61,7 +61,7 @@ public:
 
     UnaryOpNode(TokenType op, std::shared_ptr<ASTNode> right, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 };
@@ -73,7 +73,7 @@ public:
 
     BinaryOpNode(std::shared_ptr<ASTNode> left, TokenType op, std::shared_ptr<ASTNode> right, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 
@@ -87,7 +87,7 @@ public:
 
     ParenthesisOpNode(std::shared_ptr<ASTNode> expr, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 };
@@ -99,8 +99,8 @@ public:
 
     IdentifierNode(std::string name, int line, int column);
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, ValueType member_type);
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope, ValueType member_type);
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 };
@@ -118,8 +118,8 @@ public:
 
     ~ScopedNode() noexcept override = default;
 
-    bool getComparisonValue(Environment& env) const;
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    bool getComparisonValue(std::shared_ptr<Scope>& scope) const;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 };
@@ -132,7 +132,7 @@ public:
     
     ~ForNode() noexcept override = default;
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
     
@@ -150,7 +150,7 @@ public:
     
     ~KeywordNode() noexcept override = default;
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 
@@ -164,7 +164,7 @@ public:
         : ASTNode{line, column}, list{list} {}
     ~ListNode() noexcept override = default;
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 
@@ -178,14 +178,14 @@ public:
         : ASTNode{line, column}, container{container}, start_index{start_index}, end_index{end_index} {}
     ~IndexNode() noexcept override = default;
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
-    std::optional<std::shared_ptr<Value>> getIndex(Environment& env,
+    std::optional<std::shared_ptr<Value>> getIndex(std::shared_ptr<Scope>& scope,
                                                     std::variant<std::shared_ptr<std::string>,
                                                                 std::shared_ptr<List>,
                                                                 std::shared_ptr<Dictionary>> distr);
-    void assignIndex(Environment& env, std::shared_ptr<Value> value);
+    void assignIndex(std::shared_ptr<Scope>& scope, std::shared_ptr<Value> value);
 
     std::shared_ptr<ASTNode> container;
     std::shared_ptr<ASTNode> start_index;
@@ -194,25 +194,20 @@ public:
 
 class FuncNode : public ASTNode {
 public:
-    FuncNode(bool member_func, std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args,
+    FuncNode(std::shared_ptr<Scope> local_scope, std::shared_ptr<std::string> func_name, std::vector<std::shared_ptr<ASTNode>> args,
             std::map<std::string, std::shared_ptr<ASTNode>> default_arg_values, std::vector<std::shared_ptr<ASTNode>> block,
             int line, int column, std::string file_context)
-        : ASTNode{line, column}, member_func{member_func}, func_name{func_name}, args{args}, default_arg_nodes{default_arg_values}, block{block}, file_context{file_context} {}
+        : ASTNode{line, column}, func_name{func_name}, args{args}, default_arg_nodes{default_arg_values}, block{block}, file_context{file_context} {}
     
     ~FuncNode() noexcept override = default;
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
     void setArgs(ValueList values, std::map<std::string, std::shared_ptr<Value>> pairs, Scope& local_scope);
-    std::optional<std::shared_ptr<Value>> callFunc(ValueList values,
-                                                    std::map<std::string, std::shared_ptr<Value>> pairs,
-                                                    Environment& caller_env,
-                                                    bool member_func = false,
-                                                    Environment* class_storage = nullptr);
+    std::optional<std::shared_ptr<Value>> callFunc(ValueList values, std::map<std::string, std::shared_ptr<Value>> pairs);
     
-    Environment local_env;
-    bool member_func;
+    std::shared_ptr<Scope> local_scope;
     std::shared_ptr<std::string> func_name;
     std::vector<std::shared_ptr<ASTNode>> args;
     std::map<std::string, std::shared_ptr<ASTNode>> default_arg_nodes;
@@ -220,7 +215,7 @@ public:
     std::vector<std::shared_ptr<ASTNode>> block;
     std::string file_context;
     int recursion = 0;
-    bool detect_recursion_limit = local_env.detect_recursion;
+    bool detect_recursion_limit = DETECT_RECURSION;
 };
 
 class MethodCallNode : public ASTNode {
@@ -230,17 +225,16 @@ public:
     
     ~MethodCallNode() noexcept override = default;
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env, ValueType member_type);
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope, ValueType member_type);
     void evaluateArgs(ValueList& args,
-                    std::map<std::string, std::shared_ptr<Value>>& pairs, Environment& env);
+                    std::map<std::string, std::shared_ptr<Value>>& pairs, std::shared_ptr<Scope>& scope);
 
     std::shared_ptr<ASTNode> stored_func;
     std::vector<std::shared_ptr<ASTNode>> values;
     std::shared_ptr<Value> member_value;
-    std::shared_ptr<Environment> parent_env = nullptr;
 };
 
 class DictionaryNode : public ASTNode {
@@ -249,7 +243,7 @@ public:
         : ASTNode{line, column}, dictionary{dictionary} {}
     ~DictionaryNode() noexcept override = default;
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 
@@ -261,7 +255,7 @@ public:
     ClassNode(std::shared_ptr<std::string> name, std::vector<std::shared_ptr<ASTNode>> block, int line, int column, std::string file_context)
         : ASTNode{line, column}, name{*name}, block{block}, file_context{file_context} {}
 
-    std::optional<std::shared_ptr<Value>> evaluate(Environment& env) override;
+    std::optional<std::shared_ptr<Value>> evaluate(std::shared_ptr<Scope>& scope) override;
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 

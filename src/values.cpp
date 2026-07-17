@@ -254,37 +254,85 @@ void List::clear() {
 }
 
 
-Class::Class(std::string name, Environment& class_env)
-        : name{name}, class_env{class_env} {}
+Class::Class(std::string name, std::shared_ptr<Scope> scope)
+        : name{name}, class_scope{scope} {}
 
-std::shared_ptr<Instance> Class::createInstance() {
-    return std::make_shared<Instance>(name, class_env);
+std::shared_ptr<Instance> Class::createInstance() const {
+    Instance instance{std::make_shared<Class>(this)};
+    return std::make_shared<Instance>(instance);
 }
 
 std::string Class::getName() const {
     return name;
 }
 
-
-std::shared_ptr<Value> Instance::getConstructor(std::shared_ptr<Instance> this_reference) {
-    auto constructor = instance_env.get(class_name, true);
-    if (constructor->getType() != ValueType::Function) {
-        throwError(ErrorType::Runtime, class_name + " Class constructor does not exist");
+bool Class::contains(const std::string name) const {
+    for (auto& pair : public_member_values) {
+        if (pair.first == name) {
+            return true;
+        }
     }
+
+    return false;
+}
+
+std::shared_ptr<Value> Class::copyValue(const std::string name) const {
+    for (auto& pair : public_member_values) {
+        if (pair.first == name) {
+            return std::make_shared<Value>(*pair.second);
+        }
+    }
+
+    throwError(ErrorType::Runtime, "Could not find member variable '" + name + "' in class");
+}
+
+
+Instance::Instance(const std::shared_ptr<Class>& parent_class)
+    : parent_class{parent_class} {}
+
+bool Instance::contains(const std::string name) const {
+    for (auto& pair : edited_member_variables) {
+        if (pair.first == name) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+std::shared_ptr<Value> Instance::get(const std::string name) const {
+    for (auto& pair : edited_member_variables) {
+        if (pair.first == name) {
+            return pair.second;
+        }
+    }
+
+    if (parent_class->contains(name)) {
+        return parent_class->copyValue(name);
+    }
+
+    throwError(ErrorType::Runtime, "Could not find member variable '" + name + "' in instance");
+}
+
+void Instance::set(const std::string name, std::shared_ptr<Value> value) {
+    edited_member_variables[name] = value;
+}
+
+std::shared_ptr<Value> Instance::getConstructor() const {
+    const std::string class_name = parent_class->getName();
+    if (!contains(class_name)) {
+        throwError(ErrorType::Runtime, parent_class->getName() + " Class constructor does not exist");
+    }
+
+    auto constructor = get(class_name);
+    if (constructor->getType() != ValueType::Function) {
+        throwError(ErrorType::Runtime, parent_class->getName() + " Class constructor does not exist");
+    }
+
     return constructor;
 }
 
-Environment& Instance::getEnvironment() {
-    return instance_env;
-}
 
-Environment Instance::copyEnvironment() {
-    return Environment{instance_env};
-}
-
-std::string Instance::getClassName() const {
-    return class_name;
-}
 
 
 Value::Value()  // Defaults to monostate (NONE)
