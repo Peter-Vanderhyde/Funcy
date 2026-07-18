@@ -254,11 +254,11 @@ void List::clear() {
 }
 
 
-Class::Class(std::string name, std::shared_ptr<Scope> scope)
-        : name{name}, class_scope{scope} {}
+Class::Class(std::string name)
+        : name{name} {}
 
-std::shared_ptr<Instance> Class::createInstance() const {
-    Instance instance{std::make_shared<Class>(this)};
+std::shared_ptr<Instance> Class::createInstance() {
+    Instance instance{shared_from_this()};
     return std::make_shared<Instance>(instance);
 }
 
@@ -286,6 +286,10 @@ std::shared_ptr<Value> Class::copyValue(const std::string name) const {
     throwError(ErrorType::Runtime, "Could not find member variable '" + name + "' in class");
 }
 
+void Class::setValue(const std::string name, const std::shared_ptr<Value> value) {
+    public_member_values[name] = value;
+}
+
 
 Instance::Instance(const std::shared_ptr<Class>& parent_class)
     : parent_class{parent_class} {}
@@ -297,7 +301,11 @@ bool Instance::contains(const std::string name) const {
         }
     }
 
-    return false;
+    return parent_class->contains(name);
+}
+
+void Instance::remove(const std::string name) {
+    edited_member_variables.erase(name);
 }
 
 std::shared_ptr<Value> Instance::get(const std::string name) const {
@@ -307,11 +315,7 @@ std::shared_ptr<Value> Instance::get(const std::string name) const {
         }
     }
 
-    if (parent_class->contains(name)) {
-        return parent_class->copyValue(name);
-    }
-
-    throwError(ErrorType::Runtime, "Could not find member variable '" + name + "' in instance");
+    return parent_class->copyValue(name);
 }
 
 void Instance::set(const std::string name, std::shared_ptr<Value> value) {
@@ -330,6 +334,10 @@ std::shared_ptr<Value> Instance::getConstructor() const {
     }
 
     return constructor;
+}
+
+std::string Instance::getClassName() const {
+    return parent_class->getName();
 }
 
 

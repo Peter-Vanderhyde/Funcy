@@ -60,19 +60,19 @@ public:
 Add instance comparison
 */
 
-class Class {
+class Class : public std::enable_shared_from_this<Class> {
 private:
     std::string name;
-    std::shared_ptr<Scope> class_scope;
     std::unordered_map<std::string, std::shared_ptr<Value>> public_member_values;
 
 public:
-    Class(std::string name, std::shared_ptr<Scope> scope);
+    Class(std::string name);
     
-    std::shared_ptr<Instance> createInstance() const;
+    std::shared_ptr<Instance> createInstance();
     std::string getName() const;
     bool contains(const std::string name) const;
     std::shared_ptr<Value> copyValue(const std::string name) const;
+    void setValue(const std::string name, const std::shared_ptr<Value> value);
 };
 
 class Instance {
@@ -87,6 +87,7 @@ public:
     void set(const std::string name, const std::shared_ptr<Value> value);
     std::shared_ptr<Value> get(const std::string name) const;
     bool contains(const std::string name) const;
+    void remove(const std::string name);
     std::string getClassName() const;
 };
 

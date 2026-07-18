@@ -8,6 +8,7 @@
 
 class Value;
 class Instance;
+class Class;
 enum class ValueType;
 
 extern bool DETECT_RECURSION;
@@ -15,10 +16,10 @@ extern bool DETECT_RECURSION;
 class Scope {
 public:
     Scope(const std::shared_ptr<Scope> parent = nullptr);
-    void set(const std::string name, const std::shared_ptr<Value> value);
+    void set(const std::string name, const std::shared_ptr<Value> value, const bool member_variable = false);
     std::shared_ptr<Value> get(const std::string name) const;
     void remove(const std::string name);
-    bool contains(const std::string name) const;
+    bool contains(const std::string name, const bool member_variable = false) const;
 
     void addFunction(const std::string name, const std::shared_ptr<Value> func);
     std::shared_ptr<Value> getFunction(const std::string name) const;
@@ -27,18 +28,27 @@ public:
     std::shared_ptr<Value> getMember(const ValueType value_type, const std::string name) const;
     bool hasMember(const ValueType value_type, const std::string name) const;
 
-    std::shared_ptr<Scope> getGlobalScope() const;
-    void makeClassScope(const bool is_class = true);
+    std::shared_ptr<Scope> getGlobalScope();
     std::shared_ptr<Scope> enterScope();
     std::shared_ptr<Scope> exitScope();
-    std::shared_ptr<Scope> enterClassScope();
+    void assignClass(const std::shared_ptr<Class>& defined_class);
+    void addGlobal(const std::string name);
+    void setThis(const std::shared_ptr<Instance> instance);
+    std::shared_ptr<Instance> getThis() const;
+
+    void addLoop();
+    void removeLoop();
+    bool inLoop() const;
+    void resetLoop();
 
     const std::vector<std::pair<std::string, std::shared_ptr<Value>>> getPairs() const;
     void display() const;
 
 private:
-    bool is_class_scope = false;
+    int loop_depth = 0;
+    std::shared_ptr<Instance> this_ref;
     std::shared_ptr<Scope> parent;
+    std::shared_ptr<Class> assigned_class; // For scopes to assign member variables to classes
     std::unordered_map<std::string, std::shared_ptr<Value>> variables;
     std::unordered_map<std::string, std::shared_ptr<Value>> member_variables;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;

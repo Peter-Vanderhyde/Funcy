@@ -845,7 +845,7 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Scope
             auto func_node = std::dynamic_pointer_cast<FuncNode>(func->get<std::shared_ptr<ASTNode>>());
 
             if (func_node) {
-                auto result = func_node->callFunc(func_args, std::map<std::string, std::shared_ptr<Value>>{}, scope);
+                auto result = func_node->callFunc(func_args, std::map<std::string, std::shared_ptr<Value>>{});
                 if (result) {
                     result_list->push_back(result.value());
                 }
@@ -2095,8 +2095,8 @@ BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& arg
     }
 
     auto name = name_val->get<std::string>();
-    if (inst->getScope()->contains(name, ignore_private=true)) {
-        inst->getScope()->remove(name);
+    if (inst->contains(name)) {
+        inst->remove(name);
     }
     return std::make_shared<Value>();
 }
@@ -2113,10 +2113,11 @@ BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& arg
     }
 
     auto name = name_val->get<std::string>();
-    auto inst_scope = inst->getScope();
-    if (inst_scope->contains(name, ignore_private=true)) {
-        return inst_scope->get(name, ignore_private=true);
+    if (inst->contains(name)) {
+        return inst->get(name);
     }
+
+    throwError(ErrorType::Runtime, "Unable to find attribute '" + name + "'");
 }
 
 BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
@@ -2130,7 +2131,7 @@ BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& arg
         throwError(ErrorType::Runtime, "hasAttr() expected an argument of Type:String but got " + getTypeStr(name->getType()));
     }
 
-    bool has = inst->getScope()->contains(name->get<std::string>(), ignore_private=true);
+    bool has = inst->contains(name->get<std::string>());
 
     return std::make_shared<Value>(has);
 }
@@ -2148,6 +2149,6 @@ BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& arg
     }
     
     auto name = name_val->get<std::string>();
-    inst->getScope()->set(name, value);
+    inst->set(name, value);
     return std::make_shared<Value>();
 }
