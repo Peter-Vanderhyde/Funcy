@@ -71,3 +71,6 @@ bot.status = "Online";
 # Could also do:  bot.setAttr("status", "Online");
 print("New status attribute created");
 print("Status: " + bot.status);
+
+print();
+print(bot);

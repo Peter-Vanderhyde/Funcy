@@ -432,7 +432,7 @@ Funcy.exe test_program.fy -Debug
 
 - `debugPause`: This acts as a break line. The language will pause once it reaches this line. The language will begin to print out each evaluation it's performing step by step. The user presses `ENTER` to progress step by step. They can also press `ESCAPE` to stop showing the evaluation steps and resume the program like normal until it hits another `debugPause` or the program completes.
 
-- `debugEnv`: This will display the current state of the environment at that moment. (This does not work well within classes)
+- `debugEnv`: This will display the current state of the environment at that moment. In order to view the internal state of an instance at any given time, you can use `print(my_instance)` to see the state of its member variables.
 
 ## Errors
 

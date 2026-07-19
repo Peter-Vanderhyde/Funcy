@@ -74,6 +74,9 @@ public:
     bool contains(const std::string name, const bool public_variable = true) const;
     std::shared_ptr<Value> copyValue(const std::string name, const bool public_variable = true) const;
     void setValue(const std::string name, const std::shared_ptr<Value> value, const bool public_variable = true);
+    int numOfMembers(const bool public_variables = true) const;
+    std::vector<std::string> getMemberNames(const bool public_variables = true) const;
+
 };
 
 class Instance {
@@ -90,7 +93,9 @@ public:
     std::shared_ptr<Value> get(const std::string name, const bool public_variable = true) const;
     bool contains(const std::string name, const bool public_variable = true) const;
     void remove(const std::string name, const bool public_variable = true);
+    std::shared_ptr<Instance> clone() const;
     std::string getClassName() const;
+    std::string dumpState(int tabs) const;
 };
 
 enum class ValueType {
@@ -115,7 +120,6 @@ private:
                 SpecialIndex, std::shared_ptr<ASTNode>, std::shared_ptr<BuiltInFunction>, ValueType,
                 std::shared_ptr<Dictionary>, std::shared_ptr<Class>, std::shared_ptr<Instance>> value;
     ValueType value_type;
-    bool is_private;
 
 public:
     Value();
@@ -134,6 +138,8 @@ public:
 
     ValueType getType() const;
 
+    std::shared_ptr<Value> deepCopy() const;
+
     // Templated getter function
     template <typename T>
     const T& get() const {
@@ -142,8 +148,6 @@ public:
         }
         return std::get<T>(value);
     }
-
-    bool isPrivate() const;
 
     std::string getPrintable(int tabs=0, bool error=false);
 

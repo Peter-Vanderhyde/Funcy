@@ -1,6 +1,7 @@
 #include "values.h"
 #include <vector>
 #include "errorDefs.h"
+#include <unordered_set>
 
 class FuncNode;
 
@@ -290,7 +291,7 @@ std::shared_ptr<Value> Class::copyValue(const std::string name, const bool publi
     if (public_variable) {
         for (auto& pair : public_member_values) {
             if (pair.first == name) {
-                return std::make_shared<Value>(*pair.second);
+                return pair.second->deepCopy();
             }
         }
 
@@ -312,6 +313,28 @@ void Class::setValue(const std::string name, const std::shared_ptr<Value> value,
     } else {
         private_member_values[name] = value;
     }
+}
+
+int Class::numOfMembers(const bool public_variables) const {
+    if (public_variables) {
+        return public_member_values.size();
+    } else {
+        return private_member_values.size();
+    }
+}
+
+std::vector<std::string> Class::getMemberNames(const bool public_variables) const {
+    std::vector<std::string> list;
+    if (public_variables) {
+        for (const auto& pair : public_member_values) {
+            list.push_back(pair.first);
+        }
+    } else {
+        for (const auto& pair : private_member_values) {
+            list.push_back(pair.first);
+        }
+    }
+    return list;
 }
 
 
@@ -388,8 +411,64 @@ std::shared_ptr<Value> Instance::getConstructor() const {
     return constructor;
 }
 
+std::shared_ptr<Instance> Instance::clone() const {
+    auto new_instance = std::make_shared<Instance>(parent_class);
+
+    // Deep copy public members
+    for (const auto& pair : edited_public_member_variables) {
+        new_instance->set(pair.first, pair.second->deepCopy(), true);
+    }
+
+    // Deep copy private members
+    for (const auto& pair : edited_private_member_variables) {
+        new_instance->set(pair.first, pair.second->deepCopy(), false);
+    }
+
+    return new_instance;
+}
+
 std::string Instance::getClassName() const {
     return parent_class->getName();
+}
+
+std::string Instance::dumpState(int tabs) const {
+    std::string indent(tabs * 4, ' ');
+    std::string result = "\033[1;36mInstance of " + getClassName() + "\033[0m {\n";
+    
+    result += indent + "  Public Members:\n";
+    if (edited_public_member_variables.empty() && parent_class->getMemberNames().size() == 0) {
+        result += indent + "    (none)\n";
+    } else {
+        std::vector<std::string> all_class_names = parent_class->getMemberNames();
+        std::vector<std::string> all_instance_names;
+        for (const auto& pair : edited_public_member_variables) {
+            all_instance_names.push_back(pair.first);
+        }
+        std::unordered_set<std::string> unique_names{all_class_names.begin(), all_class_names.end()};
+        unique_names.insert(all_instance_names.begin(), all_instance_names.end());
+        for (const auto& name : unique_names) {
+            result += indent + "    " + name + " : " + get(name)->getPrintable(tabs + 1) + "\n";
+        }
+    }
+
+    result += indent + "  Private Members:\n";
+    if (edited_private_member_variables.empty() && parent_class->getMemberNames(false).size() == 0) {
+        result += indent + "    (none)\n";
+    } else {
+        std::vector<std::string> all_class_names = parent_class->getMemberNames(false);
+        std::vector<std::string> all_instance_names;
+        for (const auto& pair : edited_private_member_variables) {
+            all_instance_names.push_back(pair.first);
+        }
+        std::unordered_set<std::string> unique_names{all_class_names.begin(), all_class_names.end()};
+        unique_names.insert(all_instance_names.begin(), all_instance_names.end());
+        for (const auto& name : unique_names) {
+            result += indent + "    " + name + " : " + get(name, false)->getPrintable(tabs + 1) + "\n";
+        }
+    }
+    
+    result += indent + "}";
+    return result;
 }
 
 
@@ -437,6 +516,60 @@ Value::Value(std::shared_ptr<Instance> v)
 // Get the current type of the Value
 ValueType Value::getType() const {
     return value_type;
+}
+
+std::shared_ptr<Value> Value::deepCopy() const {
+    switch (value_type) {
+        // Primitives copy perfectly fine by value
+        case ValueType::Integer:
+        case ValueType::Float:
+        case ValueType::Boolean:
+        case ValueType::String:
+        case ValueType::Type:
+        case ValueType::None:
+        case ValueType::Index:
+        case ValueType::Function:       // Functions are typically immutable AST references
+        case ValueType::BuiltInFunction:
+        case ValueType::Class:          // Classes are blueprints and usually shared
+            return std::make_shared<Value>(*this);
+
+        case ValueType::List: {
+            auto original_list = std::get<std::shared_ptr<List>>(value);
+            std::vector<std::shared_ptr<Value>> cloned_elements;
+            cloned_elements.reserve(original_list->size());
+
+            // Recursively deep copy every element inside the list
+            for (size_t i = 0; i < original_list->size(); ++i) {
+                cloned_elements.push_back(original_list->at(i)->deepCopy());
+            }
+
+            auto new_list = std::make_shared<List>(cloned_elements);
+            return std::make_shared<Value>(new_list);
+        }
+
+        case ValueType::Dictionary: {
+            auto original_dict = std::get<std::shared_ptr<Dictionary>>(value);
+            auto new_dict = std::make_shared<Dictionary>();
+
+            // Recursively deep copy both keys and values
+            for (const auto& pair : *original_dict) {
+                new_dict->insert({pair.first->deepCopy(), pair.second->deepCopy()});
+            }
+
+            return std::make_shared<Value>(new_dict);
+        }
+
+        case ValueType::Instance: {
+            auto original_instance = std::get<std::shared_ptr<Instance>>(value);
+            
+            // You will need to add a copy constructor or clone method to Instance
+            auto new_instance = original_instance->clone(); 
+            return std::make_shared<Value>(new_instance);
+        }
+
+        default:
+            return std::make_shared<Value>(*this);
+    }
 }
 
 std::string Value::getPrintable(int tabs, bool error) {

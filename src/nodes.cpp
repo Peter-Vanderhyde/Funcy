@@ -1045,7 +1045,12 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared
             }
             return scope->getMember(ValueType::Instance,name);
         } else {
-            throwError(ErrorType::Runtime, name + " is not defined", line, column);
+            if (instance->contains(name, false)) {
+                throwError(ErrorType::Runtime, name + " is private and cannot be accessed externally", line, column);
+            }
+            else {
+                throwError(ErrorType::Runtime, name + " is not defined", line, column);
+            }
         }
     }
     return std::nullopt;
@@ -1650,7 +1655,7 @@ the program execution to ignore this warning)");
         popExecutionContext();
         return std::nullopt;
     } else if (keyword == TokenType::_This) {
-        return std::make_shared<Value>(scope->getThis());
+        return std::make_shared<Value>(scope->findThis());
     } else if (type_map.contains(keyword)) {
         if (keyword == TokenType::_NullType) {
             return std::make_shared<Value>();

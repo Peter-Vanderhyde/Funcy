@@ -13,9 +13,9 @@ enum class ValueType;
 
 extern bool DETECT_RECURSION;
 
-class Scope {
+class Scope : public std::enable_shared_from_this<Scope> {
 public:
-    Scope(const std::shared_ptr<Scope> parent = nullptr);
+    Scope(std::shared_ptr<Scope> parent = nullptr);
     void set(const std::string name, const std::shared_ptr<Value> value, const bool member_variable = false);
     std::shared_ptr<Value> get(const std::string name, const bool member_variable = false) const;
     bool contains(const std::string name, const bool member_variable = false) const;
@@ -37,8 +37,11 @@ public:
     std::shared_ptr<Class> getAssignedClass() const;
 
     void addGlobal(const std::string name);
+    void setGlobal(const std::string name, const std::shared_ptr<Value> value);
+    std::shared_ptr<Value> getGlobal(const std::string name) const;
     void setThis(const std::shared_ptr<Instance> instance);
     std::shared_ptr<Instance> getThis() const;
+    std::shared_ptr<Instance> findThis() const;
     bool hasThis() const;
 
     void addLoop();
@@ -47,7 +50,7 @@ public:
     void resetLoop();
 
     const std::vector<std::pair<std::string, std::shared_ptr<Value>>> getPairs() const;
-    void display() const;
+    void display(int depth = 0) const;
 
 private:
     void set(const std::string name,
@@ -56,6 +59,7 @@ private:
         std::unordered_map<std::string, std::shared_ptr<Value>>& original_scope_variables);
 
     int loop_depth = 0;
+    std::vector<std::string> global_list;
     std::shared_ptr<Instance> this_ref;
     std::shared_ptr<Scope> parent;
     std::shared_ptr<Class> assigned_class; // For scopes to assign member variables to classes

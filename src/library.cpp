@@ -208,9 +208,9 @@ void printValue(const std::shared_ptr<Value> value, bool error, bool drawing) {
         case ValueType::Instance: {
             auto node = value->get<std::shared_ptr<Instance>>();
             if (error) {
-                std::cout << style.red << node->getClassName() << ":Instance" << style.reset;
+                std::cout << style.red << node->getClassName() << ":Instance\n" << style.reset;
             } else {
-                std::cout << style.blue << node->getClassName() << ":Instance" << style.reset;
+                std::cout << style.blue << node->dumpState(0) << style.reset;
             }
             return;
         }
