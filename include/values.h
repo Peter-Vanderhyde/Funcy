@@ -64,30 +64,32 @@ class Class : public std::enable_shared_from_this<Class> {
 private:
     std::string name;
     std::unordered_map<std::string, std::shared_ptr<Value>> public_member_values;
+    std::unordered_map<std::string, std::shared_ptr<Value>> private_member_values;
 
 public:
     Class(std::string name);
     
     std::shared_ptr<Instance> createInstance();
     std::string getName() const;
-    bool contains(const std::string name) const;
-    std::shared_ptr<Value> copyValue(const std::string name) const;
-    void setValue(const std::string name, const std::shared_ptr<Value> value);
+    bool contains(const std::string name, const bool public_variable = true) const;
+    std::shared_ptr<Value> copyValue(const std::string name, const bool public_variable = true) const;
+    void setValue(const std::string name, const std::shared_ptr<Value> value, const bool public_variable = true);
 };
 
 class Instance {
 private:
     std::shared_ptr<Class> parent_class;
-    std::unordered_map<std::string, std::shared_ptr<Value>> edited_member_variables;
+    std::unordered_map<std::string, std::shared_ptr<Value>> edited_public_member_variables;
+    std::unordered_map<std::string, std::shared_ptr<Value>> edited_private_member_variables;
 
 public:
     Instance(const std::shared_ptr<Class>& parent_class);
     
     std::shared_ptr<Value> getConstructor() const;
-    void set(const std::string name, const std::shared_ptr<Value> value);
-    std::shared_ptr<Value> get(const std::string name) const;
-    bool contains(const std::string name) const;
-    void remove(const std::string name);
+    void set(const std::string name, const std::shared_ptr<Value> value, const bool public_variable = true);
+    std::shared_ptr<Value> get(const std::string name, const bool public_variable = true) const;
+    bool contains(const std::string name, const bool public_variable = true) const;
+    void remove(const std::string name, const bool public_variable = true);
     std::string getClassName() const;
 };
 

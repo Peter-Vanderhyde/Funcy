@@ -17,9 +17,9 @@ class Scope {
 public:
     Scope(const std::shared_ptr<Scope> parent = nullptr);
     void set(const std::string name, const std::shared_ptr<Value> value, const bool member_variable = false);
-    std::shared_ptr<Value> get(const std::string name) const;
-    void remove(const std::string name);
+    std::shared_ptr<Value> get(const std::string name, const bool member_variable = false) const;
     bool contains(const std::string name, const bool member_variable = false) const;
+    bool find(const std::string name, const bool member_variable = false) const;
 
     void addFunction(const std::string name, const std::shared_ptr<Value> func);
     std::shared_ptr<Value> getFunction(const std::string name) const;
@@ -31,10 +31,15 @@ public:
     std::shared_ptr<Scope> getGlobalScope();
     std::shared_ptr<Scope> enterScope();
     std::shared_ptr<Scope> exitScope();
-    void assignClass(const std::shared_ptr<Class>& defined_class);
+
+    void assignClass(const std::shared_ptr<Class> defined_class);
+    bool hasClassAssigned() const;
+    std::shared_ptr<Class> getAssignedClass() const;
+
     void addGlobal(const std::string name);
     void setThis(const std::shared_ptr<Instance> instance);
     std::shared_ptr<Instance> getThis() const;
+    bool hasThis() const;
 
     void addLoop();
     void removeLoop();
@@ -45,6 +50,11 @@ public:
     void display() const;
 
 private:
+    void set(const std::string name,
+        const std::shared_ptr<Value> value,
+        Scope& original_scope,
+        std::unordered_map<std::string, std::shared_ptr<Value>>& original_scope_variables);
+
     int loop_depth = 0;
     std::shared_ptr<Instance> this_ref;
     std::shared_ptr<Scope> parent;

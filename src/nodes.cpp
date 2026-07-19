@@ -782,7 +782,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(const std::shared_p
         }
         else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             if (member_type == ValueType::Instance) {
-                return ident_node->evaluate(left_value.value()->get<std::shared_ptr<Instance>>());
+                return ident_node->evaluate(scope, left_value.value()->get<std::shared_ptr<Instance>>());
             }
             
             return ident_node->evaluate(scope, member_type);
@@ -987,12 +987,12 @@ IdentifierNode::IdentifierNode(std::string name, int line, int column)
     : ASTNode{line, column}, name{name} {}
 
 std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared_ptr<Scope>& scope) {
-    if (scope->contains(name)) {
+    if (scope->find(name, member_variable)) {
         if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
-            std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + scope->get(name)->getPrintable(debug_tabs) << std::endl;
+            std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + scope->get(name, member_variable)->getPrintable(debug_tabs) << std::endl;
             debugWait();
         }
-        return scope->get(name);
+        return scope->get(name, member_variable);
     } else if (scope->hasFunction(name)) {
         if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + scope->getFunction(name)->getPrintable(debug_tabs) << std::endl;
@@ -1030,7 +1030,7 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared
     return std::nullopt;
 }
 
-std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared_ptr<Instance>& instance) {
+std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared_ptr<Scope>& scope, const std::shared_ptr<Instance>& instance) {
     if (instance->contains(name)) {
         if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
             std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + instance->get(name)->getPrintable(debug_tabs) << std::endl;
@@ -1038,7 +1038,15 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared
         }
         return instance->get(name);
     } else {
-        throwError(ErrorType::Runtime, name + " is not defined", line, column);
+        if (scope->hasMember(ValueType::Instance, name)) {
+            if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
+                std::cout << getTabs() + "Evaluating Identifier: " + name + " -> " + scope->getMember(ValueType::Instance, name)->getPrintable(debug_tabs) << std::endl;
+                debugWait();
+            }
+            return scope->getMember(ValueType::Instance,name);
+        } else {
+            throwError(ErrorType::Runtime, name + " is not defined", line, column);
+        }
     }
     return std::nullopt;
 }
@@ -2152,11 +2160,18 @@ void FuncNode::setArgs(ValueList values,
 }
 
 std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
-                                                        std::map<std::string, std::shared_ptr<Value>> pairs) {
+                                                        std::map<std::string, std::shared_ptr<Value>> pairs,
+                                                        std::shared_ptr<Instance> owner_instance) {
     
     pushFunctionContext(*func_name, file_context);
 
     std::shared_ptr<Scope> scope = call_scope->enterScope();
+    if (owner_instance) {
+        scope->setThis(owner_instance);
+    }
+    else if (call_scope->hasThis()) {
+        scope->setThis(call_scope->getThis());
+    }
     setArgs(values, pairs, scope);
     recursion += 1;
     std::optional<std::shared_ptr<Value>> return_value = std::make_shared<Value>();
@@ -2262,7 +2277,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(const std::shared
                 }
                 debugPrint(debug_values);
             }
-            func_node->callFunc(args, pairs);
+            func_node->callFunc(args, pairs, instance);
             return std::make_shared<Value>(instance);
         }
         catch (const ErrorException& e) {
@@ -2289,9 +2304,10 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(const std::shared
     }
     
     std::shared_ptr<Value> mapped_value;
+    std::shared_ptr<Instance> owner_instance;
     if (dotted_type == ValueType::Instance) {
-        auto inst_node = member_value->get<std::shared_ptr<Instance>>();
-        mapped_value = ident_node->evaluate(inst_node).value();
+        owner_instance = member_value->get<std::shared_ptr<Instance>>();
+        mapped_value = ident_node->evaluate(scope, owner_instance).value();
     } else {
         mapped_value = ident_node->evaluate(scope, dotted_type).value();
     }
@@ -2310,7 +2326,7 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(const std::shared
             }
             try {
                 if (dotted_type == ValueType::Instance) {
-                    auto result = func->callFunc(args, pairs);
+                    auto result = func->callFunc(args, pairs, owner_instance);
                     return result;
                 }
                 else {
@@ -2497,7 +2513,7 @@ the program execution to ignore this warning)");
         throwError(e.error_type, e.message, line, column);
     }
 
-    if (!local_scope->contains(name, true)) {
+    if (!local_scope->find(name, true)) {
         throwError(ErrorType::Runtime, "Class " + name + " is missing a constructor", line, column);
     }
     if (debug) subTab();

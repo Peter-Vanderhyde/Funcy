@@ -10,9 +10,46 @@ bool DETECT_RECURSION;
 Scope::Scope(const std::shared_ptr<Scope> parent)
     : parent{parent} {}
 
+void Scope::set(const std::string name,
+        const std::shared_ptr<Value> value,
+        Scope& original_scope,
+        std::unordered_map<std::string, std::shared_ptr<Value>>& original_scope_variables) {
+    
+    for (auto& pair : variables) {
+        if (pair.first == name) {
+            variables[name] = value;
+            return;
+        }
+    }
+
+    if (assigned_class && assigned_class->contains(name, false)) {
+        assigned_class->setValue(name, value, false);
+        return;
+    }
+
+    if (hasThis() && getThis()->contains(name, false)) {
+        getThis()->set(name, value, false);
+        return;
+    }
+
+    if (!parent) {
+        if (original_scope.hasClassAssigned()) {
+            original_scope.getAssignedClass()->setValue(name, value, false);
+        } else {
+            original_scope_variables[name] = value;
+        }
+        return;
+    }
+
+    parent->set(name, value, original_scope, original_scope_variables);
+}
+
 void Scope::set(const std::string name, const std::shared_ptr<Value> value, const bool member_variable) {
     if (member_variable) {
-        if (assigned_class) {
+        if (hasThis()) {
+            getThis()->set(name, value);
+        }
+        else if (assigned_class) {
             assigned_class->setValue(name, value);
             return;
         }
@@ -23,27 +60,59 @@ void Scope::set(const std::string name, const std::shared_ptr<Value> value, cons
 
         parent->set(name, value, member_variable);
     } else {
-        variables[name] = value;
-    }
-}
-
-std::shared_ptr<Value> Scope::get(const std::string name) const {
-    for (auto& pair : variables) {
-        if (pair.first == name) {
-            return pair.second;
+        if (!assigned_class) {
+            // Behave normally
+            set(name, value, *this, variables);
+        } else {
+            // It's a private class variable
+            assigned_class->setValue(name, value, false);
         }
     }
-
-    if (!parent) {
-        throwError(ErrorType::Runtime, std::format("Bad environment access with key '{}'", name));
-    }
-
-    return parent->get(name);
 }
 
-bool Scope::contains(const std::string name, const bool member_variable) const {
+std::shared_ptr<Value> Scope::get(const std::string name, const bool member_variable) const {
     if (member_variable) {
-        if (assigned_class) {
+        if (hasThis()) {
+            return getThis()->get(name);
+        }
+        else if (assigned_class) {
+            return assigned_class->copyValue(name);
+        }
+
+        if (!parent) {
+            throwError(ErrorType::Runtime, "Attempted to access a member variable while outside of an instance");
+        }
+
+        return parent->get(name, member_variable);
+    } else {
+        for (auto& pair : variables) {
+            if (pair.first == name) {
+                return pair.second;
+            }
+        }
+
+        if (assigned_class && assigned_class->contains(name, false)) {
+            return assigned_class->copyValue(name, false);
+        }
+
+        if (hasThis() && getThis()->contains(name, false)) {
+            return getThis()->get(name, false);
+        }
+
+        if (!parent) {
+            throwError(ErrorType::Runtime, std::format("Bad environment access with key '{}'", name));
+        }
+
+        return parent->get(name);
+    }
+}
+
+bool Scope::find(const std::string name, const bool member_variable) const {
+    if (member_variable) {
+        if (hasThis()) {
+            return getThis()->contains(name);
+        }
+        else if (assigned_class) {
             return assigned_class->contains(name);
         }
 
@@ -51,7 +120,7 @@ bool Scope::contains(const std::string name, const bool member_variable) const {
             return false;
         }
 
-        return parent->contains(name, member_variable);
+        return parent->find(name, member_variable);
     } else {
         for (auto& pair : variables) {
             if (pair.first == name) {
@@ -59,23 +128,40 @@ bool Scope::contains(const std::string name, const bool member_variable) const {
             }
         }
 
+        if (assigned_class && assigned_class->contains(name, false)) {
+            return true;
+        }
+
         if (!parent) {
             return false;
         }
 
-        return parent->contains(name);
+        return parent->find(name);
     }
 }
 
-void Scope::remove(std::string name) {
-    if (contains(name)) {
-        variables.erase(name);
-    } else {
-        if (!parent) {
-            throwError(ErrorType::Runtime, "Could not find '" + name + "' to remove it");
+bool Scope::contains(const std::string name, const bool member_variable) const {
+    if (member_variable) {
+        if (hasThis()) {
+            return getThis()->contains(name);
+        }
+        else if (assigned_class) {
+            return assigned_class->contains(name);
         }
 
-        parent->remove(name);
+        return false;
+    } else {
+        for (auto& pair : variables) {
+            if (pair.first == name) {
+                return true;
+            }
+        }
+
+        if (assigned_class) {
+            return assigned_class->contains(name, false);
+        }
+
+        return false;
     }
 }
 
@@ -175,8 +261,16 @@ std::shared_ptr<Scope> Scope::exitScope() {
     return parent;
 }
 
-void Scope::assignClass(const std::shared_ptr<Class>& defined_class) {
+void Scope::assignClass(const std::shared_ptr<Class> defined_class) {
     assigned_class = defined_class;
+}
+
+bool Scope::hasClassAssigned() const {
+    return (assigned_class != nullptr);
+}
+
+std::shared_ptr<Class> Scope::getAssignedClass() const {
+    return assigned_class;
 }
 
 void Scope::addGlobal(const std::string name) {
@@ -195,16 +289,12 @@ std::shared_ptr<Instance> Scope::getThis() const {
     if (this_ref) {
         return this_ref;
     } else {
-        if (!parent) {
-            throwError(ErrorType::Runtime, "Attempted to access instance outside of instance");
-        }
-
-        if (assigned_class) {
-            throwError(ErrorType::Runtime, "No reference to instance found");
-        }
-
-        return parent->getThis();
+        throwError(ErrorType::Runtime, "Attempted to access instance outside of instance");
     }
+}
+
+bool Scope::hasThis() const {
+    return (this_ref != nullptr);
 }
 
 void Scope::addLoop() {

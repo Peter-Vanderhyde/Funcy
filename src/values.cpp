@@ -266,60 +266,112 @@ std::string Class::getName() const {
     return name;
 }
 
-bool Class::contains(const std::string name) const {
-    for (auto& pair : public_member_values) {
-        if (pair.first == name) {
-            return true;
+bool Class::contains(const std::string name, const bool public_variable) const {
+    if (public_variable) {
+        for (auto& pair : public_member_values) {
+            if (pair.first == name) {
+                return true;
+            }
         }
-    }
 
-    return false;
+        return false;
+    } else {
+        for (auto& pair : private_member_values) {
+            if (pair.first == name) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
 
-std::shared_ptr<Value> Class::copyValue(const std::string name) const {
-    for (auto& pair : public_member_values) {
-        if (pair.first == name) {
-            return std::make_shared<Value>(*pair.second);
+std::shared_ptr<Value> Class::copyValue(const std::string name, const bool public_variable) const {
+    if (public_variable) {
+        for (auto& pair : public_member_values) {
+            if (pair.first == name) {
+                return std::make_shared<Value>(*pair.second);
+            }
         }
-    }
 
-    throwError(ErrorType::Runtime, "Could not find member variable '" + name + "' in class");
+        throwError(ErrorType::Runtime, "Could not find public member variable '" + name + "' in class");
+    } else {
+        for (auto& pair : private_member_values) {
+            if (pair.first == name) {
+                return std::make_shared<Value>(*pair.second);
+            }
+        }
+
+        throwError(ErrorType::Runtime, "Could not find private member variable '" + name + "' in class");
+    }
 }
 
-void Class::setValue(const std::string name, const std::shared_ptr<Value> value) {
-    public_member_values[name] = value;
+void Class::setValue(const std::string name, const std::shared_ptr<Value> value, const bool public_variable) {
+    if (public_variable) {
+        public_member_values[name] = value;
+    } else {
+        private_member_values[name] = value;
+    }
 }
 
 
 Instance::Instance(const std::shared_ptr<Class>& parent_class)
     : parent_class{parent_class} {}
 
-bool Instance::contains(const std::string name) const {
-    for (auto& pair : edited_member_variables) {
-        if (pair.first == name) {
-            return true;
+bool Instance::contains(const std::string name, const bool public_variable) const {
+    if (public_variable) {
+        for (auto& pair : edited_public_member_variables) {
+            if (pair.first == name) {
+                return true;
+            }
         }
-    }
 
-    return parent_class->contains(name);
-}
-
-void Instance::remove(const std::string name) {
-    edited_member_variables.erase(name);
-}
-
-std::shared_ptr<Value> Instance::get(const std::string name) const {
-    for (auto& pair : edited_member_variables) {
-        if (pair.first == name) {
-            return pair.second;
+        return parent_class->contains(name, public_variable);
+    } else {
+        for (auto& pair : edited_private_member_variables) {
+            if (pair.first == name) {
+                return true;
+            }
         }
-    }
 
-    return parent_class->copyValue(name);
+        return parent_class->contains(name, public_variable);
+    }
 }
 
-void Instance::set(const std::string name, std::shared_ptr<Value> value) {
-    edited_member_variables[name] = value;
+void Instance::remove(const std::string name, const bool public_variable) {
+    if (public_variable) {
+        edited_public_member_variables.erase(name);
+    } else {
+        edited_private_member_variables.erase(name);
+    }
+}
+
+std::shared_ptr<Value> Instance::get(const std::string name, const bool public_variable) const {
+    if (public_variable) {
+        for (auto& pair : edited_public_member_variables) {
+            if (pair.first == name) {
+                return pair.second;
+            }
+        }
+
+        return parent_class->copyValue(name, public_variable);
+    } else {
+        for (auto& pair : edited_private_member_variables) {
+            if (pair.first == name) {
+                return pair.second;
+            }
+        }
+
+        return parent_class->copyValue(name, public_variable);
+    }
+}
+
+void Instance::set(const std::string name, std::shared_ptr<Value> value, const bool public_variable) {
+    if (public_variable) {
+        edited_public_member_variables[name] = value;
+    } else {
+        edited_private_member_variables[name] = value;
+    }
 }
 
 std::shared_ptr<Value> Instance::getConstructor() const {

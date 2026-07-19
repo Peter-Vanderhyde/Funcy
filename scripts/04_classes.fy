@@ -2,10 +2,13 @@
 
 class Robot {
     # Public variables marked with &
+    # Public variables can be created in the constructor, or anywhere else in the class
+    # They do not need to be created here
     &name = "";
     &battery_level = 100;
     
-    # Private variable (only accessible inside the class)
+    # Private variable
+    # If you want private variables, declare them at this top level so that the rest of the class can use it
     serial_number = "UNKNOWN";
 
     # Public variables can all be defined in the constructor

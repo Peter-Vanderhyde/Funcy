@@ -101,7 +101,7 @@ public:
 
     std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Scope>& scope) override;
     std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Scope>& scope, ValueType member_type);
-    std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Instance>& instance);
+    std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Scope>& scope, const std::shared_ptr<Instance>& instance);
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
 };
@@ -206,7 +206,10 @@ public:
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;
     void setArgs(ValueList values, std::map<std::string, std::shared_ptr<Value>> pairs, const std::shared_ptr<Scope>& local_scope);
-    std::optional<std::shared_ptr<Value>> callFunc(ValueList values, std::map<std::string, std::shared_ptr<Value>> pairs);
+    std::optional<std::shared_ptr<Value>> callFunc(ValueList values,
+        std::map<std::string, std::shared_ptr<Value>> pairs,
+        std::shared_ptr<Instance> owner_instance = nullptr
+    );
     
     std::shared_ptr<Scope> call_scope; // Saves the scope at definition so it can generate scopes from it at method call
     std::shared_ptr<std::string> func_name;
