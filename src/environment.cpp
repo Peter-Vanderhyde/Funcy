@@ -381,30 +381,27 @@ void Scope::display(int depth) const {
     std::string indent(depth * 4, ' ');
     std::string branch = (depth == 0) ? "> " : "\\___ ";
     
-    // Header for the current scope level with nice colors[cite: 1]
     if (!parent) {
-        std::cout << indent << branch << "\033[1;35m[Global Scope]\033[0m" << std::endl; //[cite: 1]
+        std::cout << indent << branch << "\033[1;35m[Global Scope]\033[0m" << std::endl;
     } else if (hasThis()) {
-        std::cout << indent << branch << "\033[1;36m[Scope Instance of " << getThis()->getClassName() << "]\033[0m" << std::endl; //[cite: 1]
+        std::cout << indent << branch << "\033[1;36m[Scope Instance of " << getThis()->getClassName() << "]\033[0m" << std::endl;
     } else if (hasClassAssigned()) {
-        std::cout << indent << branch << "\033[1;36m[Class Definition Scope: " << getAssignedClass()->getName() << "]\033[0m" << std::endl; //[cite: 1]
+        std::cout << indent << branch << "\033[1;36m[Class Definition Scope: " << getAssignedClass()->getName() << "]\033[0m" << std::endl;
     } else {
-        std::cout << indent << branch << "\033[1;32m[Local Scope Frame]\033[0m" << std::endl; //[cite: 1]
+        std::cout << indent << branch << "\033[1;32m[Local Scope Frame]\033[0m" << std::endl;
     }
 
-    // Display variables inside this specific frame using safe ASCII bars[cite: 1]
-    if (variables.empty()) { //[cite: 1]
+    if (variables.empty()) {
         std::cout << indent << "    (no local variables)" << std::endl;
     } else {
-        for (const auto& pair : variables) { //[cite: 1]
-            std::cout << indent << "    +--- " << pair.first << " = " << pair.second->getPrintable(depth + 1) << std::endl; //[cite: 1, 2]
+        for (const auto& pair : variables) {
+            std::cout << indent << "    +--- " << pair.first << " = " << pair.second->getPrintable(depth + 1) << std::endl;
         }
     }
 
     std::cout << indent << "    |" << std::endl;
 
-    // Recurse up to the parent environment[cite: 1]
-    if (parent) { //[cite: 1]
+    if (parent) {
         parent->display(depth + 1);
     }
 }

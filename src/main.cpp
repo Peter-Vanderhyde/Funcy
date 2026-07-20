@@ -2,13 +2,7 @@
 // November 2024
 // Project: Funcy Language 2.0
 
-// Need to figure out how to allow instances to update in real time when they are manipulatd with this.var
 
-/*
-Use a shared_ptr and pass it to a function if the function needs to take ownership and needs to add to the reference counter to keep it alive.
-Pass a reference to other functions that just needs to edit the class or get data from it.
-When passing the shared_ptr as a reference, just dereference it with *my_pointer.
-*/
 #include <iostream>
 #include <vector>
 #include "library.h"
