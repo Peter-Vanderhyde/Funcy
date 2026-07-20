@@ -1537,6 +1537,9 @@ std::optional<std::shared_ptr<Value>> KeywordNode::evaluate(const std::shared_pt
             addTab();
         }
         if (keyword == TokenType::_DebugPause) {
+            if (!DEBUG_TRIGGERED) {
+                debug_tabs = 0;
+            }
             DEBUG_TRIGGERED = true;
         }
         else if (keyword == TokenType::_DebugShow) {
@@ -2174,9 +2177,6 @@ std::optional<std::shared_ptr<Value>> FuncNode::callFunc(ValueList values,
     if (owner_instance) {
         scope->setThis(owner_instance);
     }
-    else if (call_scope->hasThis()) {
-        scope->setThis(call_scope->getThis());
-    }
     setArgs(values, pairs, scope);
     recursion += 1;
     std::optional<std::shared_ptr<Value>> return_value = std::make_shared<Value>();
@@ -2226,8 +2226,8 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(const std::shared
                 debugPrint(debug_values);
             }
             try {
-                auto result = func->callFunc(args, pairs);
-                return result;
+                std::shared_ptr<Instance> carry_instance = scope->hasThis() ? scope->getThis() : nullptr;
+                return func->callFunc(args, pairs, carry_instance);
             }
             catch (const ErrorException& e) {
                 throwError(e.error_type, e.message, line, column);

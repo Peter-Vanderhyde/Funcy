@@ -275,6 +275,9 @@ std::shared_ptr<Scope> Scope::getGlobalScope() {
 
 std::shared_ptr<Scope> Scope::enterScope() {
     Scope new_scope{shared_from_this()};
+    if (hasThis()) {
+        new_scope.setThis(getThis());
+    }
     return std::make_shared<Scope>(new_scope);
 }
 
@@ -284,6 +287,9 @@ std::shared_ptr<Scope> Scope::exitScope() {
 
 void Scope::assignClass(const std::shared_ptr<Class> defined_class) {
     assigned_class = defined_class;
+    if (hasThis()) {
+        setThis(nullptr);
+    }
 }
 
 bool Scope::hasClassAssigned() const {
