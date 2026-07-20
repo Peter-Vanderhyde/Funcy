@@ -53,11 +53,22 @@ func main() {
         print("\e[" + str(scout.height) + ";0H");
         print("\n--- SCOUT MODE ---");
         print("Current: X=" + str(tr) + " | Zoom=" + str(span));
-        in_tr = input("New X offset (Enter to keep): ");
-        in_span = input("New Zoom (Span) (Enter to keep): ");
+        draw("Pan Camera (Arrow keys) ->");
         
-        if in_tr != "" { tr = float(in_tr); }
-        if in_span != "" { span = float(in_span); }
+        key = getKey();
+        while key == "" {
+            key = getKey();
+        }
+
+        if key == "left" {
+            tr -= 0.1 * span;
+        } elif key == "right" {
+            tr += 0.1 * span;
+        } elif key == "up" {
+            span *= 0.7;
+        } elif key == "down" {
+            span /= 0.7;
+        }
     }
 }
 

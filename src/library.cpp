@@ -18,6 +18,7 @@
 #include "context.h"
 #include "parser.h"
 #include "lexer.h"
+#include <conio.h>
 
 static const auto appStartTime = std::chrono::steady_clock::now();
 
@@ -321,6 +322,7 @@ std::shared_ptr<Scope> buildStartingEnvironment() {
     scope.addFunction("type", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getType)));
     scope.addFunction("writeFile", std::make_shared<Value>(std::make_shared<BuiltInFunction>(writeFile)));
     scope.addFunction("zip", std::make_shared<Value>(std::make_shared<BuiltInFunction>(zip)));
+    scope.addFunction("getKey", std::make_shared<Value>(std::make_shared<BuiltInFunction>(getKey)));
 
     // ValueType::Float Members
     scope.addMember(ValueType::Float, "isInt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(floatIsInt)));
@@ -1139,17 +1141,17 @@ BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, 
         throwError(ErrorType::Runtime, "read() expected an argument of Type:String but got " + getTypeStr(args[0]->getType()));
     }
 
-    std::string new_path;
+    std::filesystem::path target_path = args[0]->get<std::string>();
 
-    std::string file_path = args[0]->get<std::string>();
-    if (!std::filesystem::path(file_path).is_absolute()) {
-        std::string path = currentExecutionContext();
-        new_path = path.substr(0, path.find_last_of('/')) + "/" + file_path;
-    } else {
-        new_path = file_path;
+    if (target_path.is_relative()) {
+        std::filesystem::path script_path = currentExecutionContext();
+        
+        std::filesystem::path script_dir = script_path.parent_path();
+        
+        target_path = script_dir / target_path;
     }
 
-    std::ifstream file(new_path);
+    std::ifstream file(target_path);
     if (!file) {
         return std::make_shared<Value>();
     }
@@ -1376,20 +1378,20 @@ BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args,
         throwError(ErrorType::Runtime, "writeFile() expected an argument 2 of Type:String but got " + getTypeStr(args[1]->getType()));
     }
 
-    std::string new_path;
-    std::string file_path = args[0]->get<std::string>();
+    std::filesystem::path file_path = args[0]->get<std::string>();
     std::string content = args[1]->get<std::string>();
 
-    if (!std::filesystem::path(file_path).is_absolute()) {
-        std::string path = currentExecutionContext(); // Fetch base execution context
-        new_path = path.substr(0, path.find_last_of('/')) + "/" + file_path;
-    } else {
-        new_path = file_path;
+    if (file_path.is_relative()) {
+        std::filesystem::path script_path = currentExecutionContext();
+        
+        std::filesystem::path script_dir = script_path.parent_path();
+        
+        file_path = script_dir / file_path;
     }
 
-    std::ofstream file(new_path, std::ios::out);
+    std::ofstream file(file_path, std::ios::out);
     if (!file) {
-        throwError(ErrorType::Runtime, "Failed to open file for writing: " + new_path);
+        throwError(ErrorType::Runtime, "Failed to open file for writing: " + file_path.string());
     }
 
     file << content;
@@ -2151,4 +2153,39 @@ BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& arg
     auto name = name_val->get<std::string>();
     inst->set(name, value);
     return std::make_shared<Value>();
+}
+
+BuiltInFunctionReturn getKey(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 0) {
+        throwError(ErrorType::Runtime, "getKey() takes exactly 0 arguments.");
+    }
+
+    // Check if a key was pressed without stopping the program
+    if (_kbhit()) {
+        int ch = _getch();
+        
+        // Arrow keys and special keys return 0 or 224 first
+        if (ch == 0 || ch == 224) { 
+            int ext = _getch(); // Call again to get the actual key code
+            switch(ext) {
+                case 72: return std::make_shared<Value>(std::string("up"));
+                case 80: return std::make_shared<Value>(std::string("down"));
+                case 75: return std::make_shared<Value>(std::string("left"));
+                case 77: return std::make_shared<Value>(std::string("right"));
+                default: return std::make_shared<Value>(std::string("special"));
+            }
+        } else {
+            // Check for Enter key (ASCII 13 for Carriage Return, 10 for Line Feed)
+            if (ch == 13 || ch == 10) {
+                return std::make_shared<Value>(std::string("enter"));
+            }
+            
+            // For regular keys (letters, numbers, space, etc.)
+            std::string s(1, static_cast<char>(ch));
+            return std::make_shared<Value>(s);
+        }
+    }
+    
+    // Return an empty string if no key is pressed
+    return std::make_shared<Value>(std::string("")); 
 }

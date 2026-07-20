@@ -58,6 +58,7 @@ cmake --build .
 - [Errors](#errors)
 - [Built-in Functions](#built-in-functions)
 - [Additional Features](#additional-features)
+- [Terminal Formatting](#terminal-formatting)
 - [Language Feature Examples](#language-feature-examples)
 - [Program Examples](#program-examples)
 
@@ -486,6 +487,7 @@ Thrown errors halt the execution of the program.
 - `draw(arg1, ...) -> Null` - Prints to the screen like the normal `print` function, but does not surround strings with single quotes for cleaner image displaying.
 - `enumerate(list) -> list` - Returns index-value pairs for a list.
 - `float(value) -> float` - Converts a value to a floating-point number.
+- `getKey() -> str` - Returns the currently pressed key.
 - `globals() -> dict` - Returns a dictionary of global variables.
 - `input(prompt="") -> string` - Prompts user for input.
 - `int(value) -> int` - Converts a value to an integer.

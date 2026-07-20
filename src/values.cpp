@@ -400,12 +400,12 @@ void Instance::set(const std::string name, std::shared_ptr<Value> value, const b
 std::shared_ptr<Value> Instance::getConstructor() const {
     const std::string class_name = parent_class->getName();
     if (!contains(class_name)) {
-        throwError(ErrorType::Runtime, parent_class->getName() + " Class constructor does not exist");
+        return nullptr;
     }
 
     auto constructor = get(class_name);
     if (constructor->getType() != ValueType::Function) {
-        throwError(ErrorType::Runtime, parent_class->getName() + " Class constructor does not exist");
+        return nullptr;
     }
 
     return constructor;

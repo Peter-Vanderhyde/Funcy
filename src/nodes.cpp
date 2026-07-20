@@ -13,6 +13,7 @@
 #include "parser.h"
 #include "context.h"
 #include "lexer.h"
+#include <filesystem>
 
 bool DEBUG_AST = false;
 bool DEBUG_TRIGGERED = false;
@@ -1872,7 +1873,7 @@ std::optional<std::shared_ptr<Value>> IndexNode::getIndex(const std::shared_ptr<
 
                 // Return empty string if range is invalid
                 if (start_val >= end_val) {
-                    return std::make_shared<Value>("");
+                    return std::make_shared<Value>(std::string(""));
                 }
 
                 // Extract substring
@@ -2270,6 +2271,11 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(const std::shared
         try {
             std::shared_ptr<Instance> instance = class_value->createInstance();
             auto constructor = instance->getConstructor();
+            
+            if (constructor == nullptr) {
+                return std::make_shared<Value>(instance);
+            }
+
             auto node = constructor->get<std::shared_ptr<ASTNode>>();
             auto func_node = std::static_pointer_cast<FuncNode>(node);
             ValueList args;
@@ -2518,9 +2524,6 @@ the program execution to ignore this warning)");
         throwError(e.error_type, e.message, line, column);
     }
 
-    if (!local_scope->find(name, true)) {
-        throwError(ErrorType::Runtime, "Class " + name + " is missing a constructor", line, column);
-    }
     if (debug) subTab();
 
     return std::make_shared<Value>(new_class);

@@ -57,6 +57,7 @@ BuiltInFunctionReturn stringConverter(const std::vector<std::shared_ptr<Value>>&
 BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn getKey(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 
 BuiltInFunctionReturn floatIsInt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 
