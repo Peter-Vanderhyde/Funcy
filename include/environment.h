@@ -27,6 +27,11 @@ public:
     void addMember(const ValueType value_type, const std::string name, const std::shared_ptr<Value> func);
     std::shared_ptr<Value> getMember(const ValueType value_type, const std::string name) const;
     bool hasMember(const ValueType value_type, const std::string name) const;
+    void addLibraryFunc(const std::string library_name, const std::string library_func_name, const std::shared_ptr<Value> func);
+    std::shared_ptr<Value> getLibraryFunc(const std::string library_name, const std::string library_func_name) const;
+    bool hasLibraryFunc(const std::string library_name, const std::string library_func_name) const;
+    std::shared_ptr<Value> getLibrary(const std::string library_name) const;
+    bool hasLibrary(const std::string library_name) const;
 
     std::shared_ptr<Scope> getGlobalScope();
     std::shared_ptr<Scope> enterScope();
@@ -67,6 +72,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<Value>> member_variables;
     std::unordered_map<std::string, std::shared_ptr<Value>> built_in_functions;
     std::unordered_map<ValueType, std::unordered_map<std::string, std::shared_ptr<Value>>> type_members;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::shared_ptr<Value>>> library_modules;
 };
 
 class BreakException : public std::exception {};

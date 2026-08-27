@@ -101,6 +101,7 @@ public:
 
     std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Scope>& scope) override;
     std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Scope>& scope, ValueType member_type);
+    std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Scope>& scope, const std::string library_name);
     std::optional<std::shared_ptr<Value>> evaluate(const std::shared_ptr<Scope>& scope, const std::shared_ptr<Instance>& instance);
     void debugPrint(ValueList values) override;
     std::string getPrintable() override;

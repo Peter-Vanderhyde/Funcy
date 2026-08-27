@@ -19,6 +19,7 @@
 #include "parser.h"
 #include "lexer.h"
 #include <conio.h>
+#include <cmath>
 
 static const auto appStartTime = std::chrono::steady_clock::now();
 
@@ -373,6 +374,8 @@ std::shared_ptr<Scope> buildStartingEnvironment() {
     scope.addMember(ValueType::Instance, "getAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceGet)));
     scope.addMember(ValueType::Instance, "hasAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceHas)));
     scope.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
+
+    scope.addLibraryFunc("math", "cos", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCos)));
 
     return std::make_shared<Scope>(scope);
 }
@@ -2188,4 +2191,18 @@ BuiltInFunctionReturn getKey(const std::vector<std::shared_ptr<Value>>& args, Sc
     
     // Return an empty string if no key is pressed
     return std::make_shared<Value>(std::string("")); 
+}
+
+
+
+BuiltInFunctionReturn cmathCos(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "cmathCos() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "cmathCos() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(cos(args[1]->get<double>()));
 }

@@ -103,3 +103,6 @@ BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& arg
 BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+
+
+BuiltInFunctionReturn cmathCos(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);

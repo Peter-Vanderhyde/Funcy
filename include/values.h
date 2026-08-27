@@ -111,6 +111,7 @@ enum class ValueType {
     BuiltInFunction,
     Class,
     Instance,
+    Library,
     Type
 };
 

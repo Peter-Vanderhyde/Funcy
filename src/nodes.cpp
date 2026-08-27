@@ -775,6 +775,17 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(const std::shared_p
             // It's a member function
             // Save the result of the member to pass into the function
             auto saved_object = func_node->member_value; // The object node on the left of the '.' that the right side function operates on
+            if (member_type == ValueType::Type && left_value.value()->get<ValueType>() == ValueType::Library) {
+                // Left side is name of a library, so alter the values to get the name
+                if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
+                    member_type = ValueType::Library;
+                    func_node->member_value = std::make_shared<Value>(ident_node->name);
+                    auto returned = func_node->evaluate(scope, member_type);
+                    func_node->member_value = saved_object;
+                    return returned;
+                }
+            }
+
             func_node->member_value = left_value.value();
             // Pass member type so evaluate knows to search for functions in that type's built-in library
             auto returned = func_node->evaluate(scope, member_type);
@@ -784,6 +795,9 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(const std::shared_p
         else if (auto ident_node = std::dynamic_pointer_cast<IdentifierNode>(right)) {
             if (member_type == ValueType::Instance) {
                 return ident_node->evaluate(scope, left_value.value()->get<std::shared_ptr<Instance>>());
+            }
+            else if (member_type == ValueType::Type && left_value.value()->get<ValueType>() == ValueType::Library) {
+                return ident_node->evaluate(scope, std::dynamic_pointer_cast<IdentifierNode>(left)->name);
             }
             
             return ident_node->evaluate(scope, member_type);
@@ -1000,6 +1014,8 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared
             debugWait();
         }
         return scope->getFunction(name);
+    } else if (scope->hasLibrary(name)) {
+        return scope->getLibrary(name);
     } else {
         throwError(ErrorType::Runtime, std::format("Name '{}' is not defined", name), line, column);
     }
@@ -1027,6 +1043,19 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared
         return scope->getMember(member_type, name);
     } else {
         throwError(ErrorType::Runtime, name + " is not defined", line, column);
+    }
+    return std::nullopt;
+}
+
+std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared_ptr<Scope>& scope, const std::string library_name) {
+    if (scope->hasLibraryFunc(library_name, name)) {
+        if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
+            std::cout << getTabs() + "Evaluating Library Identifier: " + name + " -> " + scope->getLibraryFunc(library_name, name)->getPrintable(debug_tabs) << std::endl;
+            debugWait();
+        }
+        return scope->getLibraryFunc(library_name, name);
+    } else {
+        throwError(ErrorType::Runtime, name + " is not defined in library '" + library_name + "'", line, column);
     }
     return std::nullopt;
 }
@@ -2320,7 +2349,11 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(const std::shared
         owner_instance = member_value->get<std::shared_ptr<Instance>>();
         mapped_value = ident_node->evaluate(scope, owner_instance).value();
     } else {
-        mapped_value = ident_node->evaluate(scope, dotted_type).value();
+        if (dotted_type == ValueType::Library && member_value->getType() == ValueType::String) {
+            mapped_value = ident_node->evaluate(scope, member_value->get<std::string>()).value();
+        } else {
+            mapped_value = ident_node->evaluate(scope, dotted_type).value();
+        }
     }
     if (mapped_value->getType() == ValueType::Function) {
         auto func_value = mapped_value->get<std::shared_ptr<ASTNode>>();

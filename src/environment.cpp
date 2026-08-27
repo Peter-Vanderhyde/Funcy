@@ -264,6 +264,74 @@ bool Scope::hasMember(const ValueType value_type, const std::string name) const 
     }
 }
 
+void Scope::addLibraryFunc(const std::string library_name, const std::string library_func_name, const std::shared_ptr<Value> func) {
+    if (!parent) {
+        library_modules[library_name][library_func_name] = func;
+    } else {
+        parent->addLibraryFunc(library_name, library_func_name, func);
+    }
+}
+
+std::shared_ptr<Value> Scope::getLibraryFunc(const std::string library_name, const std::string library_func_name) const {
+    if (!parent) {
+        auto library = library_modules.find(library_name);
+        if (library != library_modules.end()) {
+            auto func = library->second.find(library_func_name);
+            if (func != library->second.end()) {
+                return func->second;
+            } else {
+                throwError(ErrorType::Runtime, "Unrecognized library func '" + library_func_name + "' for library '" + library_name + "'");
+            }
+        } else {
+            throwError(ErrorType::Runtime, "Unrecognized library name '" + library_name + "'");
+        }
+    } else {
+        return parent->getLibraryFunc(library_name, library_func_name);
+    }
+}
+
+bool Scope::hasLibraryFunc(const std::string library_name, const std::string library_func_name) const {
+    if (!parent) {
+        auto library = library_modules.find(library_name);
+        if (library != library_modules.end()) {
+            auto func = library->second.find(library_func_name);
+            if (func != library->second.end()) {
+                return true;
+            }
+        }
+        
+        return false;
+    } else {
+        return parent->hasLibraryFunc(library_name, library_func_name);
+    }
+}
+
+std::shared_ptr<Value> Scope::getLibrary(const std::string library_name) const {
+    if (!parent) {
+        auto library = library_modules.find(library_name);
+        if (library != library_modules.end()) {
+            return std::make_shared<Value>(ValueType::Library);
+        }
+
+        throwError(ErrorType::Runtime, "Unrecognized library '" + library_name + "'");
+    } else {
+        return parent->getLibrary(library_name);
+    }
+}
+
+bool Scope::hasLibrary(const std::string library_name) const {
+    if (!parent) {
+        auto library = library_modules.find(library_name);
+        if (library != library_modules.end()) {
+            return true;
+        }
+
+        return false;
+    } else {
+        return parent->hasLibrary(library_name);
+    }
+}
+
 
 std::shared_ptr<Scope> Scope::getGlobalScope() {
     if (!parent) {

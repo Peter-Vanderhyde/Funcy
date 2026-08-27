@@ -693,6 +693,8 @@ std::string getValueStr(Value value) {
             return "class";
         case ValueType::Instance:
             return "instance";
+        case ValueType::Library:
+            return "library";
         case ValueType::None:
             return "null";
         default:
@@ -717,6 +719,7 @@ std::string getTypeStr(ValueType type) {
         {ValueType::Dictionary, "Type:Dictionary"},
         {ValueType::Class, "Type:Class"},
         {ValueType::Instance, "Type:Instance"},
+        {ValueType::Library, "Type:Library"},
         {ValueType::None, "Null"}
     };
     if (types.count(type) != 0) {
