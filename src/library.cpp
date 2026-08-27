@@ -376,6 +376,17 @@ std::shared_ptr<Scope> buildStartingEnvironment() {
     scope.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
 
     scope.addLibraryFunc("math", "cos", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCos)));
+    scope.addLibraryFunc("math", "sin", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSin)));
+    scope.addLibraryFunc("math", "tan", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTan)));
+    scope.addLibraryFunc("math", "exp", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathExp)));
+    scope.addLibraryFunc("math", "log", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathLog)));
+    scope.addLibraryFunc("math", "pow", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathPow)));
+    scope.addLibraryFunc("math", "sqrt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSqrt)));
+    scope.addLibraryFunc("math", "ceil", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCeil)));
+    scope.addLibraryFunc("math", "floor", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathFloor)));
+    scope.addLibraryFunc("math", "trunc", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTrunc)));
+    scope.addLibraryFunc("math", "round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathRound)));
+    scope.addLibraryFunc("math", "abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAbs)));
 
     return std::make_shared<Scope>(scope);
 }
@@ -2194,15 +2205,165 @@ BuiltInFunctionReturn getKey(const std::vector<std::shared_ptr<Value>>& args, Sc
 }
 
 
-
+// Math Library Functions
 BuiltInFunctionReturn cmathCos(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
-        throwError(ErrorType::Runtime, "cmathCos() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+        throwError(ErrorType::Runtime, "math.cos() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "cmathCos() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.cos() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
     }
 
-    return std::make_shared<Value>(cos(args[1]->get<double>()));
+    return std::make_shared<Value>(std::cos(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathSin(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.sin() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.sin() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::sin(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathTan(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.tan() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.tan() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::tan(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathExp(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.exp() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.exp() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::exp(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathLog(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.log() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.log() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::log(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathPow(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 3) {
+        throwError(ErrorType::Runtime, "math.pow() takes exactly 2 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.pow() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+    if (args[2]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.pow() expected an argument of Type:Float but got " + getTypeStr(args[2]->getType()));
+    }
+
+    return std::make_shared<Value>(std::pow(args[1]->get<double>(), args[2]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathSqrt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.sqrt() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.sqrt() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::sqrt(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathCeil(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.ceil() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.ceil() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::ceil(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathFloor(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.floor() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.floor() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::floor(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathFmod(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 3) {
+        throwError(ErrorType::Runtime, "math.fmod() takes exactly 2 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.fmod() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+    if (args[2]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.fmod() expected an argument of Type:Float but got " + getTypeStr(args[2]->getType()));
+    }
+
+    return std::make_shared<Value>(std::fmod(args[1]->get<double>(), args[2]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathTrunc(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.trunc() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.trunc() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::trunc(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathRound(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.round() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.round() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::round(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathAbs(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.abs() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.abs() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::abs(args[1]->get<double>()));
 }

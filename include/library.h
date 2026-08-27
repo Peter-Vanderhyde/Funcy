@@ -105,4 +105,16 @@ BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& arg
 BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 
 
+// Math Library
 BuiltInFunctionReturn cmathCos(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathSin(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathTan(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathExp(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathLog(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathPow(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathSqrt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathCeil(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathFloor(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathTrunc(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathRound(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathAbs(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
