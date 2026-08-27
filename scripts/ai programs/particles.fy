@@ -2,10 +2,10 @@
 
 # Simple delay loop (can be swapped with your delayMs from game.fy)
 func pause() {
-    # start = time();
-    # while time() - start < 25 {
-    #     continue;
-    # }
+    start = time();
+    while time() - start < 50 {
+        continue;
+    }
 }
 
 class Particle {
@@ -125,6 +125,7 @@ class ParticleSystem {
 system = ParticleSystem(60, 25, 0.08);
 mode = "fireworks";
 
+showCursor(false);
 for frame = 0, frame < 1000, frame += 1 {
     
     # Switch modes halfway through
@@ -151,3 +152,4 @@ for frame = 0, frame < 1000, frame += 1 {
     print("Mode: " + mode + " | Particles: " + str(length(system.particles)));
     pause();
 }
+showCursor();
