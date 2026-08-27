@@ -115,6 +115,7 @@ BuiltInFunctionReturn cmathPow(const std::vector<std::shared_ptr<Value>>& args, 
 BuiltInFunctionReturn cmathSqrt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathCeil(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathFloor(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathFmod(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathTrunc(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathRound(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathAbs(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);

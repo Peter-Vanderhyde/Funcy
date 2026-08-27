@@ -57,6 +57,7 @@ cmake --build .
 - [Keywords](#keywords)
 - [Errors](#errors)
 - [Built-in Functions](#built-in-functions)
+- [Math Functions](#math-functions)
 - [Additional Features](#additional-features)
 - [Terminal Formatting](#terminal-formatting)
 - [Language Feature Examples](#language-feature-examples)
@@ -568,6 +569,28 @@ Thrown errors halt the execution of the program.
 ### Float Functions:
 
 - `isInt() -> bool` - Checks if the float is equivalent to an integer.
+
+---
+
+## Math Functions
+Funcy provides some basic math functions, utilizing the math functions within C++ to provide fast and efficient mathematical computations.  
+Functions are called with the prefix: `math`.
+
+### Functions
+
+- `math.cos(radian_angle) -> float`
+- `math.sin(radian_angle) -> float`
+- `math.tan(radian_angle) -> float`
+- `math.exp(value) -> float`
+- `math.log(value) -> float`
+- `math.pow(base, exponent) -> float`
+- `math.sqrt(value) -> float`
+- `math.ceil(value) -> float`
+- `math.floor(value) -> float`
+- `math.fmod(numerator, denominator) -> float`
+- `math.trunc(value) -> float`
+- `math.round(value) -> float`
+- `math.abs(value) -> float`
 
 ---
 

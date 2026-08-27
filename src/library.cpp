@@ -384,6 +384,7 @@ std::shared_ptr<Scope> buildStartingEnvironment() {
     scope.addLibraryFunc("math", "sqrt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSqrt)));
     scope.addLibraryFunc("math", "ceil", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCeil)));
     scope.addLibraryFunc("math", "floor", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathFloor)));
+    scope.addLibraryFunc("math", "fmod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathFmod)));
     scope.addLibraryFunc("math", "trunc", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTrunc)));
     scope.addLibraryFunc("math", "round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathRound)));
     scope.addLibraryFunc("math", "abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAbs)));
