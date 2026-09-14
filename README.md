@@ -57,7 +57,7 @@ cmake --build .
 - [Keywords](#keywords)
 - [Errors](#errors)
 - [Built-in Functions](#built-in-functions)
-- [Math Functions](#math-functions)
+- [Math Library](#math-library)
 - [Additional Features](#additional-features)
 - [Terminal Formatting](#terminal-formatting)
 - [Language Feature Examples](#language-feature-examples)
@@ -572,9 +572,9 @@ Thrown errors halt the execution of the program.
 
 ---
 
-## Math Functions
-Funcy provides some basic math functions, utilizing the math functions within C++ to provide fast and efficient mathematical computations.  
-Functions are called with the prefix: `math`.
+## Math Library
+Funcy provides some basic math functions and constants, utilizing the math functions within C++ to provide fast and efficient mathematical computations.  
+Functions and constants are called with the prefix: `math`.
 
 ### Functions
 
@@ -590,7 +590,23 @@ Functions are called with the prefix: `math`.
 - `math.fmod(numerator, denominator) -> float`
 - `math.trunc(value) -> float`
 - `math.round(value) -> float`
-- `math.abs(value) -> float`
+- `math.acos(value) -> float`
+- `math.asin(value) -> float`
+- `math.atan(value) -> float`
+- `math.atan2(value, value) -> float`
+- `math.log10(value) -> float`
+- `math.log2(value) -> float`
+- `math.cbrt(value) -> float`
+- `math.hypot(value, value) -> float`
+- `math.degrees(value) -> float`
+- `math.radians(value) -> float`
+- `math.clamp(value, min, max) -> float`
+
+### Constants
+
+- `math.PI`
+- `math.E`
+- `math.INF`
 
 ---
 

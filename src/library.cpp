@@ -375,19 +375,32 @@ std::shared_ptr<Scope> buildStartingEnvironment() {
     scope.addMember(ValueType::Instance, "hasAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceHas)));
     scope.addMember(ValueType::Instance, "setAttr", std::make_shared<Value>(std::make_shared<BuiltInFunction>(instanceSet)));
 
-    scope.addLibraryFunc("math", "cos", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCos)));
-    scope.addLibraryFunc("math", "sin", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSin)));
-    scope.addLibraryFunc("math", "tan", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTan)));
-    scope.addLibraryFunc("math", "exp", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathExp)));
-    scope.addLibraryFunc("math", "log", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathLog)));
-    scope.addLibraryFunc("math", "pow", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathPow)));
-    scope.addLibraryFunc("math", "sqrt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSqrt)));
-    scope.addLibraryFunc("math", "ceil", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCeil)));
-    scope.addLibraryFunc("math", "floor", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathFloor)));
-    scope.addLibraryFunc("math", "fmod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathFmod)));
-    scope.addLibraryFunc("math", "trunc", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTrunc)));
-    scope.addLibraryFunc("math", "round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathRound)));
-    scope.addLibraryFunc("math", "abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAbs)));
+    scope.addLibraryEntry("math", "cos", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCos)));
+    scope.addLibraryEntry("math", "sin", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSin)));
+    scope.addLibraryEntry("math", "tan", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTan)));
+    scope.addLibraryEntry("math", "exp", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathExp)));
+    scope.addLibraryEntry("math", "log", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathLog)));
+    scope.addLibraryEntry("math", "pow", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathPow)));
+    scope.addLibraryEntry("math", "sqrt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSqrt)));
+    scope.addLibraryEntry("math", "ceil", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCeil)));
+    scope.addLibraryEntry("math", "floor", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathFloor)));
+    scope.addLibraryEntry("math", "fmod", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathFmod)));
+    scope.addLibraryEntry("math", "trunc", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTrunc)));
+    scope.addLibraryEntry("math", "round", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathRound)));
+    scope.addLibraryEntry("math", "acos", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAcos)));
+    scope.addLibraryEntry("math", "asin", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAsin)));
+    scope.addLibraryEntry("math", "atan", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAtan)));
+    scope.addLibraryEntry("math", "atan2", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAtan2)));
+    scope.addLibraryEntry("math", "log10", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathLog10)));
+    scope.addLibraryEntry("math", "log2", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathLog2)));
+    scope.addLibraryEntry("math", "cbrt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCbrt)));
+    scope.addLibraryEntry("math", "hypot", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathHypot)));
+    scope.addLibraryEntry("math", "degrees", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathToDegrees)));
+    scope.addLibraryEntry("math", "radians", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathToRadians)));
+    scope.addLibraryEntry("math", "clamp", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathClamp)));
+    scope.addLibraryEntry("math", "PI", std::make_shared<Value>(std::numbers::pi));
+    scope.addLibraryEntry("math", "E", std::make_shared<Value>(std::numbers::e));
+    scope.addLibraryEntry("math", "INF", std::make_shared<Value>(std::numeric_limits<double>::infinity()));
 
     return std::make_shared<Scope>(scope);
 }
@@ -407,7 +420,7 @@ BuiltInFunctionReturn absoluteValue(const std::vector<std::shared_ptr<Value>>& a
         case ValueType::Float:
             return std::make_shared<Value>(std::abs(args[0]->get<double>()));
         default:
-            throwError(ErrorType::Runtime, "abs() expected an argument of Type:Integer or Type:Float but got " + getTypeStr(args[0]->getType()));
+            throwError(ErrorType::Runtime, "abs() expected an argument of type integer or float but got " + getValueStr(args[0]));
     }
     return std::nullopt;
 }
@@ -418,7 +431,7 @@ BuiltInFunctionReturn all(const std::vector<std::shared_ptr<Value>>& args, Scope
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "all() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "all() expected an argument of type list but got " + getValueStr(args[0]));
     }
 
     auto list = args[0]->get<std::shared_ptr<List>>();
@@ -441,7 +454,7 @@ BuiltInFunctionReturn any(const std::vector<std::shared_ptr<Value>>& args, Scope
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "any() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "any() expected an argument of type list but got " + getValueStr(args[0]));
     }
 
     auto list = args[0]->get<std::shared_ptr<List>>();
@@ -464,11 +477,11 @@ BuiltInFunctionReturn appendFile(const std::vector<std::shared_ptr<Value>>& args
     }
 
     if (args[0]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "appendFile() expected an argument 1 of Type:String but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "appendFile() expected an argument 1 of type string but got " + getValueStr(args[0]));
     }
 
     if (args[1]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "appendFile() expected an argument 2 of Type:String but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "appendFile() expected an argument 2 of type string but got " + getValueStr(args[1]));
     }
 
     std::shared_ptr<Value> filename = args[0];
@@ -510,7 +523,7 @@ BuiltInFunctionReturn boolConverter(const std::vector<std::shared_ptr<Value>>& a
         case ValueType::List:
             return std::make_shared<Value>(!arg->get<std::shared_ptr<List>>()->empty());
         default:
-            throwError(ErrorType::Runtime, "Unsupported type for bool conversion: " + getTypeStr(arg->getType()));
+            throwError(ErrorType::Runtime, "Type " + getValueStr(arg) + " does not support boolean conversion");
     }
 }
 
@@ -594,10 +607,10 @@ BuiltInFunctionReturn divMod(const std::vector<std::shared_ptr<Value>>& args, Sc
     }
 
     if (args[0]->getType() != ValueType::Integer) {
-        throwError(ErrorType::Runtime, "divMod() expected an argument 1 of Type:Integer but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "divMod() expected an argument 1 of type integer but got " + getValueStr(args[0]));
     }
     if (args[1]->getType() != ValueType::Integer) {
-        throwError(ErrorType::Runtime, "divMod() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "divMod() expected an argument 2 of type integer but got " + getValueStr(args[1]));
     }
 
     int dividend = args[0]->get<int>();
@@ -627,12 +640,12 @@ BuiltInFunctionReturn enumerate(const std::vector<std::shared_ptr<Value>>& args,
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "enumerate() expected an argument 1 of Type:List but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "enumerate() expected an argument 1 of type list but got " + getValueStr(args[0]));
     }
     int start = 0;
     if (args.size() == 2) {
         if (args[1]->getType() != ValueType::Integer) {
-            throwError(ErrorType::Runtime, "enumerate() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+            throwError(ErrorType::Runtime, "enumerate() expected an argument 2 of type integer but got " + getValueStr(args[1]));
         }
         start = args[1]->get<int>();
     }
@@ -666,7 +679,7 @@ BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& 
                 double doubleValue = std::stod(arg->get<std::string>());
                 return std::make_shared<Value>(doubleValue);
             } catch (const std::invalid_argument&) {
-                throwError(ErrorType::Runtime, "Cannot convert Type:String to Type:Float");
+                throwError(ErrorType::Runtime, "Cannot convert type string to float");
             } catch (const std::out_of_range&) {
                 throwError(ErrorType::Runtime, "String value out of range for float conversion");
             }
@@ -674,7 +687,7 @@ BuiltInFunctionReturn floatConverter(const std::vector<std::shared_ptr<Value>>& 
         case ValueType::Boolean:
             return std::make_shared<Value>(arg->get<bool>() ? 1.0 : 0.0);
         default:
-            throwError(ErrorType::Runtime, "Unsupported type for float conversion: " + getTypeStr(arg->getType()));
+            throwError(ErrorType::Runtime, "Type " + getValueStr(arg) + " does not support float conversion");
     }
 }
 
@@ -737,7 +750,7 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
                 int int_value = std::stoi(arg->get<std::string>());
                 return std::make_shared<Value>(int_value);
             } catch (const std::invalid_argument&) {
-                throwError(ErrorType::Runtime, "Cannot convert Type:String to Type:Integer");
+                throwError(ErrorType::Runtime, "Cannot convert type string to integer");
             } catch (const std::out_of_range&) {
                 throwError(ErrorType::Runtime, "String value out of range for int conversion");
             }
@@ -751,7 +764,7 @@ BuiltInFunctionReturn intConverter(const std::vector<std::shared_ptr<Value>>& ar
             }
         }
         default:
-            throwError(ErrorType::Runtime, "Unsupported type for int conversion: " + getTypeStr(arg->getType()));
+            throwError(ErrorType::Runtime, "Type " + getValueStr(arg) + " does not support integer conversion");
     }
 }
 
@@ -769,7 +782,7 @@ BuiltInFunctionReturn length(const std::vector<std::shared_ptr<Value>>& args, Sc
     } else if (type == ValueType::Dictionary) {
         return std::make_shared<Value>(static_cast<int>(value->get<std::shared_ptr<Dictionary>>()->size()));
     } else {
-        throwError(ErrorType::Runtime, "Object of " + getTypeStr(value->getType()) + " has no length");
+        throwError(ErrorType::Runtime, "Object of type " + getValueStr(value) + " has no length");
     }
     return std::nullopt;
 }
@@ -836,11 +849,11 @@ BuiltInFunctionReturn map(const std::vector<std::shared_ptr<Value>>& args, Scope
     auto list_value = args[1];
 
     if (func->getType() != ValueType::Function && func->getType() != ValueType::BuiltInFunction) {
-        throwError(ErrorType::Runtime, "map() expected an argument 1 of Type:Function or Type:BuiltInFunction but got " + getTypeStr(func->getType()));
+        throwError(ErrorType::Runtime, "map() expected an argument 1 of type function or builtin function but got " + getValueStr(func));
     }
 
     if (list_value->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "map() expected an argument 2 of Type:List but got " + getTypeStr(list_value->getType()));
+        throwError(ErrorType::Runtime, "map() expected an argument 2 of type list but got " + getValueStr(list_value));
     }
 
     auto list = list_value->get<std::shared_ptr<List>>();
@@ -883,7 +896,7 @@ BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Scope
     std::shared_ptr<List> list;
     if (args.size() == 1) {
         if (args[0]->getType() != ValueType::List) {
-            throwError(ErrorType::Runtime, "max() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+            throwError(ErrorType::Runtime, "max() expected an argument of type list but got " + getValueStr(args[0]));
         }
         list = args[0]->get<std::shared_ptr<List>>();
     } else {
@@ -905,8 +918,8 @@ BuiltInFunctionReturn max(const std::vector<std::shared_ptr<Value>>& args, Scope
         if (!(item_type == first_type || 
               (item_type == ValueType::Integer && first_type == ValueType::Float) || 
               (item_type == ValueType::Float && first_type == ValueType::Integer))) {
-            throw std::runtime_error("max() '>' comparison is not supported between " + getTypeStr(first_type) +
-                                     " and " + getTypeStr(item_type));
+            throw std::runtime_error("max() '>' comparison is not supported between " + getValueStr(list->at(0)) +
+                                     " and " + getValueStr(item));
         }
     }
 
@@ -958,7 +971,7 @@ BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Scope
     std::shared_ptr<List> list;
     if (args.size() == 1) {
         if (args[0]->getType() != ValueType::List) {
-            throwError(ErrorType::Runtime, "min() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+            throwError(ErrorType::Runtime, "min() expected an argument of type list but got " + getValueStr(args[0]));
         }
         list = args[0]->get<std::shared_ptr<List>>();
     } else {
@@ -980,8 +993,8 @@ BuiltInFunctionReturn min(const std::vector<std::shared_ptr<Value>>& args, Scope
         if (!(item_type == first_type || 
               (item_type == ValueType::Integer && first_type == ValueType::Float) || 
               (item_type == ValueType::Float && first_type == ValueType::Integer))) {
-            throw std::runtime_error("min() '>' comparison is not supported between " + getTypeStr(first_type) +
-                                     " and " + getTypeStr(item_type));
+            throw std::runtime_error("min() '>' comparison is not supported between " + getValueStr(list->at(0)) +
+                                     " and " + getValueStr(item));
         }
     }
 
@@ -1040,7 +1053,7 @@ BuiltInFunctionReturn randChoice(const std::vector<std::shared_ptr<Value>>& args
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "randChoice() expected an argument 1 of Type:List but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "randChoice() expected an argument 1 of type list but got " + getValueStr(args[0]));
     }
 
     auto list = args[0]->get<std::shared_ptr<List>>();
@@ -1059,10 +1072,10 @@ BuiltInFunctionReturn randInt(const std::vector<std::shared_ptr<Value>>& args, S
     }
 
     if (args[0]->getType() != ValueType::Integer) {
-        throwError(ErrorType::Runtime, "randInt() expected an argument 1 of Type:Integer but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "randInt() expected an argument 1 of type integer but got " + getValueStr(args[0]));
     }
     if (args[1]->getType() != ValueType::Integer) {
-        throwError(ErrorType::Runtime, "randInt() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "randInt() expected an argument 2 of type integer but got " + getValueStr(args[1]));
     }
 
     int min = args[0]->get<int>();
@@ -1081,7 +1094,7 @@ BuiltInFunctionReturn randShuffle(const std::vector<std::shared_ptr<Value>>& arg
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "randShuffle() expected an argument 1 of Type:List but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "randShuffle() expected an argument 1 of type list but got " + getValueStr(args[0]));
     }
 
     auto list = args[0]->get<std::shared_ptr<List>>();
@@ -1110,7 +1123,7 @@ BuiltInFunctionReturn range(const std::vector<std::shared_ptr<Value>>& args, Sco
 
     for (int i = 0; i < args.size(); i++) {
         if (args[i]->getType() != ValueType::Integer) {
-            throwError(ErrorType::Runtime, "range() expected an argument " + std::to_string(i) + " of Type:Integer but got " + getTypeStr(args[i]->getType()));
+            throwError(ErrorType::Runtime, "range() expected an argument " + std::to_string(i) + " of type integer but got " + getValueStr(args[i]));
         }
     }
 
@@ -1153,7 +1166,7 @@ BuiltInFunctionReturn readFile(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[0]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "read() expected an argument of Type:String but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "read() expected an argument of type string but got " + getValueStr(args[0]));
     }
 
     std::filesystem::path target_path = args[0]->get<std::string>();
@@ -1184,7 +1197,7 @@ BuiltInFunctionReturn reversed(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "reversed() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "reversed() expected an argument of type list but got " + getValueStr(args[0]));
     }
 
     auto list = args[0]->get<std::shared_ptr<List>>();
@@ -1203,13 +1216,13 @@ BuiltInFunctionReturn roundVal(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[0]->getType() != ValueType::Integer && args[0]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "round() expected an argument 1 of Type:Integer or Type:Float but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "round() expected an argument 1 of type integer or float but got " + getValueStr(args[0]));
     }
 
     int precision = 0; // Default precision
     if (args.size() == 2) {
         if (args[1]->getType() != ValueType::Integer) {
-            throwError(ErrorType::Runtime, "round() expected an argument 2 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+            throwError(ErrorType::Runtime, "round() expected an argument 2 of type integer but got " + getValueStr(args[1]));
         }
         precision = args[1]->get<int>();
     }
@@ -1238,7 +1251,7 @@ BuiltInFunctionReturn showCursor(const std::vector<std::shared_ptr<Value>>& args
     std::string command = "\e[?25h";
     if (args.size() == 1) {
         if (args[0]->getType() != ValueType::Boolean) {
-            throwError(ErrorType::Runtime, "showCursor() expected an argument of Type:Boolean but got " + getTypeStr(args[0]->getType()));
+            throwError(ErrorType::Runtime, "showCursor() expected an argument of type boolean but got " + getValueStr(args[0]));
         }
 
         if (!args[0]->get<bool>()) {
@@ -1257,7 +1270,7 @@ BuiltInFunctionReturn sleep(const std::vector<std::shared_ptr<Value>>& args, Sco
 
     const ValueType vt = args[0]->getType();
     if (vt != ValueType::Integer && vt != ValueType::Float) {
-        throwError(ErrorType::Runtime, "sleep() expected an argument of Type:Integer or Type:Float but got " + getTypeStr(vt));
+        throwError(ErrorType::Runtime, "sleep() expected an argument of type integer or float but got " + getValueStr(args[0]));
     }
 
     if (vt == ValueType::Integer) {
@@ -1356,7 +1369,7 @@ BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Scope
     }
 
     if (args[0]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "sum() expected an argument of Type:List but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "sum() expected an argument of type list but got " + getValueStr(args[0]));
     }
 
     auto list = args[0]->get<std::shared_ptr<List>>();
@@ -1370,7 +1383,7 @@ BuiltInFunctionReturn sum(const std::vector<std::shared_ptr<Value>>& args, Scope
             not_ints = true;
             summation += num->get<double>();
         } else {
-            throwError(ErrorType::Runtime, "Unsupported operation: Type:Float '+' " + getTypeStr(num->getType()));
+            throwError(ErrorType::Runtime, "Unsupported operation: type float '+' " + getValueStr(num));
         }
     }
 
@@ -1387,10 +1400,10 @@ BuiltInFunctionReturn writeFile(const std::vector<std::shared_ptr<Value>>& args,
     }
 
     if (args[0]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "writeFile() expected an argument 1 of Type:String but got " + getTypeStr(args[0]->getType()));
+        throwError(ErrorType::Runtime, "writeFile() expected an argument 1 of type string but got " + getValueStr(args[0]));
     }
     if (args[1]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "writeFile() expected an argument 2 of Type:String but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "writeFile() expected an argument 2 of type string but got " + getValueStr(args[1]));
     }
 
     std::filesystem::path file_path = args[0]->get<std::string>();
@@ -1425,7 +1438,7 @@ BuiltInFunctionReturn zip(const std::vector<std::shared_ptr<Value>>& args, Scope
     int i = 0;
     for (auto arg : args) {
         if (arg->getType() != ValueType::List) {
-            throwError(ErrorType::Runtime, "zip() expected an argument " + std::to_string(i) + " of Type:List but got " + getTypeStr(arg->getType()));
+            throwError(ErrorType::Runtime, "zip() expected an argument " + std::to_string(i) + " of type list but got " + getValueStr(arg));
         }
         int size = arg->get<std::shared_ptr<List>>()->size();
         if (size < min_size) {
@@ -1505,13 +1518,13 @@ BuiltInFunctionReturn listIndex(const std::vector<std::shared_ptr<Value>>& args,
     auto end = list->size();
     if (args.size() >= 3) {
         if (args[2]->getType() != ValueType::Integer) {
-            throwError(ErrorType::Runtime, "index() expected an argument 2 of Type:Integer but got " + getTypeStr(args[2]->getType()));
+            throwError(ErrorType::Runtime, "index() expected an argument 2 of type integer but got " + getValueStr(args[2]));
         }
         start = args[2]->get<int>();
     }
     if (args.size() == 4) {
         if (args[3]->getType() != ValueType::Integer) {
-            throwError(ErrorType::Runtime, "index() expected an argument 3 of Type:Integer but got " + getTypeStr(args[3]->getType()));
+            throwError(ErrorType::Runtime, "index() expected an argument 3 of type integer but got " + getValueStr(args[3]));
         }
         end = args[3]->get<int>();
     }
@@ -1543,7 +1556,7 @@ BuiltInFunctionReturn listInsert(const std::vector<std::shared_ptr<Value>>& args
 
     auto list = args[0]->get<std::shared_ptr<List>>();
     if (args[1]->getType() != ValueType::Integer) {
-        throwError(ErrorType::Runtime, "insert() expected an argument 1 of Type:Integer but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "insert() expected an argument 1 of type integer but got " + getValueStr(args[1]));
     }
     auto index = args[1]->get<int>();
     auto value = args[2];
@@ -1562,7 +1575,7 @@ BuiltInFunctionReturn listPop(const std::vector<std::shared_ptr<Value>>& args, S
         index = -1;
     } else {
         if (args[1]->getType() != ValueType::Integer) {
-            throwError(ErrorType::Runtime, "pop() expected an argument of Type:Integer but got " + getValueStr(args[1]));
+            throwError(ErrorType::Runtime, "pop() expected an argument of type integer but got " + getValueStr(args[1]));
         }
         index = args[1]->get<int>();
     }
@@ -1773,7 +1786,7 @@ BuiltInFunctionReturn dictUpdate(const std::vector<std::shared_ptr<Value>>& args
     auto dict = args[0]->get<std::shared_ptr<Dictionary>>();
     std::shared_ptr<Dictionary> other_dict;
     if (args[1]->getType() != ValueType::Dictionary) {
-        throwError(ErrorType::Runtime, "update() expected an argument of Type:Dictionary but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "update() expected an argument of type dictionary but got " + getValueStr(args[1]));
     }
     other_dict = args[1]->get<std::shared_ptr<Dictionary>>();
 
@@ -1811,7 +1824,7 @@ BuiltInFunctionReturn stringEndsWith(const std::vector<std::shared_ptr<Value>>& 
 
     std::string string = args[0]->get<std::string>();
     if (args[1]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "endsWith() expects an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "endsWith() expects an argument 1 of type string but got " + getValueStr(args[1]));
     }
     std::string substr = args[1]->get<std::string>();
     if (string.length() < substr.length()) {
@@ -1834,7 +1847,7 @@ BuiltInFunctionReturn stringFind(const std::vector<std::shared_ptr<Value>>& args
 
     std::string string = args[0]->get<std::string>();
     if (args[1]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "find() expected an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "find() expected an argument 1 of type string but got " + getValueStr(args[1]));
     }
     std::string substr = args[1]->get<std::string>();
 
@@ -1918,7 +1931,7 @@ BuiltInFunctionReturn stringJoin(const std::vector<std::shared_ptr<Value>>& args
     std::string joiner = args[0]->get<std::string>();
 
     if (args[1]->getType() != ValueType::List) {
-        throwError(ErrorType::Runtime, "join() expected an argument of Type:List but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "join() expected an argument of type list but got " + getValueStr(args[1]));
     }
     auto segments = args[1]->get<std::shared_ptr<List>>();
     std::string combined = "";
@@ -1967,13 +1980,13 @@ BuiltInFunctionReturn stringReplace(const std::vector<std::shared_ptr<Value>>& a
 
     // Get the substring to replace
     if (args[1]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "replace() expected an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "replace() expected an argument 1 of type string but got " + getValueStr(args[1]));
     }
     std::string to_replace = args[1]->get<std::string>();
 
     // Get the replacement substring
     if (args[2]->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "replace() expected an argument 2 of Type:String but got " + getTypeStr(args[2]->getType()));
+        throwError(ErrorType::Runtime, "replace() expected an argument 2 of type string but got " + getValueStr(args[2]));
     }
     std::string replacement = args[2]->get<std::string>();
 
@@ -1999,7 +2012,7 @@ BuiltInFunctionReturn stringSplit(const std::vector<std::shared_ptr<Value>>& arg
         if (args[1]->getType() == ValueType::String) {
             delimiter = args[1]->get<std::string>();
         } else {
-            throwError(ErrorType::Runtime, "split() expected an argument 1 of Type:String but got " + getTypeStr(args[1]->getType()));
+            throwError(ErrorType::Runtime, "split() expected an argument 1 of type string but got " + getValueStr(args[1]));
         }
     }
 
@@ -2042,7 +2055,7 @@ BuiltInFunctionReturn stringStrip(const std::vector<std::shared_ptr<Value>>& arg
         if (args[1]->getType() == ValueType::String) {
             strip_chars = args[1]->get<std::string>();
         } else {
-            throwError(ErrorType::Runtime, "strip() expected an argument of Type:String but got " + getTypeStr(args[1]->getType()));
+            throwError(ErrorType::Runtime, "strip() expected an argument of type string but got " + getValueStr(args[1]));
         }
     }
 
@@ -2108,7 +2121,7 @@ BuiltInFunctionReturn instanceDel(const std::vector<std::shared_ptr<Value>>& arg
     auto inst = args[0]->get<std::shared_ptr<Instance>>();
     auto name_val = args[1];
     if (name_val->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "delAttr() expected an argument of Type:String but got " + getTypeStr(name_val->getType()));
+        throwError(ErrorType::Runtime, "delAttr() expected an argument of type string but got " + getValueStr(name_val));
     }
 
     auto name = name_val->get<std::string>();
@@ -2126,7 +2139,7 @@ BuiltInFunctionReturn instanceGet(const std::vector<std::shared_ptr<Value>>& arg
     auto inst = args[0]->get<std::shared_ptr<Instance>>();
     auto name_val = args[1];
     if (name_val->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "getAttr() expected an argument of Type:String but got " + getTypeStr(name_val->getType()));
+        throwError(ErrorType::Runtime, "getAttr() expected an argument of type string but got " + getValueStr(name_val));
     }
 
     auto name = name_val->get<std::string>();
@@ -2145,7 +2158,7 @@ BuiltInFunctionReturn instanceHas(const std::vector<std::shared_ptr<Value>>& arg
     auto inst = args[0]->get<std::shared_ptr<Instance>>();
     auto name = args[1];
     if (name->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "hasAttr() expected an argument of Type:String but got " + getTypeStr(name->getType()));
+        throwError(ErrorType::Runtime, "hasAttr() expected an argument of type string but got " + getValueStr(name));
     }
 
     bool has = inst->contains(name->get<std::string>());
@@ -2162,7 +2175,7 @@ BuiltInFunctionReturn instanceSet(const std::vector<std::shared_ptr<Value>>& arg
     auto name_val = args[1];
     auto value = args[2];
     if (name_val->getType() != ValueType::String) {
-        throwError(ErrorType::Runtime, "setAttr() expected an argument of Type:String but got " + getTypeStr(name_val->getType()));
+        throwError(ErrorType::Runtime, "setAttr() expected an argument of type string but got " + getValueStr(name_val));
     }
     
     auto name = name_val->get<std::string>();
@@ -2213,7 +2226,7 @@ BuiltInFunctionReturn cmathCos(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.cos() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.cos() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::cos(args[1]->get<double>()));
@@ -2225,7 +2238,7 @@ BuiltInFunctionReturn cmathSin(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.sin() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.sin() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::sin(args[1]->get<double>()));
@@ -2237,7 +2250,7 @@ BuiltInFunctionReturn cmathTan(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.tan() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.tan() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::tan(args[1]->get<double>()));
@@ -2249,7 +2262,7 @@ BuiltInFunctionReturn cmathExp(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.exp() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.exp() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::exp(args[1]->get<double>()));
@@ -2261,7 +2274,7 @@ BuiltInFunctionReturn cmathLog(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.log() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.log() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::log(args[1]->get<double>()));
@@ -2273,10 +2286,10 @@ BuiltInFunctionReturn cmathPow(const std::vector<std::shared_ptr<Value>>& args, 
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.pow() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.pow() expected an argument of type float but got " + getValueStr(args[1]));
     }
     if (args[2]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.pow() expected an argument of Type:Float but got " + getTypeStr(args[2]->getType()));
+        throwError(ErrorType::Runtime, "math.pow() expected an argument of type float but got " + getValueStr(args[2]));
     }
 
     return std::make_shared<Value>(std::pow(args[1]->get<double>(), args[2]->get<double>()));
@@ -2288,7 +2301,7 @@ BuiltInFunctionReturn cmathSqrt(const std::vector<std::shared_ptr<Value>>& args,
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.sqrt() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.sqrt() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::sqrt(args[1]->get<double>()));
@@ -2300,7 +2313,7 @@ BuiltInFunctionReturn cmathCeil(const std::vector<std::shared_ptr<Value>>& args,
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.ceil() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.ceil() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::ceil(args[1]->get<double>()));
@@ -2312,7 +2325,7 @@ BuiltInFunctionReturn cmathFloor(const std::vector<std::shared_ptr<Value>>& args
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.floor() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.floor() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::floor(args[1]->get<double>()));
@@ -2324,10 +2337,10 @@ BuiltInFunctionReturn cmathFmod(const std::vector<std::shared_ptr<Value>>& args,
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.fmod() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.fmod() expected an argument of type float but got " + getValueStr(args[1]));
     }
     if (args[2]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.fmod() expected an argument of Type:Float but got " + getTypeStr(args[2]->getType()));
+        throwError(ErrorType::Runtime, "math.fmod() expected an argument of type float but got " + getValueStr(args[2]));
     }
 
     return std::make_shared<Value>(std::fmod(args[1]->get<double>(), args[2]->get<double>()));
@@ -2339,7 +2352,7 @@ BuiltInFunctionReturn cmathTrunc(const std::vector<std::shared_ptr<Value>>& args
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.trunc() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.trunc() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::trunc(args[1]->get<double>()));
@@ -2351,20 +2364,151 @@ BuiltInFunctionReturn cmathRound(const std::vector<std::shared_ptr<Value>>& args
     }
 
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.round() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.round() expected an argument of type float but got " + getValueStr(args[1]));
     }
 
     return std::make_shared<Value>(std::round(args[1]->get<double>()));
 }
 
-BuiltInFunctionReturn cmathAbs(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+// Inverse Trigonometric Functions
+BuiltInFunctionReturn cmathAcos(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
-        throwError(ErrorType::Runtime, "math.abs() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+        throwError(ErrorType::Runtime, "math.acos() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
     }
-
     if (args[1]->getType() != ValueType::Float) {
-        throwError(ErrorType::Runtime, "math.abs() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+        throwError(ErrorType::Runtime, "math.acos() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::acos(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathAsin(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.asin() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.asin() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::asin(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathAtan(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.atan() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.atan() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::atan(args[1]->get<double>()));
+}
+
+// 2-Argument Arctangent (Handles quadrants correctly)
+BuiltInFunctionReturn cmathAtan2(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 3) {
+        throwError(ErrorType::Runtime, "math.atan2() takes exactly 2 arguments. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.atan2() expected argument 1 to be type float but got " + getValueStr(args[1]));
+    }
+    if (args[2]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.atan2() expected argument 2 to be type float but got " + getValueStr(args[2]));
+    }
+    return std::make_shared<Value>(std::atan2(args[1]->get<double>(), args[2]->get<double>()));
+}
+
+// Logarithms
+BuiltInFunctionReturn cmathLog10(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.log10() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.log10() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::log10(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathLog2(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.log2() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.log2() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::log2(args[1]->get<double>()));
+}
+
+// Misc Utility Functions
+BuiltInFunctionReturn cmathCbrt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.cbrt() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.cbrt() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::cbrt(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathHypot(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 3) {
+        throwError(ErrorType::Runtime, "math.hypot() takes exactly 2 arguments. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.hypot() expected argument 1 to be type float but got " + getValueStr(args[1]));
+    }
+    if (args[2]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.hypot() expected argument 2 to be type float but got " + getValueStr(args[2]));
+    }
+    return std::make_shared<Value>(std::hypot(args[1]->get<double>(), args[2]->get<double>()));
+}
+
+// Unit Conversions
+BuiltInFunctionReturn cmathToDegrees(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.degrees() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.degrees() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    constexpr double radToDeg = 180.0 / 3.14159265358979323846;
+    return std::make_shared<Value>(args[1]->get<double>() * radToDeg);
+}
+
+BuiltInFunctionReturn cmathToRadians(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.radians() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.radians() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    constexpr double degToRad = 3.14159265358979323846 / 180.0;
+    return std::make_shared<Value>(args[1]->get<double>() * degToRad);
+}
+
+BuiltInFunctionReturn cmathClamp(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 4) {
+        throwError(ErrorType::Runtime, "math.clamp() takes exactly 3 arguments. " + std::to_string(args.size() - 1) + " were given");
     }
 
-    return std::make_shared<Value>(std::abs(args[1]->get<double>()));
+    auto getDouble = [args](int arg_index) {
+        if (args[arg_index]->getType() == ValueType::Integer) {
+            return static_cast<double>(args[arg_index]->get<int>());
+        }
+        else if (args[arg_index]->getType() == ValueType::Float) {
+            return args[arg_index]->get<double>();
+        }
+        else {
+            throwError(ErrorType::Runtime, "math.clamp() expected argument " + std::to_string(arg_index) +
+                        " of type integer or float but got " + getValueStr(args[arg_index]));
+            return 0.0;
+        }
+    };
+
+    double val = getDouble(1);
+    double min = getDouble(2);
+    double max = getDouble(3);
+
+    if (min > max) {
+        throwError(ErrorType::Runtime, "Received a minimum value greater than the maximum value");
+    }
+
+    return std::make_shared<Value>(std::clamp(val, min, max));
 }

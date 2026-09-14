@@ -264,15 +264,15 @@ bool Scope::hasMember(const ValueType value_type, const std::string name) const 
     }
 }
 
-void Scope::addLibraryFunc(const std::string library_name, const std::string library_func_name, const std::shared_ptr<Value> func) {
+void Scope::addLibraryEntry(const std::string library_name, const std::string library_func_name, const std::shared_ptr<Value> func) {
     if (!parent) {
         library_modules[library_name][library_func_name] = func;
     } else {
-        parent->addLibraryFunc(library_name, library_func_name, func);
+        parent->addLibraryEntry(library_name, library_func_name, func);
     }
 }
 
-std::shared_ptr<Value> Scope::getLibraryFunc(const std::string library_name, const std::string library_func_name) const {
+std::shared_ptr<Value> Scope::getLibraryEntry(const std::string library_name, const std::string library_func_name) const {
     if (!parent) {
         auto library = library_modules.find(library_name);
         if (library != library_modules.end()) {
@@ -286,11 +286,11 @@ std::shared_ptr<Value> Scope::getLibraryFunc(const std::string library_name, con
             throwError(ErrorType::Runtime, "Unrecognized library name '" + library_name + "'");
         }
     } else {
-        return parent->getLibraryFunc(library_name, library_func_name);
+        return parent->getLibraryEntry(library_name, library_func_name);
     }
 }
 
-bool Scope::hasLibraryFunc(const std::string library_name, const std::string library_func_name) const {
+bool Scope::hasLibraryEntry(const std::string library_name, const std::string library_func_name) const {
     if (!parent) {
         auto library = library_modules.find(library_name);
         if (library != library_modules.end()) {
@@ -302,7 +302,7 @@ bool Scope::hasLibraryFunc(const std::string library_name, const std::string lib
         
         return false;
     } else {
-        return parent->hasLibraryFunc(library_name, library_func_name);
+        return parent->hasLibraryEntry(library_name, library_func_name);
     }
 }
 

@@ -27,9 +27,9 @@ public:
     void addMember(const ValueType value_type, const std::string name, const std::shared_ptr<Value> func);
     std::shared_ptr<Value> getMember(const ValueType value_type, const std::string name) const;
     bool hasMember(const ValueType value_type, const std::string name) const;
-    void addLibraryFunc(const std::string library_name, const std::string library_func_name, const std::shared_ptr<Value> func);
-    std::shared_ptr<Value> getLibraryFunc(const std::string library_name, const std::string library_func_name) const;
-    bool hasLibraryFunc(const std::string library_name, const std::string library_func_name) const;
+    void addLibraryEntry(const std::string library_name, const std::string library_func_name, const std::shared_ptr<Value> func);
+    std::shared_ptr<Value> getLibraryEntry(const std::string library_name, const std::string library_func_name) const;
+    bool hasLibraryEntry(const std::string library_name, const std::string library_func_name) const;
     std::shared_ptr<Value> getLibrary(const std::string library_name) const;
     bool hasLibrary(const std::string library_name) const;
 

@@ -1048,12 +1048,12 @@ std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared
 }
 
 std::optional<std::shared_ptr<Value>> IdentifierNode::evaluate(const std::shared_ptr<Scope>& scope, const std::string library_name) {
-    if (scope->hasLibraryFunc(library_name, name)) {
+    if (scope->hasLibraryEntry(library_name, name)) {
         if (debug && (DEBUG_TRIGGERED || DEBUG_SHOWING)) {
-            std::cout << getTabs() + "Evaluating Library Identifier: " + name + " -> " + scope->getLibraryFunc(library_name, name)->getPrintable(debug_tabs) << std::endl;
+            std::cout << getTabs() + "Evaluating Library Identifier: " + name + " -> " + scope->getLibraryEntry(library_name, name)->getPrintable(debug_tabs) << std::endl;
             debugWait();
         }
-        return scope->getLibraryFunc(library_name, name);
+        return scope->getLibraryEntry(library_name, name);
     } else {
         throwError(ErrorType::Runtime, name + " is not defined in library '" + library_name + "'", line, column);
     }
@@ -2408,7 +2408,11 @@ std::optional<std::shared_ptr<Value>> MethodCallNode::evaluate(const std::shared
         }
     }
     else {
-        throwError(ErrorType::Runtime, "Object type " + getTypeStr(dotted_type) + " has no member function " + ident_node->name, line, column);
+        if (dotted_type == ValueType::Library) {
+            throwError(ErrorType::Runtime, "Object '" + ident_node->name + "' of type " + getValueStr(mapped_value) + " is not callable", line, column);
+        } else {
+            throwError(ErrorType::Runtime, "Object type " + getTypeStr(dotted_type) + " has no member function " + ident_node->name, line, column);
+        }
     }
     return std::nullopt;
 }
