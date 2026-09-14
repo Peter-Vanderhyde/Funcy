@@ -122,6 +122,9 @@ BuiltInFunctionReturn cmathAcos(const std::vector<std::shared_ptr<Value>>& args,
 BuiltInFunctionReturn cmathAsin(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathAtan(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathAtan2(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathCosh(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathSinh(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathTanh(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathLog10(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathLog2(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathCbrt(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
@@ -129,3 +132,4 @@ BuiltInFunctionReturn cmathHypot(const std::vector<std::shared_ptr<Value>>& args
 BuiltInFunctionReturn cmathToDegrees(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathToRadians(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
 BuiltInFunctionReturn cmathClamp(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);
+BuiltInFunctionReturn cmathAbs(const std::vector<std::shared_ptr<Value>>& args, Scope& scope);

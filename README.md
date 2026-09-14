@@ -594,13 +594,17 @@ Functions and constants are called with the prefix: `math`.
 - `math.asin(value) -> float`
 - `math.atan(value) -> float`
 - `math.atan2(value, value) -> float`
+- `math.sinh(value) -> float`
+- `math.cosh(value) -> float`
+- `math.tanh(value) -> float`
 - `math.log10(value) -> float`
 - `math.log2(value) -> float`
 - `math.cbrt(value) -> float`
 - `math.hypot(value, value) -> float`
 - `math.degrees(value) -> float`
 - `math.radians(value) -> float`
-- `math.clamp(value, min, max) -> float`
+- `math.clamp(value, min, max) -> float or integer`
+- `math.abs(value) -> float`
 
 ### Constants
 

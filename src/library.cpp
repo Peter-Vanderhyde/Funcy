@@ -391,6 +391,9 @@ std::shared_ptr<Scope> buildStartingEnvironment() {
     scope.addLibraryEntry("math", "asin", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAsin)));
     scope.addLibraryEntry("math", "atan", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAtan)));
     scope.addLibraryEntry("math", "atan2", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAtan2)));
+    scope.addLibraryEntry("math", "cosh", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCosh)));
+    scope.addLibraryEntry("math", "sinh", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathSinh)));
+    scope.addLibraryEntry("math", "tanh", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathTanh)));
     scope.addLibraryEntry("math", "log10", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathLog10)));
     scope.addLibraryEntry("math", "log2", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathLog2)));
     scope.addLibraryEntry("math", "cbrt", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathCbrt)));
@@ -398,6 +401,7 @@ std::shared_ptr<Scope> buildStartingEnvironment() {
     scope.addLibraryEntry("math", "degrees", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathToDegrees)));
     scope.addLibraryEntry("math", "radians", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathToRadians)));
     scope.addLibraryEntry("math", "clamp", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathClamp)));
+    scope.addLibraryEntry("math", "abs", std::make_shared<Value>(std::make_shared<BuiltInFunction>(cmathAbs)));
     scope.addLibraryEntry("math", "PI", std::make_shared<Value>(std::numbers::pi));
     scope.addLibraryEntry("math", "E", std::make_shared<Value>(std::numbers::e));
     scope.addLibraryEntry("math", "INF", std::make_shared<Value>(std::numeric_limits<double>::infinity()));
@@ -2415,6 +2419,37 @@ BuiltInFunctionReturn cmathAtan2(const std::vector<std::shared_ptr<Value>>& args
     return std::make_shared<Value>(std::atan2(args[1]->get<double>(), args[2]->get<double>()));
 }
 
+// Hyperbolic Functions
+BuiltInFunctionReturn cmathCosh(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.cosh() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.cosh() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::cosh(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathSinh(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.sinh() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.sinh() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::sinh(args[1]->get<double>()));
+}
+
+BuiltInFunctionReturn cmathTanh(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.tanh() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.tanh() expected an argument of type float but got " + getValueStr(args[1]));
+    }
+    return std::make_shared<Value>(std::tanh(args[1]->get<double>()));
+}
+
 // Logarithms
 BuiltInFunctionReturn cmathLog10(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
     if (args.size() != 2) {
@@ -2510,5 +2545,22 @@ BuiltInFunctionReturn cmathClamp(const std::vector<std::shared_ptr<Value>>& args
         throwError(ErrorType::Runtime, "Received a minimum value greater than the maximum value");
     }
 
-    return std::make_shared<Value>(std::clamp(val, min, max));
+    double result = std::clamp(val, min, max);
+    if (args[2]->getType() == ValueType::Integer && args[3]->getType() == ValueType::Integer) {
+        return std::make_shared<Value>(static_cast<int>(result));
+    } else {
+        return std::make_shared<Value>(result);
+    }
+}
+
+BuiltInFunctionReturn cmathAbs(const std::vector<std::shared_ptr<Value>>& args, Scope& scope) {
+    if (args.size() != 2) {
+        throwError(ErrorType::Runtime, "math.abs() takes exactly 1 argument. " + std::to_string(args.size() - 1) + " were given");
+    }
+
+    if (args[1]->getType() != ValueType::Float) {
+        throwError(ErrorType::Runtime, "math.abs() expected an argument of Type:Float but got " + getTypeStr(args[1]->getType()));
+    }
+
+    return std::make_shared<Value>(std::abs(args[1]->get<double>()));
 }
