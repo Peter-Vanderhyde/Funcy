@@ -726,11 +726,13 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(const std::shared_p
                 if (left_value && left_value.value()->getType() == ValueType::Instance) {
                     auto instance = left_value.value()->get<std::shared_ptr<Instance>>();
                     instance->set(attr_ident->name, right_value.value());
+                } else if (left_value && left_value.value()->getType() == ValueType::Type && left_value.value()->get<ValueType>() == ValueType::Library) {
+                    throwError(ErrorType::Runtime, "Cannot assign library values to new values", line, column);
                 } else {
                     throwError(ErrorType::Runtime, getValueStr(left_value.value()) + " object has no attribute " + attr_ident->name, line, column);
                 }
             } else {
-                throwError(ErrorType::Runtime, "Invalid syntax", line, column);
+                throwError(ErrorType::Runtime, "Can only assign values to variables, not to " + node->right->getPrintable(), line, column);
             }
         } else if (auto identifier_node = std::dynamic_pointer_cast<IdentifierNode>(left)) {
             scope->set(identifier_node->name, right_value.value(), identifier_node->member_variable);
@@ -914,7 +916,7 @@ std::optional<std::shared_ptr<Value>> BinaryOpNode::evaluate(const std::shared_p
                             throwError(ErrorType::Runtime, getValueStr(left_value.value()) + " object has no attribute: " + attr_ident->name, line, column);
                         }
                     } else {
-                        throwError(ErrorType::Runtime, "Invalid syntax", line, column);
+                        throwError(ErrorType::Runtime, "Can only assign values to variables, not to " + node->right->getPrintable(), line, column);
                     }
                 }
                 else {
